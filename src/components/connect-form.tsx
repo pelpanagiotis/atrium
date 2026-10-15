@@ -33,7 +33,8 @@ export function ConnectForm({
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="accessToken">Access token</Label>
-          <Input id="accessToken" name="accessToken" type="password" required minLength={8} autoComplete="off" className="mt-1" />
+          <Input id="accessToken" name="accessToken" type="password" required minLength={8} autoComplete="off" className="mt-1" placeholder="lin_api_…" />
+          <p className="mt-1 text-xs text-muted">Paste a Linear personal API key as copied. Atrium sends that key without a Bearer prefix.</p>
         </div>
         <div>
           <Label htmlFor="webhookSecret">Webhook secret</Label>

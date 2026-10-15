@@ -222,6 +222,27 @@ describe("provider adapters", () => {
     const projects = await jiraAdapter.listProjects({ ...ctx, mappings: jiraAdapter.defaultMappings() }, null);
     expect(projects.items[0]?.key).toBe("APP");
     expect(projects.nextCursor).toBe("50");
+    let authorization = "";
+    setProviderFetch(async (_url, init) => {
+      authorization = new Headers(init?.headers).get("authorization") ?? "";
+      return json({ data: { viewer: { id: "u1", name: "Ada" } } });
+    });
+    await linearAdapter.validateConnection({
+      ...ctx,
+      credentials: { ...ctx.credentials, accessToken: "Bearer lin_api_example" },
+      mappings: linearAdapter.defaultMappings(),
+    });
+    expect(authorization).toBe("lin_api_example");
+    await linearAdapter.validateConnection({
+      ...ctx,
+      credentials: { ...ctx.credentials, accessToken: "oauth-access-token" },
+      mappings: linearAdapter.defaultMappings(),
+    });
+    expect(authorization).toBe("Bearer oauth-access-token");
+    setProviderFetch(async () => json({ errors: [{ message: "Linear rejected the key" }] }, 400));
+    await expect(
+      linearAdapter.validateConnection({ ...ctx, mappings: linearAdapter.defaultMappings() }),
+    ).rejects.toThrow("Linear rejected the key");
     setProviderFetch(async () => json({}, 401));
     await expect(jiraAdapter.validateConnection({ ...ctx, mappings: jiraAdapter.defaultMappings() })).rejects.toBeInstanceOf(ProviderError);
     setProviderFetch(null);

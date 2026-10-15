@@ -1,5 +1,4 @@
 import { assertSafeOutboundUrl, type DnsResolver } from "../crypto/ssrf";
-import { redact } from "../log";
 import { ProviderError } from "./types";
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -27,8 +26,20 @@ function retryAfterMs(response: Response): number | undefined {
 
 async function readError(response: Response): Promise<string> {
   const text = await response.text();
-  const clipped = text.slice(0, 300);
-  return JSON.stringify(redact(clipped));
+  try {
+    const parsed = JSON.parse(text) as {
+      message?: string;
+      errorMessages?: string[];
+      errors?: Array<{ message?: string }>;
+    };
+    const graphql = parsed.errors?.map((error) => error.message).filter((message): message is string => Boolean(message));
+    if (graphql && graphql.length > 0) return graphql.join("; ");
+    if (parsed.message) return parsed.message;
+    if (parsed.errorMessages && parsed.errorMessages.length > 0) return parsed.errorMessages.join("; ");
+  } catch {
+    // The provider returned a non-JSON body.
+  }
+  return text.slice(0, 300);
 }
 
 export async function providerFetch(url: string, init: RequestInit = {}, redirects = 0): Promise<Response> {

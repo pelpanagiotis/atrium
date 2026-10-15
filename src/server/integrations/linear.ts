@@ -44,10 +44,20 @@ function defaultMappings(): FieldMappings {
   };
 }
 
+export function normalizeLinearToken(token: string): string {
+  return token.trim().replace(/^Bearer\s+/i, "");
+}
+
+export function linearAuthorization(token: string): string {
+  const value = normalizeLinearToken(token);
+  if (value.startsWith("lin_api_")) return value;
+  return `Bearer ${value}`;
+}
+
 async function gql<T>(token: string, query: string, variables: Record<string, unknown>): Promise<T> {
   const response = await providerFetch(ENDPOINT, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    headers: { authorization: linearAuthorization(token), "content-type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
   const body = (await response.json()) as { data?: T; errors?: Array<{ message: string }> };

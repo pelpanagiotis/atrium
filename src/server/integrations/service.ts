@@ -7,6 +7,7 @@ import { textArray } from "../db/sql";
 import { sha256 } from "../crypto/secrets";
 import { integrationView, openCredential, sealCredential } from "./credentials";
 import { seedFakeProject } from "./fake";
+import { normalizeLinearToken } from "./linear";
 import { getAdapter, OAUTH_SCOPES } from "./registry";
 import type { FieldMappings, ProviderId, RemoteProject, StoredCredential } from "./types";
 
@@ -107,7 +108,7 @@ export async function connectWithToken(
   },
 ): Promise<string> {
   const provider = parseProvider(input.provider);
-  const token = input.accessToken.trim();
+  const token = provider === "linear" ? normalizeLinearToken(input.accessToken) : input.accessToken.trim();
   if (token.length < 8) throw new Error("Access token is too short");
   const displayName = input.displayName.trim();
   if (displayName.length < 2) throw new Error("Name the connection so you can recognize it later");
