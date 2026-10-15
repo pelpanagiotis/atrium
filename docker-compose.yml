@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: atrium
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD}
+      WORKER_PASSWORD: ${WORKER_PASSWORD:?set WORKER_PASSWORD}
+      MIGRATE_PASSWORD: ${MIGRATE_PASSWORD:?set MIGRATE_PASSWORD}
+    volumes:
+      - atrium-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d atrium"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build: .
+    command: ["pnpm", "db:migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_MIGRATE: postgres://atrium_migrator:${MIGRATE_PASSWORD}@postgres:5432/atrium
+    restart: "no"
+
+  app:
+    build: .
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://atrium_app:${APP_PASSWORD}@postgres:5432/atrium
+      DATABASE_URL_WORKER: postgres://atrium_worker:${WORKER_PASSWORD}@postgres:5432/atrium
+      DATABASE_URL_MIGRATE: postgres://atrium_migrator:${MIGRATE_PASSWORD}@postgres:5432/atrium
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://127.0.0.1:38471}
+      CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:?set CREDENTIAL_ENCRYPTION_KEY}
+      ALLOW_FAKE_PROVIDER: ${ALLOW_FAKE_PROVIDER:-false}
+      EMBEDDED_WORKER: "false"
+      NODE_ENV: production
+    ports:
+      - "38471:38471"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.atrium.rule=Host(`${ATRIUM_HOST:-atrium.localhost}`)
+      - traefik.http.routers.atrium.entrypoints=websecure
+      - traefik.http.routers.atrium.tls=true
+      - traefik.http.services.atrium.loadbalancer.server.port=38471
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:38471/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build: .
+    command: ["pnpm", "worker"]
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://atrium_app:${APP_PASSWORD}@postgres:5432/atrium
+      DATABASE_URL_WORKER: postgres://atrium_worker:${WORKER_PASSWORD}@postgres:5432/atrium
+      CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:?set CREDENTIAL_ENCRYPTION_KEY}
+      ALLOW_FAKE_PROVIDER: ${ALLOW_FAKE_PROVIDER:-false}
+      NODE_ENV: production
+
+volumes:
+  atrium-data:

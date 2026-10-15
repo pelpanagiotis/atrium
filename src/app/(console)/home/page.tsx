@@ -1,0 +1,106 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { connection } from "next/server";
+import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { getSessionUser } from "@/server/auth/session";
+import { workspaceContext } from "@/server/auth/workspace";
+import { homeFeed } from "@/server/home/service";
+import { formatWhen } from "@/lib/utils";
+
+export const instant = false;
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted">Gathering priorities…</p>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
+  await connection();
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  const { current } = await workspaceContext(user.id);
+  // eslint-disable-next-line react-hooks/purity -- connection() already opted this request out of prerender
+  const feed = await homeFeed(user.id, current.id, Date.now());
+  return (
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs uppercase tracking-[0.18em] text-muted">{current.kind}</p>
+        <h1 className="text-4xl">{current.name}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          Priorities, deadlines, and sync health for this workspace. Records from a provider stay labeled and link back to the source.
+        </p>
+      </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        <Panel title="Needs attention" empty="Nothing urgent is open.">
+          {feed.priorities.map((task) => (
+            <TaskLine key={String(task.id)} href={`/tasks?q=${encodeURIComponent(String(task.title))}`} title={String(task.title)} meta={`${task.priority} · ${task.project_name}`} provider={task.provider as string | null} />
+          ))}
+        </Panel>
+        <Panel title="Due this week" empty="No deadlines in the next seven days.">
+          {feed.dueSoon.map((task) => (
+            <TaskLine key={String(task.id)} href="/calendar" title={String(task.title)} meta={formatWhen(task.due_at as Date)} provider={task.provider as string | null} />
+          ))}
+        </Panel>
+        <Panel title="Blocked" empty="No blocked tasks.">
+          {feed.blocked.map((task) => (
+            <TaskLine key={String(task.id)} href="/tasks?status=blocked" title={String(task.title)} meta={String(task.project_name)} provider={task.provider as string | null} />
+          ))}
+        </Panel>
+      </section>
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border bg-card p-4">
+          <h2 className="text-xl">Sync health</h2>
+          {feed.health.length === 0 ? <p className="mt-3 text-sm text-muted">No provider is connected. Native work still lives here.</p> : null}
+          <ul className="mt-3 space-y-3">
+            {feed.health.map((row) => (
+              <li key={row.display_name} className="flex items-start justify-between gap-3 text-sm">
+                <div>
+                  <p className="font-medium">{row.display_name}</p>
+                  <p className="text-muted">{row.last_error ? row.last_error : row.last_success_at ? `Synced ${formatWhen(row.last_success_at)}` : "Waiting for the first sync"}</p>
+                </div>
+                <Badge tone={row.stale ? "error" : row.status}>{row.stale ? "stale" : row.status}</Badge>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-lg border bg-card p-4">
+          <h2 className="text-xl">Recent sync activity</h2>
+          {feed.activity.length === 0 ? <p className="mt-3 text-sm text-muted">Synchronization events will show up here.</p> : null}
+          <ul className="mt-3 space-y-2 text-sm">
+            {feed.activity.map((row) => (
+              <li key={String(row.id)} className="flex justify-between gap-3">
+                <span>{String(row.action)} {String(row.entity_type)} · {String(row.status)}</span>
+                <span className="text-muted">{formatWhen(row.created_at as Date)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Panel({ title, empty, children }: { title: string; empty: string; children: React.ReactNode }) {
+  const list = Array.isArray(children) ? children : [children];
+  const filled = list.some(Boolean);
+  return (
+    <section className="rounded-lg border bg-card p-4">
+      <h2 className="text-xl">{title}</h2>
+      {!filled ? <p className="mt-3 text-sm text-muted">{empty}</p> : <div className="mt-3 space-y-3">{children}</div>}
+    </section>
+  );
+}
+
+function TaskLine({ title, meta, provider, href }: { title: string; meta: string; provider: string | null; href: string }) {
+  return (
+    <Link href={href} className="block">
+      <p className="font-medium">{title}</p>
+      <p className="text-xs text-muted">{meta}</p>
+      <Badge tone={provider ? "external" : "native"}>{provider ?? "native"}</Badge>
+    </Link>
+  );
+}

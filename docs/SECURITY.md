@@ -1,0 +1,20 @@
+# Security checklist
+
+- [ ] `BETTER_AUTH_SECRET` and `CREDENTIAL_ENCRYPTION_KEY` are unique, 32-byte base64 values, and are not stored in the database backup.
+- [ ] `atrium_app` is not a superuser and does not have `BYPASSRLS`.
+- [ ] `atrium_migrator` is used only for migrations.
+- [ ] `DATABASE_URL_WORKER` is present on the worker, not in browser code.
+- [ ] `ALLOW_FAKE_PROVIDER` is false outside tests and local demos.
+- [ ] `BETTER_AUTH_URL` is the public https origin. Secure cookies turn on when `NODE_ENV=production`.
+- [ ] Traefik or another proxy sets a request body limit. The webhook route also rejects bodies over 1 MB.
+- [ ] Webhook routes require a valid HMAC over the raw body. Invalid signatures return 401 after the delivery is stored as rejected.
+- [ ] Auth and webhook endpoints are rate limited in Postgres.
+- [ ] Provider tokens are encrypted. Disconnect sets `credential_ciphertext` to null. List responses expose `hasCredential`, not the secret.
+- [ ] Logs pass through `redact` for keys that look like tokens, secrets, passwords, or cookies.
+- [ ] Outbound provider calls allow only https on port 443 to Linear, Atlassian, and GitHub hosts. `*.atlassian.net` is resolved and rejected if it points at a private address.
+- [ ] OAuth scopes stay at the minimum listed in `docs/DEPLOYMENT.md`. Revoke a connection from Integrations; that clears the stored credential.
+- [ ] Invitations store only a SHA-256 of the token. The raw link is shown once to the inviter. There is no mail transport.
+- [ ] Every private page and server action reads the session. Workspace role checks run in the service, not only in the interface.
+- [ ] Review audit events for role changes, invitations, integration connect and disconnect, and task mutations.
+
+Known boundary: anyone who can connect as `atrium_app` can set `app.current_user_id`. Treat that connection string as an application secret.
