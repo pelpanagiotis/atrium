@@ -131,7 +131,7 @@ async function TasksResults({
   return (
     <form id={TASK_BULK_FORM_ID} action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col gap-3">
       <input type="hidden" name="workspaceId" value={current.id} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <TaskList
           canWrite={canWrite}
           tasks={tasks.map((task) => ({
