@@ -2,12 +2,13 @@ import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { inviteAction, removeMemberAction, roleAction, updateWorkspaceAction } from "@/app/actions";
+import { inviteAction, removeMemberAction, roleAction } from "@/app/actions";
 import { CreateWorkspaceForm } from "@/components/create-workspace-form";
+import { EditWorkspaceDialog } from "@/components/edit-workspace-dialog";
 import { InviteForm } from "@/components/invite-form";
-import { WorkspaceIconBadge, WorkspaceIconPicker } from "@/components/workspace-icon-picker";
+import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/field";
+import { Select } from "@/components/ui/field";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listInvitations, listMembers } from "@/server/workspaces/service";
@@ -37,44 +38,24 @@ async function WorkspacesContent() {
         <p className="mt-1 text-sm text-muted">Personal and work contexts are isolated. A person only sees a workspace they belong to.</p>
       </div>
       <ul className="grid gap-3 md:grid-cols-2">
-        {workspaces.map((workspace) => (
-          <li key={workspace.id} className="rounded-lg border bg-card p-4">
-            <div className="flex items-start gap-3">
-              <WorkspaceIconBadge icon={workspace.icon} kind={workspace.kind} />
-              <div className="min-w-0">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted">{workspace.kind}</p>
-                <p className="text-lg font-medium">{workspace.name}</p>
-                <p className="text-sm text-muted">Your role: {workspace.role}</p>
+        {workspaces.map((workspace) => {
+          const canEdit = workspace.role === "owner" || workspace.role === "admin";
+          return (
+            <li key={workspace.id} className="rounded-lg border bg-card p-4">
+              <div className="flex items-start gap-3">
+                <WorkspaceIconBadge icon={workspace.icon} kind={workspace.kind} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted">{workspace.kind}</p>
+                  <p className="text-lg font-medium">{workspace.name}</p>
+                  <p className="text-sm text-muted">Your role: {workspace.role}</p>
+                </div>
+                {canEdit ? <EditWorkspaceDialog workspace={workspace} /> : null}
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       <CreateWorkspaceForm />
-      {canAdmin ? (
-        <form action={updateWorkspaceAction} className="space-y-4 rounded-lg border bg-card p-4">
-          <div>
-            <h2 className="text-xl">Edit current workspace</h2>
-            <p className="mt-1 text-sm text-muted">Update the name, type, and icon for {current.name}.</p>
-          </div>
-          <input type="hidden" name="workspaceId" value={current.id} />
-          <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
-            <div className="grid gap-2">
-              <Label htmlFor="rename">Name</Label>
-              <Input id="rename" name="name" defaultValue={current.name} required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-workspace-kind">Type</Label>
-              <Select id="edit-workspace-kind" name="kind" defaultValue={current.kind} aria-label="Workspace type">
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-              </Select>
-            </div>
-          </div>
-          <WorkspaceIconPicker defaultValue={current.icon} id="edit-workspace-icon" />
-          <Button type="submit" variant="outline">Save workspace</Button>
-        </form>
-      ) : null}
       <section>
         <h2 className="text-2xl">People in {current.name}</h2>
         <ul className="mt-3 divide-y rounded-lg border bg-card">
