@@ -372,6 +372,27 @@ export async function settingsAction(formData: FormData): Promise<void> {
   redirect("/settings");
 }
 
+export async function themeAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const theme = String(formData.get("theme") ?? "light") === "dark" ? "dark" : "light";
+  (await cookies()).set("atrium_theme", theme, { path: "/", sameSite: "lax" });
+  await withUser(user, async (tx) => {
+    await tx.execute(sql`
+      insert into user_preferences (user_id, timezone, theme, notify_sync_errors, notify_assignments)
+      values (
+        current_setting('app.current_user_id', true),
+        'UTC',
+        ${theme},
+        true,
+        true
+      )
+      on conflict (user_id) do update set
+        theme = excluded.theme,
+        updated_at = now()
+    `);
+  });
+}
+
 export async function passwordAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = password.safeParse(String(formData.get("newPassword") ?? ""));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Choose a stronger password" };

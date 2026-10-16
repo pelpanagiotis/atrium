@@ -41,13 +41,15 @@ export function DropdownMenuLabel({
 
 export function DropdownMenuItem({
   className,
+  inset,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Item>) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & { inset?: boolean }) {
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
         "relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm outline-none select-none",
         "focus:bg-accent focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        inset && "pl-8",
         className,
       )}
       {...props}

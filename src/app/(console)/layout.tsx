@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
 import { getSessionUser } from "@/server/auth/session";
@@ -23,8 +24,9 @@ async function Frame({ children }: { children: React.ReactNode }) {
   if (!user) redirect("/login");
   await ensurePersonalWorkspace(user.id, user.name);
   const { workspaces, current } = await workspaceContext(user.id);
+  const theme = (await cookies()).get("atrium_theme")?.value === "dark" ? "dark" : "light";
   return (
-    <Shell user={user} workspaces={workspaces} current={current}>
+    <Shell user={user} workspaces={workspaces} current={current} theme={theme}>
       {children}
     </Shell>
   );

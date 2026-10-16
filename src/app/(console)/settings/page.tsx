@@ -34,7 +34,7 @@ async function SettingsContent() {
   return (
     <div className="space-y-8">
       <h1 className="text-4xl">Settings</h1>
-      <form action={settingsAction} className="max-w-xl space-y-3 rounded-lg border bg-card p-4">
+      <form id="profile" action={settingsAction} className="max-w-xl space-y-3 rounded-lg border bg-card p-4 scroll-mt-24">
         <div>
           <Label htmlFor="name">Name</Label>
           <Input id="name" name="name" defaultValue={user.name} className="mt-1" />

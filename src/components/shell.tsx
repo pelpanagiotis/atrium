@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Plus, Plug, RefreshCw, Search, Settings } from "lucide-react";
-import { logoutAction } from "@/app/actions";
+import { Plus, Plug, RefreshCw, Search } from "lucide-react";
+import { AccountMenu } from "@/components/account-menu";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
@@ -22,11 +22,13 @@ export function Shell({
   user,
   workspaces,
   current,
+  theme,
   children,
 }: {
   user: SessionUser;
   workspaces: WorkspaceSummary[];
   current: WorkspaceSummary;
+  theme: "light" | "dark";
   children: React.ReactNode;
 }) {
   return (
@@ -50,9 +52,7 @@ export function Shell({
             ))}
           </nav>
         </div>
-        <form action={logoutAction}>
-          <button className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-white/10">{user.name}</button>
-        </form>
+        <div className="px-2 py-2 text-sm text-sidebar-foreground/70">{user.name}</div>
       </aside>
       <div className="flex h-dvh min-w-0 flex-col overflow-hidden">
         <header className="z-20 flex shrink-0 items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
@@ -74,7 +74,7 @@ export function Shell({
             <HeaderAction href="/tasks" label="New task" icon={Plus} />
             <HeaderAction href="/integrations" label="Integrations" icon={Plug} className="hidden sm:inline-flex" />
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
-            <HeaderAction href="/settings" label="Settings" icon={Settings} />
+            <AccountMenu user={user} theme={theme} />
           </div>
           <nav className="flex gap-3 overflow-x-auto text-sm md:hidden">
             {LINKS.slice(0, 4).map(([label, href]) => (
