@@ -67,6 +67,18 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-outfit), sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"],
+[contenteditable=""],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 h1, h2, .serif {
