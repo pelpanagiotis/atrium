@@ -111,3 +111,124 @@ html {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Marketing landing: slow mesh wash behind the hero copy */
+.landing-shell {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.landing-gradient {
+  position: absolute;
+  inset: -12%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 20%, color-mix(in srgb, var(--primary) 38%, transparent) 0%, transparent 62%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, color-mix(in srgb, #c4a574 32%, transparent) 0%, transparent 58%),
+    radial-gradient(ellipse 60% 50% at 78% 92%, color-mix(in srgb, var(--primary) 24%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 40% 70%, color-mix(in srgb, #8a6a45 18%, transparent) 0%, transparent 55%),
+    var(--background);
+  background-size: 120% 120%;
+  animation: landing-mesh 36s ease-in-out infinite alternate;
+}
+
+.dark .landing-gradient {
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 20%, color-mix(in srgb, var(--primary) 32%, transparent) 0%, transparent 62%),
+    radial-gradient(ellipse 55% 45% at 92% 8%, color-mix(in srgb, #c4a574 26%, transparent) 0%, transparent 58%),
+    radial-gradient(ellipse 60% 50% at 78% 92%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 40% 70%, color-mix(in srgb, #6a5238 20%, transparent) 0%, transparent 55%),
+    var(--background);
+  background-size: 120% 120%;
+}
+
+.landing-gradient::before,
+.landing-gradient::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform, opacity;
+}
+
+.landing-gradient::before {
+  width: min(64vw, 42rem);
+  height: min(64vw, 42rem);
+  top: -16%;
+  left: -10%;
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  opacity: 0.85;
+  animation: landing-drift-a 18s ease-in-out infinite alternate;
+}
+
+.landing-gradient::after {
+  width: min(70vw, 48rem);
+  height: min(70vw, 48rem);
+  right: -18%;
+  bottom: -22%;
+  background: color-mix(in srgb, #b8956a 48%, transparent);
+  opacity: 0.8;
+  animation: landing-drift-b 24s ease-in-out infinite alternate;
+}
+
+.dark .landing-gradient::before {
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  opacity: 0.7;
+}
+
+.dark .landing-gradient::after {
+  background: color-mix(in srgb, #b8956a 36%, transparent);
+  opacity: 0.65;
+}
+
+@keyframes landing-mesh {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-4%, 3%, 0) scale(1.06);
+  }
+}
+
+@keyframes landing-drift-a {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(22%, 26%, 0) scale(1.16);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(10%, 42%, 0) scale(0.94);
+    opacity: 0.7;
+  }
+}
+
+@keyframes landing-drift-b {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(-26%, -20%, 0) scale(1.22);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(-12%, -34%, 0) scale(1);
+    opacity: 0.65;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-gradient,
+  .landing-gradient::before,
+  .landing-gradient::after {
+    animation: none;
+  }
+}
