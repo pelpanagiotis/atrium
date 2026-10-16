@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { WORKSPACE_ICONS, workspaceIconOrFallback } from "@/lib/workspace-icons";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceIconPicker({
@@ -27,31 +28,34 @@ export function WorkspaceIconPicker({
         Icon
       </p>
       <input type="hidden" name={name} value={selected} />
-      <Button
-        type="button"
-        variant="outline"
-        id={id}
-        aria-labelledby={`${id}-label`}
-        aria-expanded={open}
-        aria-controls={`${id}-panel`}
-        className="h-11 w-full justify-start gap-2 px-3"
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-lg" aria-hidden="true">
-          {selected}
-        </span>
-        {open ? "Hide icons" : "Choose icon"}
-      </Button>
-
-      {open ? (
-        <div
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            id={id}
+            aria-labelledby={`${id}-label`}
+            className="h-11 w-full justify-start gap-2 px-3"
+          >
+            <span className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-lg" aria-hidden="true">
+              {selected}
+            </span>
+            Choose icon
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
           id={`${id}-panel`}
-          className="rounded-lg border bg-background p-3"
-          role="listbox"
-          aria-label="Workspace icons"
+          side="bottom"
+          align="start"
+          className="w-[min(100vw-2rem,28rem)]"
+          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <p className="mb-3 text-xs text-muted">Pick an icon for the sidebar and workspace switcher.</p>
-          <div className="grid max-h-48 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-6">
+          <div
+            className="grid max-h-56 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-6"
+            role="listbox"
+            aria-label="Workspace icons"
+          >
             {WORKSPACE_ICONS.map((icon) => {
               const active = icon === selected;
               return (
@@ -62,7 +66,7 @@ export function WorkspaceIconPicker({
                   aria-selected={active}
                   aria-label={`Workspace icon ${icon}`}
                   className={cn(
-                    "flex aspect-square items-center justify-center rounded-xl border bg-card text-2xl transition",
+                    "flex aspect-square items-center justify-center rounded-xl border bg-background text-2xl transition",
                     "hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active && "border-foreground/25 bg-accent/50 ring-2 ring-ring",
                   )}
@@ -76,8 +80,8 @@ export function WorkspaceIconPicker({
               );
             })}
           </div>
-        </div>
-      ) : null}
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
