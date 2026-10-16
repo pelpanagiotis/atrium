@@ -20,6 +20,8 @@ const tones: Record<string, string> = {
   tombstone: "bg-stone-200 text-stone-700",
   connected: "bg-emerald-50 text-emerald-900",
   revoked: "bg-stone-200 text-stone-700",
+  project: "bg-teal-50 text-teal-950 ring-1 ring-teal-200",
+  due: "bg-indigo-50 text-indigo-950 ring-1 ring-indigo-200",
 };
 
 export function Badge({ tone = "neutral", children }: { tone?: string; children: React.ReactNode }) {

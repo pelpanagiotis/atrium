@@ -38,17 +38,44 @@ async function HomeContent() {
       <section className="grid gap-4 md:grid-cols-3">
         <Panel title="Needs attention" empty="Nothing urgent is open.">
           {feed.priorities.map((task) => (
-            <TaskLine key={String(task.id)} href={`/tasks?q=${encodeURIComponent(String(task.title))}`} title={String(task.title)} meta={`${task.priority} · ${task.project_name}`} provider={task.provider as string | null} />
+            <TaskLine
+              key={String(task.id)}
+              href={`/tasks?q=${encodeURIComponent(String(task.title))}`}
+              title={String(task.title)}
+              provider={task.provider as string | null}
+              tags={[
+                { label: String(task.priority).replace("_", " "), tone: String(task.priority) },
+                { label: String(task.project_name), tone: "project" },
+              ]}
+            />
           ))}
         </Panel>
         <Panel title="Due this week" empty="No deadlines in the next seven days.">
           {feed.dueSoon.map((task) => (
-            <TaskLine key={String(task.id)} href="/calendar" title={String(task.title)} meta={formatWhen(task.due_at as Date)} provider={task.provider as string | null} />
+            <TaskLine
+              key={String(task.id)}
+              href="/calendar"
+              title={String(task.title)}
+              provider={task.provider as string | null}
+              tags={[
+                { label: formatWhen(task.due_at as Date), tone: "due" },
+                { label: String(task.project_name), tone: "project" },
+              ]}
+            />
           ))}
         </Panel>
         <Panel title="Blocked" empty="No blocked tasks.">
           {feed.blocked.map((task) => (
-            <TaskLine key={String(task.id)} href="/tasks?status=blocked" title={String(task.title)} meta={String(task.project_name)} provider={task.provider as string | null} />
+            <TaskLine
+              key={String(task.id)}
+              href="/tasks?status=blocked"
+              title={String(task.title)}
+              provider={task.provider as string | null}
+              tags={[
+                { label: "blocked", tone: "blocked" },
+                { label: String(task.project_name), tone: "project" },
+              ]}
+            />
           ))}
         </Panel>
       </section>
@@ -96,12 +123,26 @@ function Panel({ title, empty, children }: { title: string; empty: string; child
   );
 }
 
-function TaskLine({ title, meta, provider, href }: { title: string; meta: string; provider: string | null; href: string }) {
+function TaskLine({
+  title,
+  tags,
+  provider,
+  href,
+}: {
+  title: string;
+  tags: Array<{ label: string; tone: string }>;
+  provider: string | null;
+  href: string;
+}) {
   return (
-    <Link href={href} className="block">
+    <Link href={href} className="block space-y-1.5">
       <p className="font-medium">{title}</p>
-      <p className="text-xs text-muted">{meta}</p>
-      <ProviderIcon provider={provider} className="mt-1" />
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tags.map((tag) => (
+          <Badge key={`${tag.tone}-${tag.label}`} tone={tag.tone}>{tag.label}</Badge>
+        ))}
+        <ProviderIcon provider={provider} />
+      </div>
     </Link>
   );
 }
