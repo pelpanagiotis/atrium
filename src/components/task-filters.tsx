@@ -168,7 +168,7 @@ export function TaskSearch({
   return (
     <form
       onSubmit={onSearchSubmit}
-      className={cn("relative w-full max-w-xs", pending && "opacity-70", className)}
+      className={cn("relative w-full", pending && "opacity-70", className)}
       aria-busy={pending}
     >
       <label className="relative block">
@@ -179,7 +179,7 @@ export function TaskSearch({
           value={q}
           onChange={(event) => setQ(event.target.value)}
           placeholder="Search"
-          className="h-9 w-full rounded-md border bg-card py-1 pl-9 pr-3 text-sm outline-none ring-ring focus-visible:ring-2"
+          className="h-10 w-full rounded-md border bg-card py-1 pl-9 pr-3 text-sm outline-none ring-ring focus-visible:ring-2"
           aria-label="Search tasks"
         />
       </label>
@@ -227,33 +227,19 @@ export function TaskFilters({
 
   return (
     <div
-      className={cn("grid gap-2 sm:grid-cols-2 lg:grid-cols-4", pending && "opacity-70")}
+      className={cn("grid gap-2 sm:grid-cols-2 lg:grid-cols-5", pending && "opacity-70")}
       aria-busy={pending}
     >
-      <FilterPicker
-        label="Status"
-        value={status}
-        options={STATUS_OPTIONS}
-        onChange={(value) => navigate({ status: value })}
+      <TaskSearch
+        values={values}
+        pending={pending}
+        onNavigate={onNavigate}
+        className="sm:col-span-2 lg:col-span-1"
       />
-      <FilterPicker
-        label="Priority"
-        value={priority}
-        options={PRIORITY_OPTIONS}
-        onChange={(value) => navigate({ priority: value })}
-      />
-      <FilterPicker
-        label="Project"
-        value={project}
-        options={projectOptions}
-        onChange={(value) => navigate({ project: value })}
-      />
-      <FilterPicker
-        label="Source"
-        value={source}
-        options={SOURCE_OPTIONS}
-        onChange={(value) => navigate({ source: value })}
-      />
+      <FilterPicker label="Status" value={status} options={STATUS_OPTIONS} onChange={(value) => navigate({ status: value })} />
+      <FilterPicker label="Priority" value={priority} options={PRIORITY_OPTIONS} onChange={(value) => navigate({ priority: value })} />
+      <FilterPicker label="Project" value={project} options={projectOptions} onChange={(value) => navigate({ project: value })} />
+      <FilterPicker label="Source" value={source} options={SOURCE_OPTIONS} onChange={(value) => navigate({ source: value })} />
     </div>
   );
 }

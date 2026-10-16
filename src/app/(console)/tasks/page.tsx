@@ -77,10 +77,20 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
           }
           actions={
             <>
-              <div className="flex gap-3 text-sm">
-                <Link href="/tasks">List</Link>
-                <Link href="/tasks?view=board">Board</Link>
-              </div>
+              <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Task views">
+                <Link
+                  href="/tasks"
+                  className="rounded px-2.5 py-1.5 text-muted transition hover:bg-accent hover:text-foreground"
+                >
+                  List
+                </Link>
+                <Link
+                  href="/tasks?view=board"
+                  className="rounded px-2.5 py-1.5 text-muted transition hover:bg-accent hover:text-foreground"
+                >
+                  Board
+                </Link>
+              </nav>
               {canWrite && projects[0] ? (
                 <TaskForm
                   workspaceId={current.id}

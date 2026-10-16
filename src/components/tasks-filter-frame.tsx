@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useTransition, type ReactNode } from "react";
 import { ResultsLoader } from "@/components/results-loader";
-import { TaskFilters, TaskSearch } from "@/components/task-filters";
+import { TaskFilters } from "@/components/task-filters";
 
 type ProjectOption = { id: string; name: string };
 
@@ -44,12 +44,13 @@ export function TasksFilterFrame({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0 flex-1">{heading}</div>
-        <div className="flex flex-wrap items-center gap-3">
-          <TaskSearch values={values} pending={pending} onNavigate={onNavigate} />
-          {actions}
-        </div>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 max-w-2xl">{heading}</div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 pt-1">
+            {actions}
+          </div>
+        ) : null}
       </div>
       <div className="shrink-0">
         <TaskFilters
