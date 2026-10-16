@@ -37,16 +37,24 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
           <h1 className="text-4xl">Projects</h1>
           <p className="mt-1 text-sm text-muted">Every project belongs to {current.name}. Native projects are canonical here. External projects mirror a provider.</p>
         </div>
-        <div className="flex gap-2 text-sm">
-          <Link href="/projects">Active</Link>
-          <Link href="/projects?status=archived">Archived</Link>
-          <Link href="/projects?status=all">All</Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-2 text-sm">
+            <Link href="/projects">Active</Link>
+            <Link href="/projects?status=archived">Archived</Link>
+            <Link href="/projects?status=all">All</Link>
+          </div>
+          {canWrite ? <ProjectForm workspaceId={current.id} action={createProjectAction} /> : null}
         </div>
       </div>
       {projects.length === 0 ? (
         <div className="rounded-lg border border-dashed bg-card p-8">
           <h2 className="text-2xl">No projects in this view</h2>
           <p className="mt-2 text-sm text-muted">Create a native project, or connect a provider and link one of its projects.</p>
+          {canWrite ? (
+            <div className="mt-4">
+              <ProjectForm workspaceId={current.id} action={createProjectAction} />
+            </div>
+          ) : null}
         </div>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
@@ -71,7 +79,9 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
           ))}
         </ul>
       )}
-      {canWrite ? <ProjectForm workspaceId={current.id} action={createProjectAction} /> : <p className="text-sm text-muted">Viewers and members can read projects. Owners and admins create them.</p>}
+      {!canWrite ? (
+        <p className="text-sm text-muted">Viewers and members can read projects. Owners and admins create them.</p>
+      ) : null}
     </div>
   );
 }
