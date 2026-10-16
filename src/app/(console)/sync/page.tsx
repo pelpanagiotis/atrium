@@ -3,6 +3,7 @@ import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { resolveAction, retryAction } from "@/app/actions";
+import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getSessionUser } from "@/server/auth/session";
@@ -45,8 +46,14 @@ async function SyncContent() {
           const stale = row.status === "connected" && (!row.last_success_at || now - new Date(row.last_success_at).getTime() > 15 * 60 * 1000);
           return (
             <article key={row.integration_id} className="rounded-lg border bg-card p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg">{row.display_name}</h2>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <ProviderIcon provider={row.provider} size="md" />
+                  <div className="min-w-0">
+                    <h2 className="truncate text-lg">{row.display_name}</h2>
+                    <p className="text-xs text-muted">{providerLabel(row.provider)}</p>
+                  </div>
+                </div>
                 <Badge tone={stale ? "error" : row.status}>{stale ? "stale" : row.status}</Badge>
               </div>
               <p className="mt-2 text-sm text-muted">Last success: {formatWhen(row.last_success_at)}</p>
