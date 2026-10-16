@@ -151,7 +151,7 @@ export function AppSidebar({
             />
           </SidebarTip>
           {!collapsed ? (
-            <p className="truncate text-xs uppercase tracking-[0.18em] text-sidebar-foreground/60">
+            <p className="min-w-0 flex-1 text-xs uppercase leading-snug tracking-[0.14em] text-sidebar-foreground/60">
               {current.kind} workspace
             </p>
           ) : null}
