@@ -234,7 +234,7 @@ export function TaskDetailForm({
           rows={12}
           aria-label="Description"
           placeholder="Add a description…"
-          className="min-h-40 w-full resize-y rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm leading-relaxed outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="min-h-[10.5rem] w-full resize-y border-0 bg-transparent p-0 text-sm leading-relaxed outline-none ring-0 placeholder:text-muted focus-visible:outline-none focus-visible:ring-0"
         />
       ) : canWrite ? (
         <div
@@ -247,7 +247,7 @@ export function TaskDetailForm({
               setEditingDescription(true);
             }
           }}
-          className="rounded-lg border border-transparent px-1 py-1 transition hover:border-border/60 hover:bg-card/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          className="min-h-[10.5rem] cursor-text outline-none focus-visible:outline-none"
           aria-label={description.trim() ? "Edit description" : "Add description"}
         >
           {description.trim() ? (
