@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { EmptyResults } from "@/components/empty-results";
 import { ResultsLoader } from "@/components/results-loader";
-import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ListFilter } from "lucide-react";
@@ -11,9 +10,8 @@ import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
+import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/field";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listProjects } from "@/server/projects/service";
@@ -67,6 +65,7 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={<ResultsLoader label="Loading filters" />}>
         <TasksFilterFrame
           projects={projectOptions}
+          canWrite={canWrite}
           heading={
             <>
               <h1 className="text-4xl">Tasks</h1>
@@ -76,31 +75,15 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
             </>
           }
           actions={
-            <>
-              <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Task views">
-                <Link
-                  href="/tasks"
-                  className="rounded px-2.5 py-1.5 text-muted transition hover:bg-accent hover:text-foreground"
-                >
-                  List
-                </Link>
-                <Link
-                  href="/tasks?view=board"
-                  className="rounded px-2.5 py-1.5 text-muted transition hover:bg-accent hover:text-foreground"
-                >
-                  Board
-                </Link>
-              </nav>
-              {canWrite && projects[0] ? (
-                <TaskForm
-                  workspaceId={current.id}
-                  projectId={projects[0].id}
-                  projects={projectOptions}
-                  returnTo="/tasks"
-                  action={createTaskAction}
-                />
-              ) : null}
-            </>
+            canWrite && projects[0] ? (
+              <TaskForm
+                workspaceId={current.id}
+                projectId={projects[0].id}
+                projects={projectOptions}
+                returnTo="/tasks"
+                action={createTaskAction}
+              />
+            ) : null
           }
         >
           {children}
@@ -148,9 +131,9 @@ async function TasksResults({
   }
 
   return (
-    <form action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col">
+    <form id={TASK_BULK_FORM_ID} action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="workspaceId" value={current.id} />
-      <div className="overflow-x-auto rounded-lg border bg-card">
+      <div className="min-h-0 flex-1 overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b text-xs uppercase tracking-wide text-muted">
             <tr>
@@ -200,27 +183,9 @@ async function TasksResults({
           </tbody>
         </table>
       </div>
-      {canWrite ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Select name="status" aria-label="Bulk status">
-            <option value="">Keep status</option>
-            <option value="done">Mark done</option>
-            <option value="open">Reopen</option>
-            <option value="blocked">Mark blocked</option>
-          </Select>
-          <Select name="priority" aria-label="Bulk priority">
-            <option value="">Keep priority</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="low">Low</option>
-          </Select>
-          <Button type="submit" variant="outline">
-            Apply to selected
-          </Button>
-        </div>
-      ) : (
+      {!canWrite ? (
         <p className="mt-3 text-sm text-muted">Your role can view tasks. Members and above can edit them.</p>
-      )}
+      ) : null}
     </form>
   );
 }

@@ -137,6 +137,46 @@ function FilterPicker({
   );
 }
 
+export function TaskViewToggle({
+  values,
+  onNavigate,
+}: {
+  values: FilterValues;
+  onNavigate: (href: string) => void;
+}) {
+  const board = values.view === "board";
+  return (
+    <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Task views">
+      <button
+        type="button"
+        aria-pressed={!board}
+        onClick={() => onNavigate(buildTasksHref({ ...values, view: undefined }))}
+        className={cn(
+          "rounded px-2.5 py-1.5 transition",
+          !board
+            ? "bg-foreground text-background"
+            : "text-muted hover:bg-accent hover:text-foreground",
+        )}
+      >
+        List
+      </button>
+      <button
+        type="button"
+        aria-pressed={board}
+        onClick={() => onNavigate(buildTasksHref({ ...values, view: "board" }))}
+        className={cn(
+          "rounded px-2.5 py-1.5 transition",
+          board
+            ? "bg-foreground text-background"
+            : "text-muted hover:bg-accent hover:text-foreground",
+        )}
+      >
+        Board
+      </button>
+    </nav>
+  );
+}
+
 export function TaskSearch({
   values,
   pending = false,
