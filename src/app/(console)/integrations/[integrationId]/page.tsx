@@ -66,8 +66,25 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
           <Button type="submit">Add fake project</Button>
         </form>
       ) : null}
-      {projects.length === 0 ? <p className="text-sm text-muted">No provider projects were returned.</p> : (
-        <LinkProjectForm workspaceId={current.id} integrationId={integration.id} projects={projects} action={linkProjectAction} />
+      {projects.length === 0 ? (
+        <p className="text-sm text-muted">No provider projects were returned.</p>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-2xl">Link a project</h2>
+            <p className="text-sm text-muted">
+              Filter by {integration.provider === "github" ? "owner or organization" : integration.provider === "gitlab" ? "group or namespace" : "namespace"} before linking.
+            </p>
+          </div>
+          <LinkProjectForm
+            workspaceId={current.id}
+            integrationId={integration.id}
+            projects={projects}
+            provider={integration.provider}
+            accountLabel={integration.display_name}
+            action={linkProjectAction}
+          />
+        </div>
       )}
     </div>
   );
