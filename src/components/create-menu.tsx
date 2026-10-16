@@ -94,9 +94,20 @@ export function CreateMenu() {
             setHoverOpen(false);
             setModalOpen(true);
           }}
-          className="inline-flex size-9 items-center justify-center rounded-md border bg-card text-foreground transition hover:bg-accent outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "group inline-flex size-9 items-center justify-center rounded-md border bg-card text-foreground outline-none",
+            "transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out",
+            "hover:border-foreground/20 hover:bg-accent hover:shadow-md",
+            "motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-105",
+            "motion-safe:active:translate-y-0 motion-safe:active:scale-95",
+            "focus-visible:ring-2 focus-visible:ring-ring",
+            hoverOpen && "border-foreground/20 bg-accent shadow-md",
+          )}
         >
-          <Plus className="size-4" aria-hidden="true" />
+          <Plus
+            className="size-4 transition-transform duration-200 ease-out motion-safe:group-hover:rotate-90 motion-safe:group-hover:scale-110"
+            aria-hidden="true"
+          />
         </button>
 
         {hoverOpen && !modalOpen ? (
@@ -104,7 +115,9 @@ export function CreateMenu() {
             id={menuId}
             role="menu"
             aria-label="Create"
-            className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border bg-card p-1 text-foreground shadow-lg"
+            className="menu-surface absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border bg-card p-1 text-foreground shadow-lg data-[state=open]:block"
+            data-state="open"
+            data-side="bottom"
           >
             <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
               Create
