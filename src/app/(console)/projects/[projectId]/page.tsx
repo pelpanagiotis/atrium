@@ -14,6 +14,7 @@ import { getProject, listMilestones } from "@/server/projects/service";
 import { listTasks } from "@/server/tasks/service";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/server/db/client";
+import { projectDisplayName } from "@/lib/project-display";
 import { formatWhen } from "@/lib/utils";
 
 export const instant = false;
@@ -53,7 +54,10 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-muted">{project.ownership_mode} project</p>
-          <h1 className="text-4xl">{project.name}</h1>
+          <h1 className="text-4xl">{projectDisplayName(project)}</h1>
+          {project.nickname?.trim() ? (
+            <p className="mt-1 text-sm text-muted">{project.name}</p>
+          ) : null}
           <p className="mt-2 max-w-2xl text-sm text-muted">{project.description || "No description yet."}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>{project.ownership_mode}</Badge>
@@ -77,10 +81,30 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
           <input type="hidden" name="workspaceId" value={current.id} />
           <input type="hidden" name="projectId" value={project.id} />
           <div>
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" name="name" defaultValue={project.name} className="mt-1" />
+            <Label htmlFor="nickname">Nickname</Label>
+            <Input
+              id="nickname"
+              name="nickname"
+              defaultValue={project.nickname ?? ""}
+              placeholder="Friendly name in Atrium"
+              className="mt-1"
+              maxLength={80}
+            />
           </div>
           <div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              name="name"
+              defaultValue={project.name}
+              className="mt-1"
+              readOnly={project.ownership_mode === "external"}
+            />
+            {project.ownership_mode === "external" ? (
+              <p className="mt-1 text-xs text-muted">Provider name stays as the source of truth. Use nickname for a shorter label.</p>
+            ) : null}
+          </div>
+          <div className="md:col-span-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" name="description" defaultValue={project.description} className="mt-1" />
           </div>

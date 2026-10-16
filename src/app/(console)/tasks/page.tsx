@@ -56,7 +56,10 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
   const { current } = await workspaceContext(user.id);
   const projects = await listProjects(user.id, current.id, { status: "active" });
   const canWrite = current.role !== "viewer";
-  const projectOptions = projects.map((project) => ({ id: project.id, name: project.name }));
+  const projectOptions = projects.map((project) => ({
+    id: project.id,
+    name: project.nickname?.trim() || project.name,
+  }));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

@@ -7,6 +7,7 @@ export type ProjectRecord = {
   id: string;
   workspace_id: string;
   name: string;
+  nickname: string | null;
   description: string;
   status: "active" | "archived";
   ownership_mode: "native" | "external" | "hybrid";
@@ -20,6 +21,13 @@ export type ProjectRecord = {
   publish_outbound: boolean | null;
 };
 
+function normalizeNickname(value: string | null): string | null {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return null;
+  if (trimmed.length > 80) throw new Error("Nickname must be 80 characters or fewer");
+  return trimmed;
+}
+
 export async function listProjects(
   userId: string,
   workspaceId: string,
@@ -30,7 +38,7 @@ export async function listProjects(
     const status = filter.status ?? "active";
     const query = filter.query?.trim() ?? "";
     return tx.execute<ProjectRecord>(sql`
-      select p.id, p.workspace_id, p.name, p.description, p.status, p.ownership_mode,
+      select p.id, p.workspace_id, p.name, p.nickname, p.description, p.status, p.ownership_mode,
              p.archived_at, p.created_at,
              i.provider, c.provider_project_name, c.provider_project_url, c.provider_project_id,
              c.integration_id, c.publish_outbound
@@ -39,8 +47,12 @@ export async function listProjects(
       left join integrations i on i.id = c.integration_id
       where p.workspace_id = ${workspaceId}::uuid
         and (${status} = 'all' or p.status = ${status})
-        and (${query} = '' or p.name ilike ${"%" + query + "%"})
-      order by p.name
+        and (
+          ${query} = ''
+          or p.name ilike ${"%" + query + "%"}
+          or coalesce(p.nickname, '') ilike ${"%" + query + "%"}
+        )
+      order by coalesce(nullif(btrim(p.nickname), ''), p.name)
     `);
   });
 }
@@ -49,7 +61,7 @@ export async function getProject(userId: string, workspaceId: string, projectId:
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     const rows = await tx.execute<ProjectRecord>(sql`
-      select p.id, p.workspace_id, p.name, p.description, p.status, p.ownership_mode,
+      select p.id, p.workspace_id, p.name, p.nickname, p.description, p.status, p.ownership_mode,
              p.archived_at, p.created_at,
              i.provider, c.provider_project_name, c.provider_project_url, c.provider_project_id,
              c.integration_id, c.publish_outbound
@@ -87,7 +99,7 @@ export async function updateProject(
   userId: string,
   workspaceId: string,
   projectId: string,
-  input: { name?: string; description?: string },
+  input: { name?: string; nickname?: string | null; description?: string },
 ): Promise<void> {
   await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "project.update");
@@ -95,9 +107,12 @@ export async function updateProject(
     if (name !== undefined && (name.length < 2 || name.length > 120)) {
       throw new Error("Project name must be between 2 and 120 characters");
     }
+    const nicknameProvided = input.nickname !== undefined;
+    const nickname = nicknameProvided ? normalizeNickname(input.nickname ?? null) : null;
     const rows = await tx.execute(sql`
       update projects
       set name = coalesce(${name ?? null}, name),
+          nickname = case when ${nicknameProvided} then ${nickname} else nickname end,
           description = coalesce(${input.description ?? null}, description)
       where id = ${projectId}::uuid and workspace_id = ${workspaceId}::uuid
       returning id

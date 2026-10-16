@@ -94,6 +94,7 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   workspaceId: uuid("workspace_id").notNull(),
   name: text("name").notNull(),
+  nickname: text("nickname"),
   description: text("description").notNull().default(""),
   status: text("status").$type<"active" | "archived">().notNull().default("active"),
   ownershipMode: text("ownership_mode").$type<"native" | "external" | "hybrid">().notNull(),

@@ -195,7 +195,9 @@ export async function listTasks(
         ? source
         : "";
     return tx.execute<TaskRecord>(sql`
-      select t.id, t.workspace_id, t.project_id, p.name as project_name, p.ownership_mode,
+      select t.id, t.workspace_id, t.project_id,
+             coalesce(nullif(btrim(p.nickname), ''), p.name) as project_name,
+             p.ownership_mode,
              t.milestone_id, t.title, t.description, t.status, t.priority, t.due_at,
              t.assignee_user_id, coalesce(u.name, t.assignee_label) as assignee_label,
              t.provider, t.external_url, t.sync_state, t.sync_error, t.version, t.deleted_at, t.updated_at

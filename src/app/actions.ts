@@ -179,11 +179,14 @@ export async function createProjectAction(_state: ActionState, formData: FormDat
 }
 
 export async function updateProjectAction(formData: FormData): Promise<void> {
-  await updateProject(await userId(), String(formData.get("workspaceId")), String(formData.get("projectId")), {
-    name: String(formData.get("name") ?? ""),
-    description: String(formData.get("description") ?? ""),
+  const returnTo = String(formData.get("returnTo") ?? "").trim();
+  const projectId = String(formData.get("projectId"));
+  await updateProject(await userId(), String(formData.get("workspaceId")), projectId, {
+    name: formData.has("name") ? String(formData.get("name") ?? "") : undefined,
+    nickname: formData.has("nickname") ? String(formData.get("nickname") ?? "") : undefined,
+    description: formData.has("description") ? String(formData.get("description") ?? "") : undefined,
   });
-  redirect(`/projects/${formData.get("projectId")}`);
+  redirect(returnTo || `/projects/${projectId}`);
 }
 
 export async function archiveProjectAction(formData: FormData): Promise<void> {
