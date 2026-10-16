@@ -1,12 +1,22 @@
-import Link from "next/link";
-import { Layers } from "lucide-react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Check, ChevronDown, Layers } from "lucide-react";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export function homeHref(source?: string): string {
   if (!source) return "/home";
   return `/home?source=${encodeURIComponent(source)}`;
 }
+
+type SourceOption = {
+  value: string;
+  label: string;
+  provider: string | null;
+};
 
 export function HomeSourceFilter({
   source,
@@ -15,8 +25,11 @@ export function HomeSourceFilter({
   source: string;
   sources: Array<{ provider: string; display_name: string }>;
 }) {
-  const options = [
-    { value: "", label: "All sources", provider: null as string | null },
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+
+  const options: SourceOption[] = [
+    { value: "", label: "All sources", provider: null },
     { value: "atrium", label: "Atrium", provider: "native" },
     ...sources.map((row) => ({
       value: row.provider,
@@ -25,34 +38,84 @@ export function HomeSourceFilter({
     })),
   ];
 
+  const selected = options.find((option) => option.value === source) ?? options[0]!;
+  const indicatorOptions =
+    selected.value === ""
+      ? options.filter((option) => option.provider)
+      : options.filter((option) => option.value === selected.value && option.provider);
+
+  function choose(value: string) {
+    setOpen(false);
+    router.push(homeHref(value || undefined));
+  }
+
   return (
-    <div className="flex w-full flex-col gap-2 sm:w-auto">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Show data from</p>
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter dashboard by integration">
-        {options.map((option) => {
-          const active = source === option.value || (!source && option.value === "");
-          return (
-            <Link
-              key={option.value || "all"}
-              href={homeHref(option.value || undefined)}
-              aria-current={active ? "true" : undefined}
-              className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-md border px-2.5 text-sm transition",
-                active
-                  ? "border-foreground/25 bg-accent text-foreground"
-                  : "border-border bg-card text-muted hover:bg-accent/40 hover:text-foreground",
-              )}
-            >
-              {option.provider ? (
-                <ProviderIcon provider={option.provider} />
-              ) : (
-                <Layers className="size-3.5" aria-hidden="true" />
-              )}
-              {option.label}
-            </Link>
-          );
-        })}
-      </div>
+    <div className="flex w-full sm:w-auto sm:justify-end">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          type="button"
+          aria-label={`Show data from ${selected.label}`}
+          className={cn(
+            "inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm outline-none transition",
+            "hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring",
+            open && "border-foreground/25 bg-accent",
+          )}
+        >
+          <span className="inline-flex items-center" aria-hidden="true">
+            {indicatorOptions.length === 0 ? (
+              <Layers className="size-4 text-muted" />
+            ) : (
+              <span className="inline-flex items-center">
+                {indicatorOptions.map((option, index) => (
+                  <span
+                    key={option.value}
+                    className={cn(index > 0 && "-ml-1.5")}
+                    style={{ zIndex: indicatorOptions.length - index }}
+                  >
+                    <ProviderIcon provider={option.provider} className="ring-2 ring-card" />
+                  </span>
+                ))}
+              </span>
+            )}
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden="true" />
+        </PopoverTrigger>
+        <PopoverContent
+          align="end"
+          side="bottom"
+          sideOffset={6}
+          className="w-56 p-1"
+        >
+          <div role="listbox" aria-label="Filter dashboard by integration" className="grid gap-0.5">
+            {options.map((option) => {
+              const active = selected.value === option.value;
+              return (
+                <button
+                  key={option.value || "all"}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => choose(option.value)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition",
+                    active ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/50",
+                  )}
+                >
+                  {option.provider ? (
+                    <ProviderIcon provider={option.provider} />
+                  ) : (
+                    <span className="inline-flex size-6 items-center justify-center rounded-full bg-secondary text-muted ring-1 ring-border">
+                      <Layers className="size-3.5" aria-hidden="true" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {active ? <Check className="size-4 shrink-0" aria-hidden="true" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
