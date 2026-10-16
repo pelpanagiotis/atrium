@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { CalendarDays } from "lucide-react";
 import { updateTaskDetailAction, type ActionState } from "@/app/actions";
+import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/field";
 import { MenuSelect } from "@/components/ui/menu-select";
@@ -12,6 +14,22 @@ function dueInputValue(dueAt: Date | string | null): string {
   if (Number.isNaN(date.getTime())) return "";
   return date.toISOString().slice(0, 10);
 }
+
+const STATUS_OPTIONS = [
+  { value: "open", label: "Open", icon: <StatusIcon status="open" /> },
+  { value: "in_progress", label: "In progress", icon: <StatusIcon status="in_progress" /> },
+  { value: "blocked", label: "Blocked", icon: <StatusIcon status="blocked" /> },
+  { value: "done", label: "Done", icon: <StatusIcon status="done" /> },
+  { value: "cancelled", label: "Cancelled", icon: <StatusIcon status="cancelled" /> },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "none", label: "No priority", icon: <PriorityIcon priority="none" /> },
+  { value: "low", label: "Low", icon: <PriorityIcon priority="low" /> },
+  { value: "medium", label: "Medium", icon: <PriorityIcon priority="medium" /> },
+  { value: "high", label: "High", icon: <PriorityIcon priority="high" /> },
+  { value: "urgent", label: "Urgent", icon: <PriorityIcon priority="urgent" /> },
+];
 
 export function TaskDetailForm({
   workspaceId,
@@ -89,13 +107,7 @@ export function TaskDetailForm({
                 defaultValue={status}
                 className="mt-1"
                 aria-label="Status"
-                options={[
-                  { value: "open", label: "Open" },
-                  { value: "in_progress", label: "In progress" },
-                  { value: "blocked", label: "Blocked" },
-                  { value: "done", label: "Done" },
-                  { value: "cancelled", label: "Cancelled" },
-                ]}
+                options={STATUS_OPTIONS}
               />
             </div>
             <div>
@@ -106,24 +118,24 @@ export function TaskDetailForm({
                 defaultValue={priority}
                 className="mt-1"
                 aria-label="Priority"
-                options={[
-                  { value: "none", label: "No priority" },
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "urgent", label: "Urgent" },
-                ]}
+                options={PRIORITY_OPTIONS}
               />
             </div>
             <div>
               <Label htmlFor="task-detail-due">Due date</Label>
-              <Input
-                id="task-detail-due"
-                name="dueAt"
-                type="date"
-                defaultValue={dueInputValue(dueAt)}
-                className="mt-1"
-              />
+              <div className="relative mt-1">
+                <CalendarDays
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="task-detail-due"
+                  name="dueAt"
+                  type="date"
+                  defaultValue={dueInputValue(dueAt)}
+                  className="pl-9"
+                />
+              </div>
             </div>
           </div>
         </div>

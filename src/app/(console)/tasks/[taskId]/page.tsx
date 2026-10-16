@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock3, FolderKanban, UserRound } from "lucide-react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { OpenInProviderButton, ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { TaskComments } from "@/components/task-comments";
@@ -54,7 +54,7 @@ async function TaskDetailContent({
   const sourceLabel = providerLabel(task.provider);
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <div>
         <Link
           href="/tasks"
@@ -94,58 +94,76 @@ async function TaskDetailContent({
         </div>
       </div>
 
-      <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted">Project</dt>
-          <dd className="mt-0.5">
-            <Link href={`/projects/${task.project_id}`} className="underline underline-offset-2">
-              {task.project_name}
-            </Link>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted">Assignee</dt>
-          <dd className="mt-0.5">{task.assignee_label || "Unassigned"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted">Due</dt>
-          <dd className="mt-0.5">{formatWhen(task.due_at)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-muted">Updated</dt>
-          <dd className="mt-0.5">{formatWhen(task.updated_at)}</dd>
-        </div>
-      </dl>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+        <div className="min-w-0 space-y-6">
+          <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
+            <div className="flex gap-3">
+              <FolderKanban className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+              <div className="min-w-0">
+                <dt className="text-xs uppercase tracking-wide text-muted">Project</dt>
+                <dd className="mt-0.5">
+                  <Link href={`/projects/${task.project_id}`} className="underline underline-offset-2">
+                    {task.project_name}
+                  </Link>
+                </dd>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <UserRound className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+              <div className="min-w-0">
+                <dt className="text-xs uppercase tracking-wide text-muted">Assignee</dt>
+                <dd className="mt-0.5">{task.assignee_label || "Unassigned"}</dd>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <CalendarDays className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+              <div className="min-w-0">
+                <dt className="text-xs uppercase tracking-wide text-muted">Due</dt>
+                <dd className="mt-0.5">{formatWhen(task.due_at)}</dd>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Clock3 className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+              <div className="min-w-0">
+                <dt className="text-xs uppercase tracking-wide text-muted">Updated</dt>
+                <dd className="mt-0.5">{formatWhen(task.updated_at)}</dd>
+              </div>
+            </div>
+          </dl>
 
-      {task.sync_error ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          Sync error: {task.sync_error}
-        </p>
-      ) : null}
+          {task.sync_error ? (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              Sync error: {task.sync_error}
+            </p>
+          ) : null}
 
-      <section className="space-y-3">
-        <h2 className="text-xl">{canWrite ? "Edit task" : "Details"}</h2>
-        <TaskDetailForm
-          workspaceId={task.workspace_id}
-          taskId={task.id}
-          version={task.version}
-          title={task.title}
-          description={task.description}
-          status={task.status}
-          priority={task.priority}
-          dueAt={task.due_at}
-          canWrite={canWrite}
-        />
-      </section>
+          <section className="space-y-3">
+            <h2 className="text-xl">{canWrite ? "Edit task" : "Details"}</h2>
+            <TaskDetailForm
+              workspaceId={task.workspace_id}
+              taskId={task.id}
+              version={task.version}
+              title={task.title}
+              description={task.description}
+              status={task.status}
+              priority={task.priority}
+              dueAt={task.due_at}
+              canWrite={canWrite}
+            />
+          </section>
+        </div>
 
-      <TaskComments
-        taskId={task.id}
-        comments={commentBundle.comments}
-        source={commentBundle.source}
-        canComment={commentBundle.canComment}
-        canWrite={canWrite}
-        unavailableReason={commentBundle.unavailableReason}
-      />
+        <aside className="min-w-0 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+          <TaskComments
+            taskId={task.id}
+            comments={commentBundle.comments}
+            source={commentBundle.source}
+            canComment={commentBundle.canComment}
+            canWrite={canWrite}
+            unavailableReason={commentBundle.unavailableReason}
+          />
+        </aside>
+      </div>
     </div>
   );
 }

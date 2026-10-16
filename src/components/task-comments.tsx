@@ -29,7 +29,7 @@ export function TaskComments({
   const showComposer = canWrite && canComment && !unavailableReason;
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 rounded-lg border bg-card p-4 lg:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-xl">Comments</h2>
         <div className="flex items-center gap-1.5 text-xs text-muted">
@@ -38,15 +38,15 @@ export function TaskComments({
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-md border bg-background/40">
         {unavailableReason ? (
-          <p className="px-5 py-4 text-sm text-muted">{unavailableReason}</p>
+          <p className="px-4 py-3 text-sm text-muted">{unavailableReason}</p>
         ) : comments.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-muted">No comments yet on this {sourceName} issue.</p>
+          <p className="px-4 py-3 text-sm text-muted">No comments yet on this {sourceName} issue.</p>
         ) : (
           <ul className="divide-y">
             {comments.map((comment) => (
-              <li key={comment.id} className="px-5 py-4">
+              <li key={comment.id} className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-sm font-medium">{comment.authorLabel}</p>
                   <div className="flex items-center gap-2 text-xs text-muted">
@@ -80,7 +80,7 @@ export function TaskComments({
             <Textarea
               id="task-comment-body"
               name="body"
-              rows={4}
+              rows={5}
               required
               maxLength={10000}
               placeholder={`Write a comment that posts to ${sourceName}…`}
@@ -88,7 +88,7 @@ export function TaskComments({
             />
           </div>
           {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending} className="w-full sm:w-auto">
             {pending ? "Posting…" : `Post to ${sourceName}`}
           </Button>
         </form>

@@ -7,6 +7,7 @@ import {
   CloudOff,
   Flame,
   LoaderCircle,
+  Minus,
   RefreshCw,
   SignalHigh,
   SignalLow,
@@ -25,6 +26,7 @@ const STATUS_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
 };
 
 const PRIORITY_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
+  none: { icon: Minus, className: "text-stone-400" },
   attention: { icon: Siren, className: "text-rose-600" },
   urgent: { icon: Flame, className: "text-rose-600" },
   high: { icon: SignalHigh, className: "text-orange-500" },
