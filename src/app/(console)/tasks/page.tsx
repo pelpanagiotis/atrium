@@ -63,35 +63,39 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
   const projectOptions = projects.map((project) => ({ id: project.id, name: project.name }));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-4xl">Tasks</h1>
-          <p className="mt-1 text-sm text-muted">
-            Native tasks are edited here. Provider tasks show their source and only offer actions that provider supports.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-3 text-sm">
-            <Link href="/tasks">List</Link>
-            <Link href="/tasks?view=board">Board</Link>
-          </div>
-          {canWrite && projects[0] ? (
-            <TaskForm
-              workspaceId={current.id}
-              projectId={projects[0].id}
-              projects={projectOptions}
-              returnTo="/tasks"
-              action={createTaskAction}
-            />
-          ) : null}
-        </div>
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <Suspense fallback={<ResultsLoader label="Loading filters" />}>
-          <TasksFilterFrame projects={projectOptions}>{children}</TasksFilterFrame>
-        </Suspense>
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Suspense fallback={<ResultsLoader label="Loading filters" />}>
+        <TasksFilterFrame
+          projects={projectOptions}
+          heading={
+            <>
+              <h1 className="text-4xl">Tasks</h1>
+              <p className="mt-1 text-sm text-muted">
+                Native tasks are edited here. Provider tasks show their source and only offer actions that provider supports.
+              </p>
+            </>
+          }
+          actions={
+            <>
+              <div className="flex gap-3 text-sm">
+                <Link href="/tasks">List</Link>
+                <Link href="/tasks?view=board">Board</Link>
+              </div>
+              {canWrite && projects[0] ? (
+                <TaskForm
+                  workspaceId={current.id}
+                  projectId={projects[0].id}
+                  projects={projectOptions}
+                  returnTo="/tasks"
+                  action={createTaskAction}
+                />
+              ) : null}
+            </>
+          }
+        >
+          {children}
+        </TasksFilterFrame>
+      </Suspense>
     </div>
   );
 }

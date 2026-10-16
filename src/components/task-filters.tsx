@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 
 type ProjectOption = { id: string; name: string };
 
-type FilterValues = {
+export type FilterValues = {
   q?: string;
   status?: string;
   priority?: string;
@@ -49,7 +49,7 @@ type PickerOption = {
   icon: ReactNode;
 };
 
-function buildTasksHref(values: FilterValues): string {
+export function buildTasksHref(values: FilterValues): string {
   const params = new URLSearchParams();
   if (values.view) params.set("view", values.view);
   if (values.q?.trim()) params.set("q", values.q.trim());
@@ -137,6 +137,56 @@ function FilterPicker({
   );
 }
 
+export function TaskSearch({
+  values,
+  pending = false,
+  onNavigate,
+  className,
+}: {
+  values: FilterValues;
+  pending?: boolean;
+  onNavigate: (href: string) => void;
+  className?: string;
+}) {
+  const [q, setQ] = useState(values.q ?? "");
+  const [prevQ, setPrevQ] = useState(values.q);
+  if (values.q !== prevQ) {
+    setPrevQ(values.q);
+    setQ(values.q ?? "");
+  }
+
+  function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onNavigate(
+      buildTasksHref({
+        ...values,
+        q,
+      }),
+    );
+  }
+
+  return (
+    <form
+      onSubmit={onSearchSubmit}
+      className={cn("relative w-full max-w-xs", pending && "opacity-70", className)}
+      aria-busy={pending}
+    >
+      <label className="relative block">
+        <span className="sr-only">Search tasks</span>
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <input
+          name="q"
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="Search"
+          className="h-9 w-full rounded-md border bg-card py-1 pl-9 pr-3 text-sm outline-none ring-ring focus-visible:ring-2"
+          aria-label="Search tasks"
+        />
+      </label>
+    </form>
+  );
+}
+
 export function TaskFilters({
   projects,
   values,
@@ -148,13 +198,6 @@ export function TaskFilters({
   pending?: boolean;
   onNavigate: (href: string) => void;
 }) {
-  const [q, setQ] = useState(values.q ?? "");
-  const [prevQ, setPrevQ] = useState(values.q);
-  if (values.q !== prevQ) {
-    setPrevQ(values.q);
-    setQ(values.q ?? "");
-  }
-
   const status = values.status ?? "";
   const priority = values.priority ?? "";
   const project = values.project ?? "";
@@ -172,42 +215,21 @@ export function TaskFilters({
   function navigate(next: Partial<FilterValues>) {
     onNavigate(
       buildTasksHref({
-        q,
+        ...values,
         status,
         priority,
         project,
         source,
-        view: values.view,
-        dueBefore: values.dueBefore,
-        dueAfter: values.dueAfter,
         ...next,
       }),
     );
   }
 
-  function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    navigate({ q });
-  }
-
   return (
-    <form
-      className={cn("grid gap-2 sm:grid-cols-2 lg:grid-cols-5", pending && "opacity-70")}
-      onSubmit={onSearchSubmit}
+    <div
+      className={cn("grid gap-2 sm:grid-cols-2 lg:grid-cols-4", pending && "opacity-70")}
       aria-busy={pending}
     >
-      <label className="relative sm:col-span-2 lg:col-span-1">
-        <span className="sr-only">Search tasks</span>
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-        <input
-          name="q"
-          value={q}
-          onChange={(event) => setQ(event.target.value)}
-          placeholder="Search"
-          className="h-10 w-full rounded-md border bg-card py-1 pl-9 pr-3 text-sm outline-none ring-ring focus-visible:ring-2"
-          aria-label="Search tasks"
-        />
-      </label>
       <FilterPicker
         label="Status"
         value={status}
@@ -232,6 +254,6 @@ export function TaskFilters({
         options={SOURCE_OPTIONS}
         onChange={(value) => navigate({ source: value })}
       />
-    </form>
+    </div>
   );
 }
