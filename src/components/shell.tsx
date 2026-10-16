@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus, Plug, RefreshCw, Search, Settings } from "lucide-react";
 import { logoutAction } from "@/app/actions";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
@@ -46,23 +47,58 @@ export function Shell({
         </form>
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
+          <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
             <WorkspaceSwitch currentId={current.id} workspaces={workspaces} />
           </div>
-          <form action="/search" className="min-w-0 flex-1">
+          <form action="/search" className="relative ml-auto w-full max-w-xs shrink">
             <label className="sr-only" htmlFor="global-search">Search</label>
-            <input id="global-search" name="q" placeholder="Search tasks and projects" className="h-9 w-full rounded-md border bg-card px-3 text-sm" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <input
+              id="global-search"
+              name="q"
+              placeholder="Search"
+              className="h-9 w-full rounded-md border bg-card py-1 pl-8 pr-3 text-sm"
+            />
           </form>
+          <div className="flex shrink-0 items-center gap-1">
+            <HeaderAction href="/tasks" label="New task" icon={Plus} />
+            <HeaderAction href="/integrations" label="Integrations" icon={Plug} className="hidden sm:inline-flex" />
+            <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
+            <HeaderAction href="/settings" label="Settings" icon={Settings} />
+          </div>
           <nav className="flex gap-3 overflow-x-auto text-sm md:hidden">
-            {LINKS.slice(0, 5).map(([label, href]) => (
+            {LINKS.slice(0, 4).map(([label, href]) => (
               <Link key={href} href={href}>{label}</Link>
             ))}
           </nav>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
+        <main className="w-full px-4 py-6 md:px-6">{children}</main>
       </div>
     </div>
+  );
+}
+
+function HeaderAction({
+  href,
+  label,
+  icon: Icon,
+  className = "inline-flex",
+}: {
+  href: string;
+  label: string;
+  icon: typeof Search;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      title={label}
+      aria-label={label}
+      className={`${className} size-9 items-center justify-center rounded-md border bg-card text-foreground transition hover:bg-accent`}
+    >
+      <Icon className="size-4" aria-hidden="true" />
+    </Link>
   );
 }
