@@ -3,6 +3,20 @@ import type { Tx } from "../db/client";
 export const PROVIDERS = ["linear", "jira", "github", "gitlab", "gitea", "fake"] as const;
 export type ProviderId = (typeof PROVIDERS)[number];
 
+/** Chat-only providers stored on integrations but not task adapters. */
+export const CHAT_PROVIDERS = ["slack"] as const;
+export type ChatProviderId = (typeof CHAT_PROVIDERS)[number];
+
+export type IntegrationProviderId = ProviderId | ChatProviderId;
+
+export function isChatProvider(provider: string): provider is ChatProviderId {
+  return (CHAT_PROVIDERS as readonly string[]).includes(provider);
+}
+
+export function isTaskProvider(provider: string): provider is ProviderId {
+  return (PROVIDERS as readonly string[]).includes(provider);
+}
+
 export const TASK_STATUSES = ["open", "in_progress", "blocked", "done", "cancelled"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 

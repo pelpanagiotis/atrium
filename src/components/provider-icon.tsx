@@ -7,6 +7,7 @@ const LABELS: Record<string, string> = {
   github: "GitHub",
   gitlab: "GitLab",
   gitea: "Gitea",
+  slack: "Slack",
   fake: "Fake provider",
   native: "Native",
 };
@@ -84,12 +85,24 @@ function FakeMark({ className }: { className?: string }) {
   );
 }
 
+function SlackMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.268 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.83 24a2.528 2.528 0 0 1-2.52-2.522v-6.313zM8.83 5.042a2.528 2.528 0 0 1-2.52-2.52A2.528 2.528 0 0 1 8.83 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.83zm0 1.268a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.83a2.528 2.528 0 0 1 2.522-2.52H8.83zm10.128 2.521a2.528 2.528 0 0 1 2.521-2.521A2.528 2.528 0 0 1 24 8.83a2.528 2.528 0 0 1-2.521 2.521h-2.521V8.83zm-1.268 0a2.528 2.528 0 0 1-2.522 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.168 0a2.528 2.528 0 0 1 2.521 2.522v6.311zM15.168 18.958a2.528 2.528 0 0 1 2.521 2.521A2.528 2.528 0 0 1 15.168 24a2.527 2.527 0 0 1-2.52-2.521v-2.521h2.52zm0-1.269a2.527 2.527 0 0 1-2.52-2.52 2.527 2.527 0 0 1 2.52-2.521h6.313A2.527 2.527 0 0 1 24 15.168a2.528 2.528 0 0 1-2.521 2.521H15.168z"
+      />
+    </svg>
+  );
+}
+
 const tones: Record<string, string> = {
   linear: "bg-[#5E6AD2]/10 text-[#5E6AD2] ring-1 ring-[#5E6AD2]/25",
   jira: "bg-[#2684FF]/10 text-[#2684FF] ring-1 ring-[#2684FF]/25",
   github: "bg-white text-[#24292f] ring-1 ring-black/15",
   gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
   gitea: "bg-[#609926]/15 text-[#609926] ring-1 ring-[#609926]/35",
+  slack: "bg-[#E01E5A]/10 text-[#E01E5A] ring-1 ring-[#E01E5A]/30",
   fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200",
 };
@@ -111,6 +124,7 @@ function ProviderMark({
   if (provider === "github") return <GitHubMark className={className} />;
   if (provider === "gitlab") return <GitLabMark className={className} />;
   if (provider === "gitea") return <GiteaMark className={className} />;
+  if (provider === "slack") return <SlackMark className={className} />;
   if (provider === "fake") return <FakeMark className={className} />;
   return <NativeMark className={className} />;
 }

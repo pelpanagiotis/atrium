@@ -56,6 +56,7 @@ export function Shell({
               ["Projects", "/projects"],
               ["Tasks", "/tasks"],
               ["Calendar", "/calendar"],
+              ["Chats", "/chats"],
             ].map(([label, href]) => (
               <Link key={href} href={href}>{label}</Link>
             ))}

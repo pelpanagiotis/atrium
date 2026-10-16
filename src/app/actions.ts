@@ -293,9 +293,10 @@ export async function bulkTaskAction(formData: FormData): Promise<void> {
 }
 
 export async function connectTokenAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const provider = String(formData.get("provider"));
   try {
     await connectWithToken(await userId(), String(formData.get("workspaceId")), {
-      provider: String(formData.get("provider")),
+      provider,
       displayName: String(formData.get("displayName") ?? ""),
       accessToken: String(formData.get("accessToken") ?? ""),
       webhookSecret: String(formData.get("webhookSecret") ?? ""),
@@ -306,7 +307,7 @@ export async function connectTokenAction(_state: ActionState, formData: FormData
     unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not connect" };
   }
-  redirect("/integrations");
+  redirect(provider === "slack" ? "/chats" : "/integrations");
 }
 
 export async function disconnectAction(formData: FormData): Promise<void> {

@@ -32,6 +32,7 @@ const COPY: Record<string, string> = {
   github: "Track GitHub issues from repositories you choose.",
   gitlab: "Sync GitLab issues from projects you choose.",
   gitea: "Sync Gitea issues from repositories you choose.",
+  slack: "Read today's channel messages on the Chats dashboard with a free Slack bot token.",
 };
 
 export function IntegrationsOnboarding({
@@ -84,12 +85,16 @@ export function IntegrationsOnboarding({
             {active.map((integration) => (
               <li key={integration.id}>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
-                  <Link href={`/integrations/${integration.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <Link
+                    href={integration.provider === "slack" ? "/chats" : `/integrations/${integration.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
                     <ProviderIcon provider={integration.provider} size="md" />
                     <div className="min-w-0">
                       <p className="font-medium">{integration.display_name}</p>
                       <p className="truncate text-xs text-muted">
                         {providerLabel(integration.provider)}
+                        {integration.provider === "slack" ? " · chats" : ""}
                         {integration.external_account_id ? ` · ${integration.external_account_id}` : ""}
                         {integration.hasCredential ? " · secret stored" : " · secret removed"}
                       </p>
@@ -153,9 +158,11 @@ export function IntegrationsOnboarding({
                   <div>
                     <DialogTitle>Connect {providerLabel(selected)}</DialogTitle>
                     <DialogDescription>
-                      {oauth[selected]
-                        ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
-                        : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
+                      {selected === "slack"
+                        ? "Paste a Slack bot token (xoxb-…). Create an internal Slack app with channels:history, channels:read, groups:history, groups:read, and users:read, install it, then invite the bot to channels."
+                        : oauth[selected]
+                          ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
+                          : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
                     </DialogDescription>
                   </div>
                 </div>

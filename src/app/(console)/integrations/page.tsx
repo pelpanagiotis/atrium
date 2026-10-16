@@ -7,6 +7,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listIntegrations, oauthConfigured } from "@/server/integrations/service";
 import { listAdapterProviders } from "@/server/integrations/registry";
+import { CHAT_PROVIDERS, type ProviderId } from "@/server/integrations/types";
 
 export const instant = false;
 
@@ -33,9 +34,15 @@ async function IntegrationsContent({
   const { current } = await workspaceContext(user.id);
   const integrations = await listIntegrations(user.id, current.id);
   const canAdmin = current.role === "owner" || current.role === "admin";
-  const providers = listAdapterProviders().filter((provider) => provider !== "fake");
+  const providers = [
+    ...listAdapterProviders().filter((provider) => provider !== "fake"),
+    ...CHAT_PROVIDERS,
+  ];
   const oauth = Object.fromEntries(
-    providers.map((provider) => [provider, oauthConfigured(provider)]),
+    providers.map((provider) => {
+      if (provider === "slack") return [provider, false] as const;
+      return [provider, oauthConfigured(provider as Exclude<ProviderId, "fake">)] as const;
+    }),
   );
   const params = await searchParams;
   return (

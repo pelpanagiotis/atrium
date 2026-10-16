@@ -18,6 +18,8 @@ function providerLabel(provider: string): string {
       return "Linear";
     case "jira":
       return "Jira";
+    case "slack":
+      return "Slack";
     default:
       return provider;
   }
@@ -40,7 +42,9 @@ export function ConnectForm({
   const [selected, setSelected] = useState(provider ?? providers[0] ?? "linear");
   const showJira = selected === "jira";
   const showGitea = selected === "gitea";
+  const showSlack = selected === "slack";
   const showSiteUrl = selected === "gitlab" || showGitea;
+  const showWebhook = !showSlack;
   return (
     <form action={formAction} className={compact ? "space-y-3" : "rounded-lg border bg-card p-4"}>
       {!compact ? (
@@ -90,7 +94,9 @@ export function ConnectForm({
                   ? "glpat-…"
                   : selected === "gitea"
                     ? "Personal access token"
-                    : "Paste access token"
+                    : selected === "slack"
+                      ? "xoxb-…"
+                      : "Paste access token"
             }
           />
           {selected === "linear" ? (
@@ -99,14 +105,20 @@ export function ConnectForm({
             <p className="mt-1 text-xs text-muted">Paste a GitLab personal access token with the api scope. Self-managed instances can set a site URL below.</p>
           ) : selected === "gitea" ? (
             <p className="mt-1 text-xs text-muted">Paste a Gitea personal access token with issue and repository read/write. Set the site URL for self-hosted instances.</p>
+          ) : selected === "slack" ? (
+            <p className="mt-1 text-xs text-muted">
+              Free Slack workspaces work. After saving, invite the bot to each channel you want on Chats.
+            </p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
           )}
         </div>
-        <div className={showJira ? undefined : "md:col-span-2"}>
-          <Label htmlFor="webhookSecret">Webhook secret</Label>
-          <Input id="webhookSecret" name="webhookSecret" type="password" autoComplete="off" className="mt-1" />
-        </div>
+        {showWebhook ? (
+          <div className={showJira ? undefined : "md:col-span-2"}>
+            <Label htmlFor="webhookSecret">Webhook secret</Label>
+            <Input id="webhookSecret" name="webhookSecret" type="password" autoComplete="off" className="mt-1" />
+          </div>
+        ) : null}
         {showJira ? (
           <>
             <div>

@@ -9,12 +9,20 @@ import { integrationView, openCredential, sealCredential } from "./credentials";
 import { seedFakeProject } from "./fake";
 import { normalizeLinearToken } from "./linear";
 import { getAdapter, OAUTH_SCOPES } from "./registry";
-import type { FieldMappings, ProviderId, RemoteProject, StoredCredential } from "./types";
+import { validateSlackConnection } from "./slack";
+import type {
+  FieldMappings,
+  IntegrationProviderId,
+  ProviderId,
+  RemoteProject,
+  StoredCredential,
+} from "./types";
+import { isChatProvider, isTaskProvider } from "./types";
 
 export type IntegrationView = {
   id: string;
   workspace_id: string;
-  provider: ProviderId;
+  provider: IntegrationProviderId;
   status: "connected" | "error" | "revoked";
   display_name: string;
   external_account_id: string | null;
@@ -26,8 +34,9 @@ export type IntegrationView = {
 
 const SECRET_FREE = sql`id, workspace_id, provider, status, display_name, external_account_id, last_validated_at, last_error, revoked_at, credential_ciphertext`;
 
-function parseProvider(provider: string): ProviderId {
-  if (provider !== "linear" && provider !== "jira" && provider !== "github" && provider !== "gitlab" && provider !== "gitea" && provider !== "fake") {
+function parseProvider(provider: string): IntegrationProviderId {
+  if (isChatProvider(provider)) return provider;
+  if (!isTaskProvider(provider)) {
     throw new Error("Unknown provider");
   }
   if (provider === "fake" && process.env.ALLOW_FAKE_PROVIDER !== "true") {
@@ -42,7 +51,7 @@ export async function listIntegrations(userId: string, workspaceId: string): Pro
     const rows = await tx.execute<{
       id: string;
       workspace_id: string;
-      provider: ProviderId;
+      provider: IntegrationProviderId;
       status: IntegrationView["status"];
       display_name: string;
       external_account_id: string | null;
@@ -64,7 +73,7 @@ async function adapterContext(tx: Tx, integrationId: string) {
   const rows = await tx.execute<{
     id: string;
     workspace_id: string;
-    provider: ProviderId;
+    provider: IntegrationProviderId;
     status: string;
     credential_ciphertext: string | null;
     field_mappings: FieldMappings | null;
@@ -78,6 +87,9 @@ async function adapterContext(tx: Tx, integrationId: string) {
   const row = rows[0];
   if (!row || row.status === "revoked" || !row.credential_ciphertext) {
     throw new Error("This integration is disconnected");
+  }
+  if (isChatProvider(row.provider)) {
+    throw new Error("Slack is a chat connection. Open Chats instead of linking projects.");
   }
   const credentials = openCredential(row.credential_ciphertext);
   if (!credentials) throw new Error("This integration is disconnected");
@@ -110,6 +122,9 @@ export async function connectWithToken(
   const provider = parseProvider(input.provider);
   const token = provider === "linear" ? normalizeLinearToken(input.accessToken) : input.accessToken.trim();
   if (token.length < 8) throw new Error("Access token is too short");
+  if (provider === "slack" && !token.startsWith("xoxb-") && !token.startsWith("xoxp-")) {
+    throw new Error("Paste a Slack bot token starting with xoxb-");
+  }
   const displayName = input.displayName.trim();
   if (displayName.length < 2) throw new Error("Name the connection so you can recognize it later");
   const credential: StoredCredential = {
@@ -122,14 +137,21 @@ export async function connectWithToken(
   };
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "integration.manage");
-    const adapter = getAdapter(provider);
-    const scopes = textArray(provider === "fake" ? [] : OAUTH_SCOPES[provider]);
-    const validated = await adapter.validateConnection({
-      tx,
-      integrationId: "00000000-0000-4000-8000-000000000000",
-      credentials: credential,
-      mappings: adapter.defaultMappings(),
-    });
+    let validated: { externalAccountId: string; accountLabel: string };
+    let scopes: ReturnType<typeof textArray>;
+    if (isChatProvider(provider)) {
+      validated = await validateSlackConnection(token);
+      scopes = textArray(["channels:history", "channels:read", "groups:history", "groups:read", "users:read"]);
+    } else {
+      const adapter = getAdapter(provider);
+      scopes = textArray(provider === "fake" ? [] : OAUTH_SCOPES[provider]);
+      validated = await adapter.validateConnection({
+        tx,
+        integrationId: "00000000-0000-4000-8000-000000000000",
+        credentials: credential,
+        mappings: adapter.defaultMappings(),
+      });
+    }
     const ciphertext = sealCredential({ ...credential, accountLabel: validated.accountLabel });
     const rows = await tx.execute<{ id: string }>(sql`
       insert into integrations (
@@ -188,8 +210,30 @@ export async function testIntegration(userId: string, workspaceId: string, integ
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "integration.manage");
     try {
-      const { adapter, ctx } = await adapterContext(tx, integrationId);
-      const result = await adapter.validateConnection(ctx);
+      const rows = await tx.execute<{
+        provider: IntegrationProviderId;
+        status: string;
+        credential_ciphertext: string | null;
+      }>(sql`
+        select provider, status, credential_ciphertext
+        from integrations
+        where id = ${integrationId}::uuid and workspace_id = ${workspaceId}::uuid
+        limit 1
+      `);
+      const row = rows[0];
+      if (!row || row.status === "revoked" || !row.credential_ciphertext) {
+        throw new Error("This integration is disconnected");
+      }
+      const credentials = openCredential(row.credential_ciphertext);
+      if (!credentials) throw new Error("This integration is disconnected");
+
+      let result: { externalAccountId: string; accountLabel: string };
+      if (isChatProvider(row.provider)) {
+        result = await validateSlackConnection(credentials.accessToken);
+      } else {
+        const { adapter, ctx } = await adapterContext(tx, integrationId);
+        result = await adapter.validateConnection(ctx);
+      }
       await tx.execute(sql`
         update integrations set last_validated_at = now(), last_error = null, status = 'connected',
           external_account_id = ${result.externalAccountId}
@@ -228,12 +272,15 @@ export async function createExternalProject(
 ): Promise<string> {
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "project.create");
-    const integrations = await tx.execute<{ provider: ProviderId; status: string }>(sql`
+    const integrations = await tx.execute<{ provider: IntegrationProviderId; status: string }>(sql`
       select provider, status from integrations
       where id = ${input.integrationId}::uuid and workspace_id = ${workspaceId}::uuid
     `);
     const integration = integrations[0];
     if (!integration || integration.status === "revoked") throw new Error("Integration is disconnected");
+    if (isChatProvider(integration.provider)) {
+      throw new Error("Slack connections cannot link task projects");
+    }
     const adapter = getAdapter(integration.provider);
     const rows = await tx.execute<{ id: string }>(sql`
       insert into projects (workspace_id, name, ownership_mode, created_by)

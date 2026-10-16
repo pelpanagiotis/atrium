@@ -10,6 +10,9 @@ const EXACT_HOSTS = new Set([
   "github.com",
   "gitlab.com",
   "gitea.com",
+  "api.slack.com",
+  "slack.com",
+  "app.slack.com",
 ]);
 
 export type DnsResolver = (hostname: string) => Promise<string[]>;

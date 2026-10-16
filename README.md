@@ -1,6 +1,6 @@
 # Atrium
 
-Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection.
+Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection. Slack can be connected with a free bot token so the Chats page shows today's channel messages.
 
 Workspaces are isolated. Roles are owner, admin, member, and viewer. The database enforces that with row-level security, and the server checks the same rules before every mutation.
 
@@ -33,6 +33,16 @@ Set `EMBEDDED_WORKER=true` to process the sync queue inside `pnpm dev`. Otherwis
 ## Provider OAuth
 
 Paste tokens work out of the box. To use each provider’s authorize screen, register an OAuth app and set `{PROVIDER}_CLIENT_ID` / `{PROVIDER}_CLIENT_SECRET` in `.env.local`. Full steps are in [docs/OAUTH.md](docs/OAUTH.md).
+
+### Slack chats (free plan)
+
+1. Create an internal Slack app at [api.slack.com/apps](https://api.slack.com/apps).
+2. Add bot scopes: `channels:history`, `channels:read`, `groups:history`, `groups:read`, `users:read`.
+3. Install to your workspace and copy the bot token (`xoxb-…`).
+4. In Atrium → Integrations → Slack, paste the token.
+5. In Slack, `/invite @YourApp` into each channel you want on **Chats**.
+
+Reading today's messages uses Slack's free plan (90-day history). No Slack paid plan is required.
 
 ```bash
 pnpm oauth:redirects   # print callback URLs for your BETTER_AUTH_URL
