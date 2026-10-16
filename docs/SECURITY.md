@@ -15,6 +15,7 @@
 - [ ] OAuth scopes stay at the minimum listed in `docs/DEPLOYMENT.md`. Revoke a connection from Integrations; that clears the stored credential.
 - [ ] Invitations store only a SHA-256 of the token. The raw link is shown once to the inviter. There is no mail transport.
 - [ ] Every private page and server action reads the session. Workspace role checks run in the service, not only in the interface.
+- [ ] Sign-in “Keep me signed in” uses Better Auth `rememberMe`. Unchecked sessions are browser-session cookies only; checked sessions last up to 14 days. `session.cookieCache` stores a short-lived signed `session_data` cookie (5 minutes) so routine `getSession` calls can skip the database — revoke still wins after that cache expires.
 - [ ] Review audit events for role changes, invitations, integration connect and disconnect, and task mutations.
 
 Known boundary: anyone who can connect as `atrium_app` can set `app.current_user_id`. Treat that connection string as an application secret.

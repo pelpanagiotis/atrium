@@ -56,9 +56,10 @@ export async function registerAction(_state: ActionState, formData: FormData): P
   if (!(await allowRequest(`auth:${await clientKey()}`, 10, 15 * 60 * 1000))) {
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
+  const rememberMe = formData.get("rememberMe") === "on" || formData.get("rememberMe") === "true";
   try {
     await auth.api.signUpEmail({
-      body: parsed.data,
+      body: { ...parsed.data, rememberMe },
       headers: await headers(),
     });
   } catch (error) {
@@ -72,11 +73,15 @@ export async function registerAction(_state: ActionState, formData: FormData): P
 export async function loginAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const secret = String(formData.get("password") ?? "");
+  const rememberMe = formData.get("rememberMe") === "on" || formData.get("rememberMe") === "true";
   if (!(await allowRequest(`auth:${await clientKey()}`, 10, 15 * 60 * 1000))) {
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   try {
-    await auth.api.signInEmail({ body: { email, password: secret }, headers: await headers() });
+    await auth.api.signInEmail({
+      body: { email, password: secret, rememberMe },
+      headers: await headers(),
+    });
   } catch {
     return { error: "Email or password is incorrect" };
   }
