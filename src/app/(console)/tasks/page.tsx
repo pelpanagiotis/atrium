@@ -18,10 +18,19 @@ import { formatWhen } from "@/lib/utils";
 
 export const instant = false;
 
+type TasksSearchParams = {
+  status?: string;
+  priority?: string;
+  project?: string;
+  source?: string;
+  q?: string;
+  view?: string;
+};
+
 export default function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string; project?: string; q?: string; view?: string }>;
+  searchParams: Promise<TasksSearchParams>;
 }) {
   return (
     <Suspense fallback={<ScreenLoader />}>
@@ -33,7 +42,7 @@ export default function TasksPage({
 async function TasksContent({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string; project?: string; q?: string; view?: string }>;
+  searchParams: Promise<TasksSearchParams>;
 }) {
   await connection();
   const user = await getSessionUser();
@@ -44,6 +53,7 @@ async function TasksContent({
     status: params.status,
     priority: params.priority,
     projectId: params.project,
+    source: params.source,
     query: params.q,
   });
   const projects = await listProjects(user.id, current.id, { status: "active" });
@@ -60,7 +70,8 @@ async function TasksContent({
           <Link href="/tasks?view=board">Board</Link>
         </div>
       </div>
-      <form className="grid gap-2 md:grid-cols-4" action="/tasks">
+      <form className="grid gap-2 md:grid-cols-5" action="/tasks">
+        {params.view ? <input type="hidden" name="view" value={params.view} /> : null}
         <input name="q" defaultValue={params.q} placeholder="Search" className="h-10 rounded-md border bg-card px-3 text-sm" />
         <Select name="status" defaultValue={params.status ?? ""} aria-label="Status filter">
           <option value="">Any status</option>
@@ -80,6 +91,14 @@ async function TasksContent({
         <Select name="project" defaultValue={params.project ?? ""} aria-label="Project filter">
           <option value="">Any project</option>
           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+        </Select>
+        <Select name="source" defaultValue={params.source ?? ""} aria-label="Source filter">
+          <option value="">Any source</option>
+          <option value="atrium">Atrium</option>
+          <option value="linear">Linear</option>
+          <option value="jira">Jira</option>
+          <option value="github">GitHub</option>
+          <option value="fake">Fake provider</option>
         </Select>
         <Button type="submit" variant="outline">Filter</Button>
       </form>

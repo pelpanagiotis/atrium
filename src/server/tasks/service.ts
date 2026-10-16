@@ -171,6 +171,7 @@ export async function listTasks(
     projectId?: string;
     status?: string;
     priority?: string;
+    source?: string;
     assignee?: string;
     query?: string;
     includeDeleted?: boolean;
@@ -181,6 +182,11 @@ export async function listTasks(
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     const query = filter.query?.trim() ?? "";
+    const source = filter.source?.trim() ?? "";
+    const atriumSource = source === "atrium" || source === "native";
+    const providerSource = source === "linear" || source === "jira" || source === "github" || source === "fake"
+      ? source
+      : "";
     return tx.execute<TaskRecord>(sql`
       select t.id, t.workspace_id, t.project_id, p.name as project_name, p.ownership_mode,
              t.milestone_id, t.title, t.description, t.status, t.priority, t.due_at,
@@ -198,6 +204,11 @@ export async function listTasks(
         and (${query} = '' or t.title ilike ${"%" + query + "%"} or t.description ilike ${"%" + query + "%"})
         and (${filter.dueBefore ?? null}::timestamptz is null or t.due_at <= ${filter.dueBefore ?? null}::timestamptz)
         and (${filter.dueAfter ?? null}::timestamptz is null or t.due_at >= ${filter.dueAfter ?? null}::timestamptz)
+        and (
+          ${source} = ''
+          or (${atriumSource} and t.provider is null)
+          or (${providerSource} <> '' and t.provider = ${providerSource})
+        )
       order by
         case t.priority when 'urgent' then 0 when 'high' then 1 when 'medium' then 2 when 'low' then 3 else 4 end,
         t.due_at nulls last,
