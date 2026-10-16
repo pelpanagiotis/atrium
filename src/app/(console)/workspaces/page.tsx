@@ -33,9 +33,12 @@ async function WorkspacesContent() {
   const invitations = canAdmin ? await listInvitations(user.id, current.id) : [];
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl">Workspaces</h1>
-        <p className="mt-1 text-sm text-muted">Personal and work contexts are isolated. A person only sees a workspace they belong to.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-4xl">Workspaces</h1>
+          <p className="mt-1 text-sm text-muted">Personal and work contexts are isolated. A person only sees a workspace they belong to.</p>
+        </div>
+        <CreateWorkspaceForm />
       </div>
       <ul className="grid gap-3 md:grid-cols-2">
         {workspaces.map((workspace) => {
@@ -55,7 +58,6 @@ async function WorkspacesContent() {
           );
         })}
       </ul>
-      <CreateWorkspaceForm />
       <section>
         <h2 className="text-2xl">People in {current.name}</h2>
         <ul className="mt-3 divide-y rounded-lg border bg-card">
