@@ -3,14 +3,15 @@ import Link from "next/link";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { CalendarMonthNav, toMonthKey } from "@/components/calendar-month-nav";
+import { CalendarMonthNav } from "@/components/calendar-month-nav";
 import { ProviderIcon } from "@/components/provider-icon";
+import { toMonthKey } from "@/lib/calendar-month";
+import { cn } from "@/lib/utils";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { calendarTasks } from "@/server/home/service";
 import { sql } from "drizzle-orm";
 import { withUser } from "@/server/db/client";
-import { cn } from "@/lib/utils";
 
 export const instant = false;
 

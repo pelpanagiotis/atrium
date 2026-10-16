@@ -6,6 +6,12 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useHoverMenu } from "@/components/ui/use-hover-menu";
+import {
+  calendarMonthHref,
+  parseMonthKey,
+  shiftMonthKey,
+  toMonthKey,
+} from "@/lib/calendar-month";
 import { cn } from "@/lib/utils";
 
 const MONTH_LABELS = [
@@ -38,26 +44,6 @@ const MONTH_SHORT = [
   "Dec",
 ] as const;
 
-export function toMonthKey(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
-}
-
-export function shiftMonthKey(monthKey: string, delta: number): string {
-  const [year, month] = monthKey.split("-").map(Number);
-  return toMonthKey(new Date(Date.UTC(year!, (month ?? 1) - 1 + delta, 1)));
-}
-
-function parseMonthKey(monthKey: string): { year: number; monthIndex: number } {
-  const [year, month] = monthKey.split("-").map(Number);
-  return { year: year!, monthIndex: (month ?? 1) - 1 };
-}
-
-function calendarHref(monthKey: string, currentKey: string): string {
-  return monthKey === currentKey ? "/calendar" : `/calendar?month=${monthKey}`;
-}
-
 export function CalendarMonthNav({
   monthKey,
   label,
@@ -75,7 +61,7 @@ export function CalendarMonthNav({
 
   function goTo(nextKey: string) {
     menu.onOpenChange(false);
-    router.push(calendarHref(nextKey, todayKey));
+    router.push(calendarMonthHref(nextKey, todayKey));
   }
 
   function openPicker(open: boolean) {
