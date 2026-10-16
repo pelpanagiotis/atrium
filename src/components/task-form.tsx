@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input, Label, Select, Textarea } from "@/components/ui/field";
+import { Input, Label, Textarea } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
 
 type ProjectOption = { id: string; name: string };
 
@@ -33,11 +34,13 @@ export function TaskForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
+  const [seenError, setSeenError] = useState<string | null>(null);
   const showProjectPicker = (projects?.length ?? 0) > 1;
 
-  useEffect(() => {
-    if (state.error) setOpen(true);
-  }, [state]);
+  if (state.error && state.error !== seenError) {
+    setSeenError(state.error);
+    if (!open) setOpen(true);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -60,20 +63,18 @@ export function TaskForm({
           {showProjectPicker ? (
             <div>
               <Label htmlFor="task-project">Project</Label>
-              <Select
+              <MenuSelect
                 id="task-project"
                 name="projectId"
                 defaultValue={projectId}
                 className="mt-1"
                 aria-label="Project"
                 required
-              >
-                {projects!.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </Select>
+                options={projects!.map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                }))}
+              />
             </div>
           ) : (
             <input type="hidden" name="projectId" value={projectId} />
@@ -89,23 +90,37 @@ export function TaskForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="task-status">Status</Label>
-              <Select id="task-status" name="status" defaultValue="open" className="mt-1" aria-label="Status">
-                <option value="open">Open</option>
-                <option value="in_progress">In progress</option>
-                <option value="blocked">Blocked</option>
-                <option value="done">Done</option>
-                <option value="cancelled">Cancelled</option>
-              </Select>
+              <MenuSelect
+                id="task-status"
+                name="status"
+                defaultValue="open"
+                className="mt-1"
+                aria-label="Status"
+                options={[
+                  { value: "open", label: "Open" },
+                  { value: "in_progress", label: "In progress" },
+                  { value: "blocked", label: "Blocked" },
+                  { value: "done", label: "Done" },
+                  { value: "cancelled", label: "Cancelled" },
+                ]}
+              />
             </div>
             <div>
               <Label htmlFor="task-priority">Priority</Label>
-              <Select id="task-priority" name="priority" defaultValue="medium" className="mt-1" aria-label="Priority">
-                <option value="none">No priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </Select>
+              <MenuSelect
+                id="task-priority"
+                name="priority"
+                defaultValue="medium"
+                className="mt-1"
+                aria-label="Priority"
+                options={[
+                  { value: "none", label: "No priority" },
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+              />
             </div>
           </div>
           <div>

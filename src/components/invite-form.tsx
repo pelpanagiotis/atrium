@@ -3,7 +3,8 @@
 import { useActionState } from "react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
 
 export function InviteForm({
   workspaceId,
@@ -19,12 +20,18 @@ export function InviteForm({
       <h2 className="text-xl">Invite someone</h2>
       <input type="hidden" name="workspaceId" value={workspaceId} />
       <div className="mt-3 flex flex-wrap gap-2">
-        <Input name="email" type="email" required placeholder="person@company.com" />
-        <Select name="role" defaultValue="member" aria-label="Invitation role">
-          <option value="admin">Admin</option>
-          <option value="member">Member</option>
-          <option value="viewer">Viewer</option>
-        </Select>
+        <Input name="email" type="email" required placeholder="person@company.com" className="min-w-[14rem] flex-1" />
+        <MenuSelect
+          name="role"
+          defaultValue="member"
+          aria-label="Invitation role"
+          className="w-auto min-w-36"
+          options={[
+            { value: "admin", label: "Admin" },
+            { value: "member", label: "Member" },
+            { value: "viewer", label: "Viewer" },
+          ]}
+        />
         <Button disabled={pending} type="submit">{pending ? "Creating…" : "Create invite"}</Button>
       </div>
       {state.error ? <p className="mt-2 text-sm text-destructive">{state.error}</p> : null}

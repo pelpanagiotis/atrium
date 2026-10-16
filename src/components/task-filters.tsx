@@ -179,13 +179,16 @@ export function TaskSearch({
   const [prevQ, setPrevQ] = useState(values.q);
   const valuesRef = useRef(values);
   const onNavigateRef = useRef(onNavigate);
-  valuesRef.current = values;
-  onNavigateRef.current = onNavigate;
 
   if (values.q !== prevQ) {
     setPrevQ(values.q);
     setQ(values.q ?? "");
   }
+
+  useEffect(() => {
+    valuesRef.current = values;
+    onNavigateRef.current = onNavigate;
+  }, [values, onNavigate]);
 
   useEffect(() => {
     const next = q.trim();

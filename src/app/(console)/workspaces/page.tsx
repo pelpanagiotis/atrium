@@ -8,7 +8,7 @@ import { EditWorkspaceDialog } from "@/components/edit-workspace-dialog";
 import { InviteForm } from "@/components/invite-form";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listInvitations, listMembers } from "@/server/workspaces/service";
@@ -72,12 +72,18 @@ async function WorkspacesContent() {
                   <form action={roleAction} className="flex gap-2">
                     <input type="hidden" name="workspaceId" value={current.id} />
                     <input type="hidden" name="memberId" value={member.id} />
-                    <Select name="role" defaultValue={member.role} aria-label={`Role for ${member.name}`}>
-                      <option value="owner">Owner</option>
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                      <option value="viewer">Viewer</option>
-                    </Select>
+                    <MenuSelect
+                      name="role"
+                      defaultValue={member.role}
+                      aria-label={`Role for ${member.name}`}
+                      className="w-auto min-w-36"
+                      options={[
+                        { value: "owner", label: "Owner" },
+                        { value: "admin", label: "Admin" },
+                        { value: "member", label: "Member" },
+                        { value: "viewer", label: "Viewer" },
+                      ]}
+                    />
                     <Button type="submit" variant="outline">Save role</Button>
                   </form>
                   <form action={removeMemberAction}>

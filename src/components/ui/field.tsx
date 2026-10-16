@@ -28,15 +28,3 @@ export function Textarea({ className, ...props }: React.ComponentProps<"textarea
     />
   );
 }
-
-export function Select({ className, ...props }: React.ComponentProps<"select">) {
-  return (
-    <select
-      className={cn(
-        "h-10 w-full rounded-md border border-border bg-card px-3 text-sm outline-none ring-ring focus-visible:ring-2",
-        className,
-      )}
-      {...props}
-    />
-  );
-}

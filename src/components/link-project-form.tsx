@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { MenuSelect } from "@/components/ui/menu-select";
 import { cn } from "@/lib/utils";
 
 type RemoteProject = {
@@ -63,13 +64,11 @@ export function LinkProjectForm({
   }, [projects, namespace, query]);
 
   const [selectedId, setSelectedId] = useState(filtered[0]?.providerId ?? "");
+  const fallbackId = filtered[0]?.providerId ?? "";
+  if (!filtered.some((project) => project.providerId === selectedId) && selectedId !== fallbackId) {
+    setSelectedId(fallbackId);
+  }
   const selected = filtered.find((project) => project.providerId === selectedId) ?? filtered[0] ?? null;
-
-  useEffect(() => {
-    if (!filtered.some((project) => project.providerId === selectedId)) {
-      setSelectedId(filtered[0]?.providerId ?? "");
-    }
-  }, [filtered, selectedId]);
 
   const namespaceLabel =
     provider === "github" || provider === "gitea"
@@ -97,24 +96,21 @@ export function LinkProjectForm({
             className="h-10 w-full rounded-md border bg-card py-1 pl-9 pr-3 text-sm outline-none ring-ring focus-visible:ring-2"
           />
         </label>
-        <label className="min-w-[12rem]">
+        <div className="min-w-[12rem]">
           <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted">{namespaceLabel}</span>
-          <select
+          <MenuSelect
             value={namespace}
-            onChange={(event) => setNamespace(event.target.value)}
-            className="h-10 w-full rounded-md border bg-card px-3 text-sm outline-none ring-ring focus-visible:ring-2"
+            onValueChange={setNamespace}
             aria-label={namespaceLabel}
-          >
-            <option value="all">All ({projects.length})</option>
-            {namespaces.map((item) => (
-              <option key={item.name} value={item.name}>
-                {item.name}
-                {accountLabel && item.name === accountLabel ? " (you)" : ""}
-                {` · ${item.count}`}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={[
+              { value: "all", label: `All (${projects.length})` },
+              ...namespaces.map((item) => ({
+                value: item.name,
+                label: `${item.name}${accountLabel && item.name === accountLabel ? " (you)" : ""} · ${item.count}`,
+              })),
+            ]}
+          />
+        </div>
       </div>
 
       {namespaces.length > 1 ? (

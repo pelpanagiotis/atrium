@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,12 @@ export function ProjectForm({
 }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
+  const [seenError, setSeenError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (state.error) setOpen(true);
-  }, [state]);
+  if (state.error && state.error !== seenError) {
+    setSeenError(state.error);
+    if (!open) setOpen(true);
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

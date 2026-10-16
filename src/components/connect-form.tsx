@@ -1,9 +1,27 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/field";
+import { Input, Label } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
+
+function providerLabel(provider: string): string {
+  switch (provider) {
+    case "github":
+      return "GitHub";
+    case "gitlab":
+      return "GitLab";
+    case "gitea":
+      return "Gitea";
+    case "linear":
+      return "Linear";
+    case "jira":
+      return "Jira";
+    default:
+      return provider;
+  }
+}
 
 export function ConnectForm({
   workspaceId,
@@ -19,7 +37,7 @@ export function ConnectForm({
   compact?: boolean;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
-  const selected = provider ?? providers[0] ?? "linear";
+  const [selected, setSelected] = useState(provider ?? providers[0] ?? "linear");
   const showJira = selected === "jira";
   const showGitea = selected === "gitea";
   const showSiteUrl = selected === "gitlab" || showGitea;
@@ -37,14 +55,23 @@ export function ConnectForm({
         {!provider ? (
           <div>
             <Label htmlFor="provider">Provider</Label>
-            <Select id="provider" name="provider" className="mt-1" defaultValue={selected}>
-              {providers.map((item) => <option key={item} value={item}>{item}</option>)}
-            </Select>
+            <MenuSelect
+              id="provider"
+              name="provider"
+              className="mt-1"
+              value={selected}
+              onValueChange={setSelected}
+              aria-label="Provider"
+              options={providers.map((item) => ({
+                value: item,
+                label: providerLabel(item),
+              }))}
+            />
           </div>
         ) : null}
         <div className={provider ? "md:col-span-2" : undefined}>
           <Label htmlFor="displayName">Connection name</Label>
-          <Input id="displayName" name="displayName" required className="mt-1" placeholder={`${selected} workspace`} />
+          <Input id="displayName" name="displayName" required className="mt-1" placeholder={`${providerLabel(selected)} workspace`} />
         </div>
         <div className="md:col-span-2">
           <Label htmlFor="accessToken">Access token</Label>
@@ -100,6 +127,7 @@ export function ConnectForm({
               name="siteUrl"
               placeholder={showGitea ? "https://gitea.com" : "https://gitlab.com"}
               defaultValue={showGitea ? "https://gitea.com" : "https://gitlab.com"}
+              key={showGitea ? "gitea-site" : "gitlab-site"}
               className="mt-1"
             />
           </div>

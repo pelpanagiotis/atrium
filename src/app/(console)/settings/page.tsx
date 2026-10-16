@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { passwordAction, settingsAction } from "@/app/actions";
 import { PasswordForm } from "@/components/password-form";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/field";
+import { Input, Label } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
 import { getSessionUser } from "@/server/auth/session";
 import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
@@ -45,10 +46,17 @@ async function SettingsContent() {
         </div>
         <div>
           <Label htmlFor="theme">Theme</Label>
-          <Select id="theme" name="theme" defaultValue={pref?.theme ?? "light"} className="mt-1">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </Select>
+          <MenuSelect
+            id="theme"
+            name="theme"
+            defaultValue={pref?.theme ?? "light"}
+            className="mt-1"
+            aria-label="Theme"
+            options={[
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+          />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
