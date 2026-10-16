@@ -2,18 +2,15 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock3, FolderKanban, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { OpenInProviderButton, ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { TaskComments } from "@/components/task-comments";
 import { TaskDetailForm } from "@/components/task-detail-form";
-import { PriorityIcon, StatusIcon, SyncStateIcon, syncStateLabel } from "@/components/task-meta-icons";
-import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listTaskComments } from "@/server/tasks/comments";
 import { getTask } from "@/server/tasks/service";
-import { formatWhen } from "@/lib/utils";
 
 export const instant = false;
 
@@ -55,102 +52,53 @@ async function TaskDetailContent({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <div>
-        <Link
-          href="/tasks"
-          className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden="true" />
-          Back to tasks
-        </Link>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 space-y-3">
-            <div className="flex items-center gap-2">
-              <ProviderIcon provider={task.provider} />
-              <p className="text-xs text-muted">
-                {sourceLabel}
-                {task.external_url ? " · synced into Atrium" : " · native in Atrium"}
-              </p>
-            </div>
-            <h1 className="text-4xl leading-tight">{task.title}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={task.status}>
-                <StatusIcon status={task.status} className="size-3.5" />
-                {task.status.replace("_", " ")}
-              </Badge>
-              <Badge tone={task.priority}>
-                <PriorityIcon priority={task.priority} className="size-3.5" />
-                {task.priority}
-              </Badge>
-              <span className="inline-flex items-center gap-1 text-xs text-muted">
-                <SyncStateIcon state={task.sync_state} className="size-3.5" />
-                {syncStateLabel(task.sync_state)}
-              </span>
-            </div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-3">
+          <Link
+            href="/tasks"
+            className="inline-flex items-center gap-1.5 text-sm text-muted transition hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden="true" />
+            Back to tasks
+          </Link>
+          <div className="flex items-center gap-2">
+            <ProviderIcon provider={task.provider} />
+            <p className="text-xs text-muted">
+              {sourceLabel}
+              {task.external_url ? " · synced into Atrium" : " · native in Atrium"}
+            </p>
           </div>
-          {task.external_url ? (
-            <OpenInProviderButton provider={task.provider} href={task.external_url} />
-          ) : null}
         </div>
+        {task.external_url ? (
+          <OpenInProviderButton provider={task.provider} href={task.external_url} />
+        ) : null}
       </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
         <div className="min-w-0 space-y-6">
-          <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
-            <div className="flex gap-3">
-              <FolderKanban className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-              <div className="min-w-0">
-                <dt className="text-xs uppercase tracking-wide text-muted">Project</dt>
-                <dd className="mt-0.5">
-                  <Link href={`/projects/${task.project_id}`} className="underline underline-offset-2">
-                    {task.project_name}
-                  </Link>
-                </dd>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <UserRound className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-              <div className="min-w-0">
-                <dt className="text-xs uppercase tracking-wide text-muted">Assignee</dt>
-                <dd className="mt-0.5">{task.assignee_label || "Unassigned"}</dd>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <CalendarDays className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-              <div className="min-w-0">
-                <dt className="text-xs uppercase tracking-wide text-muted">Due</dt>
-                <dd className="mt-0.5">{formatWhen(task.due_at)}</dd>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Clock3 className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
-              <div className="min-w-0">
-                <dt className="text-xs uppercase tracking-wide text-muted">Updated</dt>
-                <dd className="mt-0.5">{formatWhen(task.updated_at)}</dd>
-              </div>
-            </div>
-          </dl>
-
           {task.sync_error ? (
             <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               Sync error: {task.sync_error}
             </p>
           ) : null}
 
-          <section className="space-y-3">
-            <h2 className="text-xl">{canWrite ? "Edit task" : "Details"}</h2>
-            <TaskDetailForm
-              workspaceId={task.workspace_id}
-              taskId={task.id}
-              version={task.version}
-              title={task.title}
-              description={task.description}
-              status={task.status}
-              priority={task.priority}
-              dueAt={task.due_at}
-              canWrite={canWrite}
-            />
-          </section>
+          <TaskDetailForm
+            key={task.id}
+            workspaceId={task.workspace_id}
+            taskId={task.id}
+            version={task.version}
+            title={task.title}
+            description={task.description}
+            status={task.status}
+            priority={task.priority}
+            dueAt={task.due_at}
+            projectId={task.project_id}
+            projectName={task.project_name}
+            assigneeLabel={task.assignee_label}
+            updatedAt={task.updated_at}
+            syncState={task.sync_state}
+            canWrite={canWrite}
+          />
         </div>
 
         <aside className="min-w-0 rounded-lg border bg-card/40 p-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:p-5">

@@ -1,12 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-import { CalendarDays } from "lucide-react";
-import { updateTaskDetailAction, type ActionState } from "@/app/actions";
-import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
-import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea } from "@/components/ui/field";
+import Link from "next/link";
+import { useRef, useState, useTransition } from "react";
+import { CalendarDays, Clock3, FolderKanban, UserRound } from "lucide-react";
+import { updateTaskDetailAction } from "@/app/actions";
+import { PriorityIcon, StatusIcon, SyncStateIcon, syncStateLabel } from "@/components/task-meta-icons";
 import { MenuSelect } from "@/components/ui/menu-select";
+import { cn, formatWhen } from "@/lib/utils";
 
 function dueInputValue(dueAt: Date | string | null): string {
   if (!dueAt) return "";
@@ -31,15 +31,33 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", icon: <PriorityIcon priority="urgent" /> },
 ];
 
+const BADGE_TRIGGER: Record<string, string> = {
+  open: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  in_progress: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+  blocked: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+  done: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  cancelled: "border-border bg-secondary text-muted",
+  none: "border-border bg-secondary text-muted",
+  low: "border-border bg-secondary text-muted",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
+  high: "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:text-orange-300",
+  urgent: "border-rose-600/40 bg-rose-600 text-white",
+};
+
 export function TaskDetailForm({
   workspaceId,
   taskId,
-  version,
-  title,
-  description,
-  status,
-  priority,
-  dueAt,
+  version: initialVersion,
+  title: initialTitle,
+  description: initialDescription,
+  status: initialStatus,
+  priority: initialPriority,
+  dueAt: initialDueAt,
+  projectId,
+  projectName,
+  assigneeLabel,
+  updatedAt,
+  syncState,
   canWrite,
 }: {
   workspaceId: string;
@@ -50,103 +68,221 @@ export function TaskDetailForm({
   status: string;
   priority: string;
   dueAt: Date | string | null;
+  projectId: string;
+  projectName: string;
+  assigneeLabel: string | null;
+  updatedAt: Date | string;
+  syncState: string;
   canWrite: boolean;
 }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(updateTaskDetailAction, {});
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
+  const [status, setStatus] = useState(initialStatus);
+  const [priority, setPriority] = useState(initialPriority);
+  const [dueAt, setDueAt] = useState(dueInputValue(initialDueAt));
+  const [error, setError] = useState<string | null>(null);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const titleRef = useRef(initialTitle);
+  const descriptionRef = useRef(initialDescription);
+  const dueRef = useRef(dueInputValue(initialDueAt));
+  const versionRef = useRef(initialVersion);
 
-  if (!canWrite) {
-    return (
-      <div className="space-y-4">
-        <div className="rounded-lg border bg-card p-5">
-          {description.trim() ? (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{description}</p>
-          ) : (
-            <p className="text-sm text-muted">No description for this task.</p>
-          )}
-        </div>
-        <p className="text-sm text-muted">Your role can view this task. Members and above can edit it.</p>
-      </div>
-    );
+  function saveField(field: "title" | "description" | "status" | "priority" | "dueAt", value: string) {
+    if (!canWrite) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("workspaceId", workspaceId);
+      formData.set("taskId", taskId);
+      formData.set("version", String(versionRef.current));
+      formData.set("silent", "1");
+      formData.set(field, value);
+      const result = await updateTaskDetailAction({}, formData);
+      if (result.error) {
+        setError(result.error);
+        setSavedFlash(false);
+        return;
+      }
+      setError(null);
+      if (typeof result.version === "number") {
+        versionRef.current = result.version;
+      }
+      setSavedFlash(true);
+      window.setTimeout(() => setSavedFlash(false), 1200);
+    });
   }
 
   return (
-    <form action={formAction} className="space-y-4">
-      <input type="hidden" name="workspaceId" value={workspaceId} />
-      <input type="hidden" name="taskId" value={taskId} />
-      <input type="hidden" name="version" value={version} />
-      <input type="hidden" name="returnTo" value={`/tasks/${taskId}`} />
+    <div className="space-y-5">
+      <div className="space-y-3">
+        {canWrite ? (
+          <input
+            id="task-detail-title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            onBlur={() => {
+              const next = title.trim();
+              if (!next || next === titleRef.current) {
+                if (!next) setTitle(titleRef.current);
+                return;
+              }
+              titleRef.current = next;
+              setTitle(next);
+              saveField("title", next);
+            }}
+            aria-label="Title"
+            className="w-full bg-transparent text-4xl leading-tight outline-none placeholder:text-muted focus-visible:ring-0"
+            placeholder="Task title"
+          />
+        ) : (
+          <h1 className="text-4xl leading-tight">{title}</h1>
+        )}
 
-      <div className="rounded-lg border bg-card p-5">
-        <div className="grid gap-4">
-          <div>
-            <Label htmlFor="task-detail-title">Title</Label>
-            <Input
-              id="task-detail-title"
-              name="title"
-              required
-              defaultValue={title}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="task-detail-description">Description</Label>
-            <Textarea
-              id="task-detail-description"
-              name="description"
-              rows={8}
-              defaultValue={description}
-              className="mt-1"
-            />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="task-detail-status">Status</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          {canWrite ? (
+            <>
               <MenuSelect
                 id="task-detail-status"
-                name="status"
-                defaultValue={status}
-                className="mt-1"
+                value={status}
                 aria-label="Status"
+                className="w-auto"
+                triggerClassName={cn(
+                  "h-7 w-auto gap-1.5 rounded-full border px-2.5 text-xs font-medium capitalize",
+                  BADGE_TRIGGER[status] ?? BADGE_TRIGGER.open,
+                )}
                 options={STATUS_OPTIONS}
+                onValueChange={(next) => {
+                  if (next === status) return;
+                  setStatus(next);
+                  saveField("status", next);
+                }}
               />
-            </div>
-            <div>
-              <Label htmlFor="task-detail-priority">Priority</Label>
               <MenuSelect
                 id="task-detail-priority"
-                name="priority"
-                defaultValue={priority}
-                className="mt-1"
+                value={priority}
                 aria-label="Priority"
+                className="w-auto"
+                triggerClassName={cn(
+                  "h-7 w-auto gap-1.5 rounded-full border px-2.5 text-xs font-medium capitalize",
+                  BADGE_TRIGGER[priority] ?? BADGE_TRIGGER.none,
+                )}
                 options={PRIORITY_OPTIONS}
+                onValueChange={(next) => {
+                  if (next === priority) return;
+                  setPriority(next);
+                  saveField("priority", next);
+                }}
               />
-            </div>
-            <div>
-              <Label htmlFor="task-detail-due">Due date</Label>
-              <div className="relative mt-1">
-                <CalendarDays
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
-                  aria-hidden="true"
-                />
-                <Input
-                  id="task-detail-due"
-                  name="dueAt"
-                  type="date"
-                  defaultValue={dueInputValue(dueAt)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize",
+                  BADGE_TRIGGER[status] ?? BADGE_TRIGGER.open,
+                )}
+              >
+                <StatusIcon status={status} className="size-3.5" />
+                {status.replace("_", " ")}
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize",
+                  BADGE_TRIGGER[priority] ?? BADGE_TRIGGER.none,
+                )}
+              >
+                <PriorityIcon priority={priority} className="size-3.5" />
+                {priority}
+              </span>
+            </>
+          )}
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
+            <SyncStateIcon state={syncState} className="size-3.5" />
+            {syncStateLabel(syncState)}
+          </span>
+          {pending ? <span className="text-xs text-muted">Saving…</span> : null}
+          {!pending && savedFlash ? <span className="text-xs text-muted">Saved</span> : null}
         </div>
       </div>
 
-      {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-      {state.notice ? <p className="text-sm text-muted">{state.notice}</p> : null}
+      <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
+        <div className="flex gap-3">
+          <FolderKanban className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-xs uppercase tracking-wide text-muted">Project</dt>
+            <dd className="mt-0.5">
+              <Link href={`/projects/${projectId}`} className="underline underline-offset-2">
+                {projectName}
+              </Link>
+            </dd>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <UserRound className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-xs uppercase tracking-wide text-muted">Assignee</dt>
+            <dd className="mt-0.5">{assigneeLabel || "Unassigned"}</dd>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <CalendarDays className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-xs uppercase tracking-wide text-muted">Due</dt>
+            <dd className="mt-0.5">
+              {canWrite ? (
+                <input
+                  id="task-detail-due"
+                  type="date"
+                  value={dueAt}
+                  aria-label="Due date"
+                  onChange={(event) => setDueAt(event.target.value)}
+                  onBlur={() => {
+                    if (dueAt === dueRef.current) return;
+                    dueRef.current = dueAt;
+                    saveField("dueAt", dueAt);
+                  }}
+                  className="w-full max-w-[12rem] rounded-md border border-transparent bg-transparent px-0 py-0.5 outline-none hover:border-border focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              ) : (
+                formatWhen(initialDueAt)
+              )}
+            </dd>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Clock3 className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
+          <div className="min-w-0">
+            <dt className="text-xs uppercase tracking-wide text-muted">Updated</dt>
+            <dd className="mt-0.5">{formatWhen(updatedAt)}</dd>
+          </div>
+        </div>
+      </dl>
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save changes"}
-      </Button>
-    </form>
+      {canWrite ? (
+        <textarea
+          id="task-detail-description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          onBlur={() => {
+            if (description === descriptionRef.current) return;
+            descriptionRef.current = description;
+            saveField("description", description);
+          }}
+          rows={10}
+          aria-label="Description"
+          placeholder="Add a description…"
+          className="min-h-40 w-full resize-y rounded-lg border border-transparent bg-transparent px-0 py-1 text-sm leading-relaxed outline-none placeholder:text-muted hover:border-border focus-visible:border-border focus-visible:bg-card focus-visible:px-3 focus-visible:py-2 focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      ) : description.trim() ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{description}</p>
+      ) : (
+        <p className="text-sm text-muted">No description for this task.</p>
+      )}
+
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {!canWrite ? (
+        <p className="text-sm text-muted">Your role can view this task. Members and above can edit it.</p>
+      ) : null}
+    </div>
   );
 }

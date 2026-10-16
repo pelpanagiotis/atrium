@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
@@ -28,7 +29,7 @@ import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 
-export type ActionState = { error?: string; notice?: string; token?: string };
+export type ActionState = { error?: string; notice?: string; token?: string; version?: number };
 
 async function userId(): Promise<string> {
   const user = await getSessionUser();
@@ -247,9 +248,10 @@ export async function updateTaskAction(formData: FormData): Promise<void> {
 
 export async function updateTaskDetailAction(_state: ActionState, formData: FormData): Promise<ActionState> {
   const taskId = String(formData.get("taskId") ?? "");
+  const version = Number(formData.get("version"));
   try {
     await updateTask(await userId(), String(formData.get("workspaceId")), taskId, {
-      version: Number(formData.get("version")),
+      version,
       title: formData.has("title") ? String(formData.get("title")) : undefined,
       description: formData.has("description") ? String(formData.get("description")) : undefined,
       status: formData.get("status") ? (String(formData.get("status")) as "open") : undefined,
@@ -260,6 +262,11 @@ export async function updateTaskDetailAction(_state: ActionState, formData: Form
   } catch (error) {
     unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not update the task" };
+  }
+  const silent = String(formData.get("silent") ?? "") === "1";
+  if (silent) {
+    revalidatePath(`/tasks/${taskId}`);
+    return { notice: "Saved", version: version + 1 };
   }
   redirect(String(formData.get("returnTo") ?? `/tasks/${taskId}`));
 }
