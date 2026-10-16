@@ -258,26 +258,33 @@ export function TaskDetailForm({
         </div>
       </dl>
 
-      {canWrite ? (
-        <textarea
-          id="task-detail-description"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          onBlur={() => {
-            if (description === descriptionRef.current) return;
-            descriptionRef.current = description;
-            saveField("description", description);
-          }}
-          rows={10}
-          aria-label="Description"
-          placeholder="Add a description…"
-          className="min-h-40 w-full resize-y rounded-lg border border-transparent bg-transparent px-0 py-1 text-sm leading-relaxed outline-none placeholder:text-muted hover:border-border focus-visible:border-border focus-visible:bg-card focus-visible:px-3 focus-visible:py-2 focus-visible:ring-2 focus-visible:ring-ring"
-        />
-      ) : description.trim() ? (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{description}</p>
-      ) : (
-        <p className="text-sm text-muted">No description for this task.</p>
-      )}
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted">Description</p>
+        {canWrite ? (
+          <textarea
+            id="task-detail-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            onBlur={() => {
+              if (description === descriptionRef.current) return;
+              descriptionRef.current = description;
+              saveField("description", description);
+            }}
+            rows={10}
+            aria-label="Description"
+            placeholder="Add a description…"
+            className="min-h-40 w-full resize-y rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm leading-relaxed outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+          />
+        ) : description.trim() ? (
+          <div className="rounded-lg border border-border/70 bg-card px-3 py-2.5">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{description}</p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border/70 px-3 py-2.5">
+            <p className="text-sm text-muted">No description for this task.</p>
+          </div>
+        )}
+      </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {!canWrite ? (
