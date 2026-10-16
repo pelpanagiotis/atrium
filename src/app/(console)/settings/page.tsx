@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { passwordAction, settingsAction } from "@/app/actions";
@@ -13,7 +14,7 @@ export const instant = false;
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading settings…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <SettingsContent />
     </Suspense>
   );

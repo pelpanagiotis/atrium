@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -13,7 +14,7 @@ export const instant = false;
 
 export default function ProjectsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading projects…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <ProjectsContent searchParams={searchParams} />
     </Suspense>
   );

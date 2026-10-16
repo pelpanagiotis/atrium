@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { AuthorizationError } from "@/server/authz/permissions";
@@ -11,7 +12,7 @@ export const instant = false;
 
 export default function AuditPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading the audit log…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <AuditContent />
     </Suspense>
   );

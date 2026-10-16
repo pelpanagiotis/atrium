@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -23,7 +24,7 @@ export default function TasksPage({
   searchParams: Promise<{ status?: string; priority?: string; project?: string; q?: string; view?: string }>;
 }) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading tasks…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <TasksContent searchParams={searchParams} />
     </Suspense>
   );

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
@@ -10,7 +11,7 @@ export const instant = false;
 
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<p className="p-8 text-sm text-muted">Opening your workspace…</p>}>
+    <Suspense fallback={<ScreenLoader className="min-h-screen" />}>
       <Frame>{children}</Frame>
     </Suspense>
   );

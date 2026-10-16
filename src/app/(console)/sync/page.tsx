@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { resolveAction, retryAction } from "@/app/actions";
@@ -13,7 +14,7 @@ export const instant = false;
 
 export default function SyncPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading sync status…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <SyncContent />
     </Suspense>
   );

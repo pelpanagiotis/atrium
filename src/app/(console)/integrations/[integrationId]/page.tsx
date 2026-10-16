@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { fakeProjectAction, linkProjectAction, testConnectionAction } from "@/app/actions";
@@ -14,7 +15,7 @@ export const instant = false;
 
 export default function IntegrationDetail({ params }: { params: Promise<{ integrationId: string }> }) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading the connection…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <Detail params={params} />
     </Suspense>
   );

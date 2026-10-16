@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { archiveProjectAction, createMilestoneAction, createTaskAction, mappingAction, publishAction, updateProjectAction } from "@/app/actions";
@@ -19,7 +20,7 @@ export const instant = false;
 
 export default function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading project…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <ProjectContent params={params} />
     </Suspense>
   );

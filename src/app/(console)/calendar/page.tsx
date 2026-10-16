@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ProviderIcon } from "@/components/provider-icon";
@@ -12,7 +13,7 @@ export const instant = false;
 
 export default function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading the calendar…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <CalendarContent searchParams={searchParams} />
     </Suspense>
   );

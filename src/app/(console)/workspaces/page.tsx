@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { inviteAction, removeMemberAction, roleAction, updateWorkspaceAction } from "@/app/actions";
@@ -14,7 +15,7 @@ export const instant = false;
 
 export default function WorkspacesPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading workspaces…</p>}>
+    <Suspense fallback={<ScreenLoader />}>
       <WorkspacesContent />
     </Suspense>
   );
