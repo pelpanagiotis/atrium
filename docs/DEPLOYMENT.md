@@ -22,11 +22,12 @@ openssl rand -base64 32   # CREDENTIAL_ENCRYPTION_KEY
 
 Role passwords must not contain single quotes. They are interpolated by `docker/postgres/init.sh` on the first database boot only.
 
-OAuth client ids are optional. Without them, an admin can paste a provider access token. That token is encrypted before it is stored. Minimum scopes when OAuth is configured:
+OAuth client ids are optional. Without them, an admin can paste a provider access token. That token is encrypted before it is stored. See [OAUTH.md](./OAUTH.md) for registering apps and callback URLs (`pnpm oauth:redirects`). Minimum scopes when OAuth is configured:
 
 - Linear: `read`, `write`
 - Jira: `read:jira-work`, `write:jira-work`, `offline_access`
 - GitHub: classic `repo` (issues on private repositories)
+- GitLab: `api`, `read_user`
 
 ## Local commands
 

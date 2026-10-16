@@ -47,7 +47,6 @@ export function Shell({
           </form>
           <div className="flex shrink-0 items-center gap-1">
             <CreateMenu />
-            <HeaderAction href="/integrations" label="Integrations" icon={Plug} className="hidden sm:inline-flex" />
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
             <AccountMenu user={user} theme={theme} />
           </div>

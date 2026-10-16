@@ -10,15 +10,23 @@ import { listAdapterProviders } from "@/server/integrations/registry";
 
 export const instant = false;
 
-export default function IntegrationsPage() {
+export default function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   return (
     <Suspense fallback={<ScreenLoader />}>
-      <IntegrationsContent />
+      <IntegrationsContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function IntegrationsContent() {
+async function IntegrationsContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await connection();
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -29,6 +37,7 @@ async function IntegrationsContent() {
   const oauth = Object.fromEntries(
     providers.map((provider) => [provider, oauthConfigured(provider)]),
   );
+  const params = await searchParams;
   return (
     <IntegrationsOnboarding
       workspaceId={current.id}
@@ -36,6 +45,7 @@ async function IntegrationsContent() {
       providers={providers}
       oauth={oauth}
       canAdmin={canAdmin}
+      error={params.error ?? null}
     />
   );
 }

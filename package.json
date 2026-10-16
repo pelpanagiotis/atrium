@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "oauth:redirects": "tsx scripts/oauth-redirects.ts",
     "worker": "tsx src/worker/main.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test"
   },

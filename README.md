@@ -1,6 +1,6 @@
 # Atrium
 
-Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, and GitHub projects stay owned by those providers, and Atrium keeps a synchronized projection.
+Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, and GitLab projects stay owned by those providers, and Atrium keeps a synchronized projection.
 
 Workspaces are isolated. Roles are owner, admin, member, and viewer. The database enforces that with row-level security, and the server checks the same rules before every mutation.
 
@@ -30,6 +30,14 @@ Seeded accounts, both with password `atrium-demo-12`:
 
 Set `EMBEDDED_WORKER=true` to process the sync queue inside `pnpm dev`. Otherwise run `pnpm worker` in another terminal.
 
+## Provider OAuth
+
+Paste tokens work out of the box. To use each provider’s authorize screen, register an OAuth app and set `{PROVIDER}_CLIENT_ID` / `{PROVIDER}_CLIENT_SECRET` in `.env.local`. Full steps are in [docs/OAUTH.md](docs/OAUTH.md).
+
+```bash
+pnpm oauth:redirects   # print callback URLs for your BETTER_AUTH_URL
+```
+
 ## Checks
 
 ```bash
@@ -51,5 +59,5 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/SECURITY.md](docs/SECURITY.m
 - Hybrid ownership is reserved in the schema and rejected at runtime.
 - GitHub issues do not support due dates or assignees from Atrium. Those controls are refused.
 - Linear status changes need a workflow state UUID in the field mapping. A status name is not sent as a state id.
-- Live Linear, Jira, and GitHub accounts are not contacted by the test suite. The fake provider and mocked HTTP clients cover the adapter and sync loop.
+- Live Linear, Jira, GitHub, and GitLab accounts are not contacted by the test suite. The fake provider and mocked HTTP clients cover the adapter and sync loop.
 - Invitations are links, not email. The inviter sees the token once.

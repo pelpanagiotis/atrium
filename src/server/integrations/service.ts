@@ -340,6 +340,12 @@ export function oauthConfigured(provider: Exclude<ProviderId, "fake">): boolean 
   return Boolean(id && secret);
 }
 
+export function oauthRedirectUri(provider: Exclude<ProviderId, "fake">): string {
+  const base = (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
+  if (!base) throw new Error("BETTER_AUTH_URL is not set");
+  return `${base}/api/integrations/oauth/${provider}/callback`;
+}
+
 export async function beginOAuth(userId: string, workspaceId: string, provider: Exclude<ProviderId, "fake">): Promise<string> {
   if (!oauthConfigured(provider)) throw new Error(`${provider} OAuth is not configured on this server`);
   const verifier = randomBytes(32).toString("base64url");
@@ -359,7 +365,7 @@ export async function beginOAuth(userId: string, workspaceId: string, provider: 
       )
     `);
   });
-  const redirectUri = `${process.env.BETTER_AUTH_URL}/api/integrations/oauth/${provider}/callback`;
+  const redirectUri = oauthRedirectUri(provider);
   const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`]!;
   if (provider === "linear") {
     const url = new URL("https://linear.app/oauth/authorize");
@@ -410,7 +416,7 @@ export async function completeOAuth(userId: string, provider: Exclude<ProviderId
   const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
   const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
   if (!clientId || !clientSecret) throw new Error("OAuth client is not configured");
-  const redirectUri = `${process.env.BETTER_AUTH_URL}/api/integrations/oauth/${provider}/callback`;
+  const redirectUri = oauthRedirectUri(provider);
   return withUser(userId, async (tx) => {
     const states = await tx.execute<{
       id: string;
@@ -451,8 +457,14 @@ async function exchangeCode(
         code_verifier: input.verifier,
       }),
     });
-    const body = (await response.json()) as { access_token?: string; error?: string };
-    if (!body.access_token) throw new Error(body.error ?? "GitHub did not return a token");
+    const body = (await response.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
+    if (!body.access_token) {
+      throw new Error(body.error_description ?? body.error ?? "GitHub did not return a token");
+    }
     return { accessToken: body.access_token };
   }
   if (provider === "linear") {

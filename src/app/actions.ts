@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/server/auth/auth";
 import { getSessionUser } from "@/server/auth/session";
@@ -268,12 +268,18 @@ export async function testConnectionAction(formData: FormData): Promise<void> {
 }
 
 export async function oauthStartAction(formData: FormData): Promise<void> {
-  const url = await beginOAuth(
-    await userId(),
-    String(formData.get("workspaceId")),
-    String(formData.get("provider")) as Exclude<ProviderId, "fake">,
-  );
-  redirect(url);
+  try {
+    const url = await beginOAuth(
+      await userId(),
+      String(formData.get("workspaceId")),
+      String(formData.get("provider")) as Exclude<ProviderId, "fake">,
+    );
+    redirect(url);
+  } catch (error) {
+    unstable_rethrow(error);
+    const message = error instanceof Error ? error.message : "Could not start OAuth";
+    redirect(`/integrations?error=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function linkProjectAction(_state: ActionState, formData: FormData): Promise<ActionState> {

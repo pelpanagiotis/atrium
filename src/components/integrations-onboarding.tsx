@@ -39,12 +39,14 @@ export function IntegrationsOnboarding({
   providers,
   oauth,
   canAdmin,
+  error,
 }: {
   workspaceId: string;
   integrations: IntegrationRow[];
   providers: string[];
   oauth: Record<string, boolean>;
   canAdmin: boolean;
+  error?: string | null;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const active = integrations.filter((item) => item.status !== "revoked");
@@ -55,8 +57,13 @@ export function IntegrationsOnboarding({
         <p className="text-xs uppercase tracking-[0.18em] text-muted">Onboarding</p>
         <h1 className="text-4xl">Integrations</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Connect the tools your team already uses. Credentials stay encrypted on the server, and disconnecting removes the stored secret.
+          Connect with OAuth when a provider app is configured, or paste an access token. Credentials stay encrypted on the server.
         </p>
+        {error ? (
+          <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
 
       <section className="space-y-3">
@@ -122,7 +129,10 @@ export function IntegrationsOnboarding({
                 onClick={() => setSelected(provider)}
                 className="rounded-xl border bg-card p-4 text-left transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <ProviderIcon provider={provider} size="lg" />
+                <div className="flex items-start justify-between gap-2">
+                  <ProviderIcon provider={provider} size="lg" />
+                  {oauth[provider] ? <Badge tone="connected">OAuth ready</Badge> : <Badge tone="neutral">Token</Badge>}
+                </div>
                 <p className="mt-3 text-lg font-medium capitalize">{providerLabel(provider)}</p>
                 <p className="mt-1 text-sm text-muted">{COPY[provider] ?? "Connect this provider with a token or OAuth."}</p>
                 <p className="mt-3 text-xs font-medium text-foreground/80">Configure →</p>
@@ -142,19 +152,28 @@ export function IntegrationsOnboarding({
                   <div>
                     <DialogTitle>Connect {providerLabel(selected)}</DialogTitle>
                     <DialogDescription>
-                      Save an access token for this workspace{oauth[selected] ? ", or continue with OAuth" : ""}.
+                      {oauth[selected]
+                        ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
+                        : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
                     </DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
               {oauth[selected] ? (
-                <form action={oauthStartAction}>
-                  <input type="hidden" name="workspaceId" value={workspaceId} />
-                  <input type="hidden" name="provider" value={selected} />
-                  <Button type="submit" variant="outline" className="w-full">
-                    Continue with {providerLabel(selected)} OAuth
-                  </Button>
-                </form>
+                <>
+                  <form action={oauthStartAction}>
+                    <input type="hidden" name="workspaceId" value={workspaceId} />
+                    <input type="hidden" name="provider" value={selected} />
+                    <Button type="submit" className="w-full">
+                      Continue with {providerLabel(selected)}
+                    </Button>
+                  </form>
+                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
+                    <span className="h-px flex-1 bg-border" />
+                    Or paste a token
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                </>
               ) : null}
               <ConnectForm
                 workspaceId={workspaceId}
