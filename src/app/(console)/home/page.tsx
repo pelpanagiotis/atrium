@@ -133,7 +133,7 @@ async function HomeContent({
         />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="mb-8 grid gap-4 md:grid-cols-3 md:items-start">
         <Panel
           title="Needs attention"
           href={attentionHref}

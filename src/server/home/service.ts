@@ -78,10 +78,26 @@ export async function homeFeed(userId: string, workspaceId: string, now: number,
       order by e.created_at desc limit 12
     `);
     const sources = await tx.execute<{ provider: string; display_name: string }>(sql`
-      select distinct on (i.provider) i.provider, i.display_name
-      from integrations i
-      where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
-      order by i.provider, i.display_name
+      with connected as (
+        select distinct on (i.provider) i.provider, i.display_name, 0 as rank
+        from integrations i
+        where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
+        order by i.provider, i.display_name
+      ),
+      from_tasks as (
+        select distinct t.provider, initcap(t.provider) as display_name, 1 as rank
+        from tasks t
+        where t.workspace_id = ${workspaceId}::uuid
+          and t.deleted_at is null
+          and t.provider is not null
+          and not exists (select 1 from connected c where c.provider = t.provider)
+      )
+      select provider, display_name from (
+        select provider, display_name, rank from connected
+        union all
+        select provider, display_name, rank from from_tasks
+      ) sources
+      order by rank, provider
     `);
     const health = await tx.execute<{
       display_name: string;
