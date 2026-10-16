@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
+import { EmptyResults } from "@/components/empty-results";
 import { ResultsLoader } from "@/components/results-loader";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { ListFilter } from "lucide-react";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
@@ -55,7 +57,7 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
   const projectOptions = projects.map((project) => ({ id: project.id, name: project.name }));
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-4xl">Tasks</h1>
@@ -107,10 +109,11 @@ async function TasksResults({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-card p-8">
-        <h2 className="text-2xl">No tasks match</h2>
-        <p className="mt-2 text-sm text-muted">Create one on a native project, or widen the filters.</p>
-      </div>
+      <EmptyResults
+        icon={ListFilter}
+        title="No tasks match"
+        description="Create one on a native project, or widen the filters."
+      />
     );
   }
 

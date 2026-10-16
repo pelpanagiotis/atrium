@@ -31,7 +31,7 @@ export function TasksFilterFrame({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <TaskFilters
         projects={projects}
         values={values}
@@ -42,8 +42,8 @@ export function TasksFilterFrame({
           });
         }}
       />
-      <div className="relative min-h-72" aria-busy={pending}>
-        {pending ? <ResultsLoader label="Updating tasks" /> : children}
+      <div className="relative flex min-h-0 flex-1 flex-col" aria-busy={pending}>
+        {pending ? <ResultsLoader label="Updating tasks" className="h-full" /> : children}
       </div>
     </div>
   );
