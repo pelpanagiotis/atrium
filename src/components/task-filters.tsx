@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useHoverMenu } from "@/components/ui/use-hover-menu";
 import { cn } from "@/lib/utils";
 
 type ProjectOption = { id: string; name: string };
@@ -87,20 +88,27 @@ function FilterPicker({
   onChange: (value: string) => void;
 }) {
   const selected = options.find((option) => option.value === value) ?? options[0]!;
+  const menu = useHoverMenu();
   return (
-    <DropdownMenu>
+    <DropdownMenu open={menu.open} onOpenChange={menu.onOpenChange} modal={false}>
       <DropdownMenuTrigger
         aria-label={label}
         className={cn(
           "inline-flex h-10 w-full items-center gap-2 rounded-md border border-border bg-card px-3 text-left text-sm outline-none",
           "transition hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring",
+          menu.open && "border-foreground/20 bg-accent/40",
         )}
+        {...menu.triggerProps}
       >
         <span className="inline-flex shrink-0 items-center justify-center">{selected.icon}</span>
         <span className="min-w-0 flex-1 truncate">{selected.label}</span>
         <ChevronDown className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56">
+      <DropdownMenuContent
+        align="start"
+        className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"
+        {...menu.contentProps}
+      >
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {options.map((option) => {

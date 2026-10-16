@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Check, ChevronDown, Layers } from "lucide-react";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useHoverMenu } from "@/components/ui/use-hover-menu";
 import { cn } from "@/lib/utils";
 
 export function homeHref(source?: string): string {
@@ -26,7 +26,7 @@ export function HomeSourceFilter({
   sources: Array<{ provider: string; display_name: string }>;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const menu = useHoverMenu();
 
   const options: SourceOption[] = [
     { value: "", label: "All sources", provider: null },
@@ -45,20 +45,21 @@ export function HomeSourceFilter({
       : options.filter((option) => option.value === selected.value && option.provider);
 
   function choose(value: string) {
-    setOpen(false);
+    menu.onOpenChange(false);
     router.push(homeHref(value || undefined));
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={menu.open} onOpenChange={menu.onOpenChange}>
       <PopoverTrigger
         type="button"
         aria-label={`Show data from ${selected.label}`}
         className={cn(
           "inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm outline-none transition",
           "hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring",
-          open && "border-foreground/25 bg-accent",
+          menu.open && "border-foreground/25 bg-accent",
         )}
+        {...menu.triggerProps}
       >
         <span className="text-sm text-muted">Sources</span>
         <span className="inline-flex items-center" aria-hidden="true">
@@ -85,6 +86,7 @@ export function HomeSourceFilter({
         side="bottom"
         sideOffset={6}
         className="w-56 p-1"
+        {...menu.contentProps}
       >
         <div role="listbox" aria-label="Filter dashboard by integration" className="grid gap-0.5">
           {options.map((option) => {

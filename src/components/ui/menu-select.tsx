@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useHoverMenu } from "@/components/ui/use-hover-menu";
 import { cn } from "@/lib/utils";
 
 export type MenuSelectOption = {
@@ -53,6 +54,7 @@ export function MenuSelect({
   const [uncontrolled, setUncontrolled] = useState(defaultValue ?? options[0]?.value ?? "");
   const value = isControlled ? controlledValue : uncontrolled;
   const selected = options.find((option) => option.value === value);
+  const menu = useHoverMenu();
 
   function setValue(next: string) {
     if (!isControlled) setUncontrolled(next);
@@ -75,7 +77,7 @@ export function MenuSelect({
           readOnly
         />
       ) : null}
-      <DropdownMenu>
+      <DropdownMenu open={menu.open} onOpenChange={menu.onOpenChange} modal={false}>
         <DropdownMenuTrigger
           id={controlId}
           disabled={disabled}
@@ -84,8 +86,10 @@ export function MenuSelect({
             "inline-flex h-10 w-full items-center gap-2 rounded-md border border-border bg-card px-3 text-left text-sm outline-none",
             "transition hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring",
             "disabled:pointer-events-none disabled:opacity-50",
+            menu.open && "border-foreground/20 bg-accent/40",
             triggerClassName,
           )}
+          {...menu.triggerProps}
         >
           {selected?.icon ? (
             <span className="inline-flex shrink-0 items-center justify-center">{selected.icon}</span>
@@ -95,7 +99,11 @@ export function MenuSelect({
           </span>
           <ChevronDown className="size-4 shrink-0 opacity-70" aria-hidden="true" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-48">
+        <DropdownMenuContent
+          align="start"
+          className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-48"
+          {...menu.contentProps}
+        >
           {options.map((option) => {
             const active = option.value === value;
             return (
