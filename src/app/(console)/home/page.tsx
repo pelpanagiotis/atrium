@@ -14,7 +14,7 @@ import {
   Plug,
   RefreshCw,
 } from "lucide-react";
-import { homeHref, HomeSourceFilter } from "@/components/home-source-filter";
+import { HomeSourceFilter } from "@/components/home-source-filter";
 import { ProviderIcon } from "@/components/provider-icon";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Badge } from "@/components/ui/badge";
