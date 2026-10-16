@@ -61,6 +61,7 @@ export function HomeSourceFilter({
             open && "border-foreground/25 bg-accent",
           )}
         >
+          <span className="text-sm text-muted">Sources</span>
           <span className="inline-flex items-center" aria-hidden="true">
             {indicatorOptions.length === 0 ? (
               <Layers className="size-4 text-muted" />
