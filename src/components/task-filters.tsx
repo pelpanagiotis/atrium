@@ -176,6 +176,11 @@ export function TaskSearch({
 }) {
   const [q, setQ] = useState(values.q ?? "");
   const [prevQ, setPrevQ] = useState(values.q);
+  const valuesRef = useRef(values);
+  const onNavigateRef = useRef(onNavigate);
+  valuesRef.current = values;
+  onNavigateRef.current = onNavigate;
+
   if (values.q !== prevQ) {
     setPrevQ(values.q);
     setQ(values.q ?? "");
@@ -183,13 +188,13 @@ export function TaskSearch({
 
   useEffect(() => {
     const next = q.trim();
-    const current = (values.q ?? "").trim();
+    const current = (valuesRef.current.q ?? "").trim();
     if (next === current) return;
     const timer = window.setTimeout(() => {
-      onNavigate(buildTasksHref({ ...values, q: next || undefined }));
+      onNavigateRef.current(buildTasksHref({ ...valuesRef.current, q: next || undefined }));
     }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [q, values, onNavigate]);
+  }, [q]);
 
   function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
