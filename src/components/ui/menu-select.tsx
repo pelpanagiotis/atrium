@@ -93,7 +93,7 @@ export function MenuSelect({
           <span className={cn("min-w-0 flex-1 truncate", !selected && "text-muted")}>
             {selected?.label ?? placeholder}
           </span>
-          <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden="true" />
+          <ChevronDown className="size-4 shrink-0 opacity-70" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-48">
           {options.map((option) => {

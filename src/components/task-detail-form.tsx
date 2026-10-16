@@ -32,16 +32,16 @@ const PRIORITY_OPTIONS = [
 ];
 
 const BADGE_TRIGGER: Record<string, string> = {
-  open: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
-  in_progress: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
-  blocked: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-  done: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  open: "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-200",
+  in_progress: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200",
+  blocked: "border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200",
+  done: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
   cancelled: "border-border bg-secondary text-muted",
   none: "border-border bg-secondary text-muted",
   low: "border-border bg-secondary text-muted",
-  medium: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300",
-  high: "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:text-orange-300",
-  urgent: "border-rose-600/40 bg-rose-600 text-white",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200",
+  high: "border-orange-500/30 bg-orange-500/10 text-orange-900 dark:text-orange-200",
+  urgent: "border-rose-500/35 bg-rose-500/15 text-rose-900 dark:text-rose-200",
 };
 
 export function TaskDetailForm({
