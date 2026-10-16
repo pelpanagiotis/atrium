@@ -24,9 +24,17 @@ async function Frame({ children }: { children: React.ReactNode }) {
   if (!user) redirect("/login");
   await ensurePersonalWorkspace(user.id, user.name);
   const { workspaces, current } = await workspaceContext(user.id);
-  const theme = (await cookies()).get("atrium_theme")?.value === "dark" ? "dark" : "light";
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("atrium_theme")?.value === "dark" ? "dark" : "light";
+  const sidebarCollapsed = cookieStore.get("atrium_sidebar")?.value === "collapsed";
   return (
-    <Shell user={user} workspaces={workspaces} current={current} theme={theme}>
+    <Shell
+      user={user}
+      workspaces={workspaces}
+      current={current}
+      theme={theme}
+      sidebarCollapsed={sidebarCollapsed}
+    >
       {children}
     </Shell>
   );
