@@ -66,9 +66,20 @@ async function TasksContent({
           <h1 className="text-4xl">Tasks</h1>
           <p className="mt-1 text-sm text-muted">Native tasks are edited here. Provider tasks show their source and only offer actions that provider supports.</p>
         </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/tasks">List</Link>
-          <Link href="/tasks?view=board">Board</Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-3 text-sm">
+            <Link href="/tasks">List</Link>
+            <Link href="/tasks?view=board">Board</Link>
+          </div>
+          {canWrite && projects[0] ? (
+            <TaskForm
+              workspaceId={current.id}
+              projectId={params.project || projects[0].id}
+              projects={projects.map((project) => ({ id: project.id, name: project.name }))}
+              returnTo="/tasks"
+              action={createTaskAction}
+            />
+          ) : null}
         </div>
       </div>
       <TaskFilters
@@ -146,9 +157,6 @@ async function TasksContent({
           ) : <p className="mt-3 text-sm text-muted">Your role can view tasks. Members and above can edit them.</p>}
         </form>
       )}
-      {canWrite && projects[0] ? (
-        <TaskForm workspaceId={current.id} projectId={params.project || projects[0].id} returnTo="/tasks" action={createTaskAction} />
-      ) : null}
     </div>
   );
 }

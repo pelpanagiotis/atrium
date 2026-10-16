@@ -139,7 +139,17 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
         ) : null}
       </section>
       <section>
-        <h2 className="text-2xl">Tasks</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl">Tasks</h2>
+          {canWrite ? (
+            <TaskForm
+              workspaceId={current.id}
+              projectId={project.id}
+              returnTo={`/projects/${project.id}`}
+              action={createTaskAction}
+            />
+          ) : null}
+        </div>
         {tasks.length === 0 ? <p className="mt-2 text-sm text-muted">This project has no tasks yet.</p> : null}
         <ul className="mt-3 divide-y rounded-lg border bg-card">
           {tasks.map((task) => (
@@ -155,7 +165,6 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
             </li>
           ))}
         </ul>
-        {canWrite ? <TaskForm workspaceId={current.id} projectId={project.id} returnTo={`/projects/${project.id}`} action={createTaskAction} /> : null}
       </section>
       {records.length > 0 ? (
         <section>
