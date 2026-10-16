@@ -9,6 +9,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { allowRequest } from "@/server/rate-limit";
 import { ensurePersonalWorkspace, createWorkspace, inviteMember, acceptInvitation, setMemberRole, removeMember, updateWorkspace } from "@/server/workspaces/service";
 import { archiveProject, createMilestone, createNativeProject, updateProject } from "@/server/projects/service";
+import { addTaskComment } from "@/server/tasks/comments";
 import { bulkUpdateTasks, createTask, updateTask } from "@/server/tasks/service";
 import {
   addFakeRemoteProject,
@@ -259,6 +260,17 @@ export async function updateTaskDetailAction(_state: ActionState, formData: Form
   } catch (error) {
     unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not update the task" };
+  }
+  redirect(String(formData.get("returnTo") ?? `/tasks/${taskId}`));
+}
+
+export async function addTaskCommentAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const taskId = String(formData.get("taskId") ?? "");
+  try {
+    await addTaskComment(await userId(), taskId, String(formData.get("body") ?? ""));
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not add the comment" };
   }
   redirect(String(formData.get("returnTo") ?? `/tasks/${taskId}`));
 }

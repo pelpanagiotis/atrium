@@ -34,7 +34,16 @@ const CAPABILITIES = {
   updateTask: true,
   archiveTask: true,
   webhooks: true,
+  comments: true,
   fields: { title: true, description: true, status: true, priority: true, assignee: true, dueDate: true },
+};
+
+type GlNote = {
+  id: number;
+  body: string;
+  created_at: string;
+  system?: boolean;
+  author?: { id: number; username: string; name: string } | null;
 };
 
 function defaultMappings(): FieldMappings {
@@ -224,6 +233,46 @@ export const gitlabAdapter: IntegrationAdapter = {
   },
   async archiveTask(ctx, providerId, providerProjectId) {
     return this.updateTask(ctx, providerId, { providerProjectId, operationId: providerId, status: "done" });
+  },
+  async listComments(ctx, query) {
+    const page = query.cursor ?? "1";
+    const { data, response } = await gl<GlNote[]>(
+      `/api/v4/projects/${projectPath(query.providerProjectId)}/issues/${encodeURIComponent(query.providerTaskId)}/notes?sort=asc&per_page=50&page=${encodeURIComponent(page)}`,
+      ctx.credentials.accessToken,
+      ctx.credentials.siteUrl,
+    );
+    const nextPage = response.headers.get("x-next-page");
+    return {
+      items: data
+        .filter((note) => !note.system)
+        .map((note) => ({
+          providerId: String(note.id),
+          body: note.body,
+          authorLabel: note.author?.name || note.author?.username || "Unknown",
+          authorProviderId: note.author ? String(note.author.id) : null,
+          createdAt: note.created_at,
+          url: null,
+        })),
+      nextCursor: nextPage || null,
+    };
+  },
+  async createComment(ctx, input) {
+    const body = input.body.trim();
+    if (!body) throw new ProviderError("Comment cannot be empty", "validation", false);
+    const { data } = await gl<GlNote>(
+      `/api/v4/projects/${projectPath(input.providerProjectId)}/issues/${encodeURIComponent(input.providerTaskId)}/notes`,
+      ctx.credentials.accessToken,
+      ctx.credentials.siteUrl,
+      { method: "POST", body: JSON.stringify({ body }) },
+    );
+    return {
+      providerId: String(data.id),
+      body: data.body,
+      authorLabel: data.author?.name || data.author?.username || "Unknown",
+      authorProviderId: data.author ? String(data.author.id) : null,
+      createdAt: data.created_at,
+      url: null,
+    };
   },
   async verifyWebhook(ctx, request) {
     const secret = ctx.credentials.webhookSecret;

@@ -30,7 +30,15 @@ const CAPABILITIES = {
   updateTask: true,
   archiveTask: true,
   webhooks: true,
+  comments: true,
   fields: { title: true, description: true, status: true, priority: true, assignee: true, dueDate: true },
+};
+
+type JiraComment = {
+  id: string;
+  body?: unknown;
+  created?: string;
+  author?: { accountId?: string; displayName?: string } | null;
 };
 
 function defaultMappings(): FieldMappings {
@@ -234,6 +242,52 @@ export const jiraAdapter: IntegrationAdapter = {
   },
   async archiveTask(ctx, providerId, providerProjectId) {
     return this.updateTask(ctx, providerId, { providerProjectId, operationId: providerId, status: "cancelled" });
+  },
+  async listComments(ctx, query) {
+    const start = query.cursor ?? "0";
+    const data = await jiraGet<{
+      comments: JiraComment[];
+      startAt: number;
+      maxResults: number;
+      total: number;
+    }>(
+      `${base(ctx)}/issue/${encodeURIComponent(query.providerTaskId)}/comment?startAt=${encodeURIComponent(start)}&maxResults=50`,
+      ctx.credentials.accessToken,
+    );
+    const nextAt = data.startAt + data.maxResults;
+    return {
+      items: (data.comments ?? []).map((comment) => ({
+        providerId: comment.id,
+        body: adfText(comment.body),
+        authorLabel: comment.author?.displayName ?? "Unknown",
+        authorProviderId: comment.author?.accountId ?? null,
+        createdAt: comment.created ?? new Date().toISOString(),
+        url: null,
+      })),
+      nextCursor: nextAt < data.total ? String(nextAt) : null,
+    };
+  },
+  async createComment(ctx, input) {
+    const text = input.body.trim();
+    if (!text) throw new ProviderError("Comment cannot be empty", "validation", false);
+    const response = await providerFetch(`${base(ctx)}/issue/${encodeURIComponent(input.providerTaskId)}/comment`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ctx.credentials.accessToken}`,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ body: adf(text) }),
+    });
+    const comment = (await response.json()) as JiraComment;
+    return {
+      providerId: comment.id,
+      body: adfText(comment.body) || text,
+      authorLabel: comment.author?.displayName ?? "Unknown",
+      authorProviderId: comment.author?.accountId ?? null,
+      createdAt: comment.created ?? new Date().toISOString(),
+      url: null,
+    };
   },
   async verifyWebhook(ctx, request) {
     const secret = ctx.credentials.webhookSecret;

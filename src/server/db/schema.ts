@@ -330,6 +330,20 @@ export const oauthStates = pgTable("oauth_states", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 
+export const taskComments = pgTable(
+  "task_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id").notNull(),
+    taskId: uuid("task_id").notNull(),
+    body: text("body").notNull(),
+    authorUserId: text("author_user_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [index("task_comments_task_idx").on(table.taskId)],
+);
+
 export const fakeProviderTasks = pgTable("fake_provider_tasks", {
   id: text("id").primaryKey(),
   integrationId: uuid("integration_id").notNull(),
@@ -352,3 +366,18 @@ export const fakeProviderProjects = pgTable("fake_provider_projects", {
   key: text("key"),
   url: text("url"),
 });
+
+export const fakeProviderComments = pgTable(
+  "fake_provider_comments",
+  {
+    id: text("id").primaryKey(),
+    integrationId: uuid("integration_id").notNull(),
+    providerProjectId: text("provider_project_id").notNull(),
+    providerTaskId: text("provider_task_id").notNull(),
+    body: text("body").notNull(),
+    authorLabel: text("author_label").notNull().default("Fake user"),
+    authorProviderId: text("author_provider_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [index("fake_provider_comments_task_idx").on(table.integrationId, table.providerTaskId)],
+);

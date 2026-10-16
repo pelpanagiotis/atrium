@@ -5,11 +5,13 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { OpenInProviderButton, ProviderIcon, providerLabel } from "@/components/provider-icon";
+import { TaskComments } from "@/components/task-comments";
 import { TaskDetailForm } from "@/components/task-detail-form";
 import { PriorityIcon, StatusIcon, SyncStateIcon, syncStateLabel } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
+import { listTaskComments } from "@/server/tasks/comments";
 import { getTask } from "@/server/tasks/service";
 import { formatWhen } from "@/lib/utils";
 
@@ -41,8 +43,11 @@ async function TaskDetailContent({
   if (!UUID_RE.test(taskId)) notFound();
 
   const { workspaces } = await workspaceContext(user.id);
-  const task = await getTask(user.id, taskId);
-  if (!task) notFound();
+  const [task, commentBundle] = await Promise.all([
+    getTask(user.id, taskId),
+    listTaskComments(user.id, taskId),
+  ]);
+  if (!task || !commentBundle) notFound();
 
   const membership = workspaces.find((workspace) => workspace.id === task.workspace_id);
   const canWrite = membership ? membership.role !== "viewer" : false;
@@ -132,6 +137,15 @@ async function TaskDetailContent({
           canWrite={canWrite}
         />
       </section>
+
+      <TaskComments
+        taskId={task.id}
+        comments={commentBundle.comments}
+        source={commentBundle.source}
+        canComment={commentBundle.canComment}
+        canWrite={canWrite}
+        unavailableReason={commentBundle.unavailableReason}
+      />
     </div>
   );
 }

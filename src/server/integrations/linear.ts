@@ -33,8 +33,19 @@ const CAPABILITIES = {
   updateTask: true,
   archiveTask: true,
   webhooks: true,
+  comments: true,
   fields: { title: true, description: true, status: true, priority: true, assignee: true, dueDate: true },
 };
+
+type CommentNode = {
+  id: string;
+  body: string;
+  createdAt: string;
+  url?: string | null;
+  user?: { id: string; name: string } | null;
+};
+
+const COMMENT_FIELDS = `id body createdAt url user { id name }`;
 
 function defaultMappings(): FieldMappings {
   return {
@@ -215,6 +226,57 @@ export const linearAdapter: IntegrationAdapter = {
     if (!data.issueArchive.success) throw new ProviderError("Linear could not archive the issue", "unavailable", true);
     const task = await this.getTask(ctx, providerId, "");
     return { ...task, archived: true, status: "cancelled" as TaskStatus };
+  },
+  async listComments(ctx, query) {
+    const data = await gql<{
+      issue: { comments: { nodes: CommentNode[]; pageInfo: { hasNextPage: boolean; endCursor: string | null } } } | null;
+    }>(
+      ctx.credentials.accessToken,
+      `query($id: String!, $after: String) {
+        issue(id: $id) {
+          comments(first: 50, after: $after) {
+            nodes { ${COMMENT_FIELDS} }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`,
+      { id: query.providerTaskId, after: query.cursor ?? null },
+    );
+    if (!data.issue) throw new ProviderError("Linear issue was not found", "not_found", false, 404);
+    return {
+      items: data.issue.comments.nodes.map((node) => ({
+        providerId: node.id,
+        body: node.body,
+        authorLabel: node.user?.name ?? "Unknown",
+        authorProviderId: node.user?.id ?? null,
+        createdAt: node.createdAt,
+        url: node.url ?? null,
+      })),
+      nextCursor: data.issue.comments.pageInfo.hasNextPage ? data.issue.comments.pageInfo.endCursor : null,
+    };
+  },
+  async createComment(ctx, input) {
+    const body = input.body.trim();
+    if (!body) throw new ProviderError("Comment cannot be empty", "validation", false);
+    const data = await gql<{ commentCreate: { success: boolean; comment: CommentNode | null } }>(
+      ctx.credentials.accessToken,
+      `mutation($input: CommentCreateInput!) {
+        commentCreate(input: $input) { success comment { ${COMMENT_FIELDS} } }
+      }`,
+      { input: { issueId: input.providerTaskId, body } },
+    );
+    if (!data.commentCreate.comment) {
+      throw new ProviderError("Linear did not return the created comment", "unavailable", true);
+    }
+    const node = data.commentCreate.comment;
+    return {
+      providerId: node.id,
+      body: node.body,
+      authorLabel: node.user?.name ?? "Unknown",
+      authorProviderId: node.user?.id ?? null,
+      createdAt: node.createdAt,
+      url: node.url ?? null,
+    };
   },
   async verifyWebhook(ctx, request) {
     const secret = ctx.credentials.webhookSecret;

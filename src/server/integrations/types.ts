@@ -32,6 +32,7 @@ export type ProviderCapabilities = {
   updateTask: boolean;
   archiveTask: boolean;
   webhooks: boolean;
+  comments: boolean;
   fields: {
     title: boolean;
     description: boolean;
@@ -63,6 +64,15 @@ export type RemoteTask = {
   updatedAt: string | null;
   archived: boolean;
   raw: Record<string, unknown>;
+};
+
+export type RemoteComment = {
+  providerId: string;
+  body: string;
+  authorLabel: string;
+  authorProviderId: string | null;
+  createdAt: string;
+  url: string | null;
 };
 
 export type TaskWrite = {
@@ -118,6 +128,14 @@ export interface IntegrationAdapter {
   createTask(ctx: AdapterContext, input: TaskWrite): Promise<RemoteTask>;
   updateTask(ctx: AdapterContext, providerId: string, input: Partial<TaskWrite> & { providerProjectId: string; operationId: string }): Promise<RemoteTask>;
   archiveTask?(ctx: AdapterContext, providerId: string, providerProjectId: string): Promise<RemoteTask>;
+  listComments?(
+    ctx: AdapterContext,
+    query: { providerTaskId: string; providerProjectId: string; cursor?: string | null },
+  ): Promise<Page<RemoteComment>>;
+  createComment?(
+    ctx: AdapterContext,
+    input: { providerTaskId: string; providerProjectId: string; body: string },
+  ): Promise<RemoteComment>;
   verifyWebhook(ctx: AdapterContext, request: WebhookRequest): Promise<boolean>;
   parseWebhook(ctx: AdapterContext, request: WebhookRequest): Promise<ParsedWebhook>;
   defaultMappings(): FieldMappings;

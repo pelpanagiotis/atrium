@@ -1,15 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { verifyHmacSha256 } from "../crypto/secrets";
-import { fakeProviderProjects, fakeProviderTasks } from "../db/schema";
+import { fakeProviderComments, fakeProviderProjects, fakeProviderTasks } from "../db/schema";
 import { mapPriorityFromProvider, mapPriorityToProvider, mapStatusFromProvider, mapStatusToProvider } from "./mappings";
 import {
   operationMarker,
+  ProviderError,
   type AdapterContext,
   type FieldMappings,
   type IntegrationAdapter,
   type Page,
   type ParsedWebhook,
+  type RemoteComment,
   type RemoteProject,
   type RemoteTask,
   type TaskWrite,
@@ -20,6 +22,7 @@ const CAPABILITIES = {
   updateTask: true,
   archiveTask: true,
   webhooks: true,
+  comments: true,
   fields: { title: true, description: true, status: true, priority: true, assignee: true, dueDate: true },
 };
 
@@ -156,6 +159,56 @@ export const fakeAdapter: IntegrationAdapter = {
       .set({ archived: true, status: "cancelled", updatedAt: new Date() })
       .where(and(eq(fakeProviderTasks.id, providerId), eq(fakeProviderTasks.integrationId, ctx.integrationId)));
     return this.getTask(ctx, providerId, providerProjectId);
+  },
+  async listComments(ctx, query) {
+    const offset = Number(query.cursor ?? "0") || 0;
+    const rows = await ctx.tx
+      .select()
+      .from(fakeProviderComments)
+      .where(
+        and(
+          eq(fakeProviderComments.integrationId, ctx.integrationId),
+          eq(fakeProviderComments.providerTaskId, query.providerTaskId),
+        ),
+      );
+    const sorted = [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    const page = sorted.slice(offset, offset + 50);
+    return {
+      items: page.map(
+        (row): RemoteComment => ({
+          providerId: row.id,
+          body: row.body,
+          authorLabel: row.authorLabel,
+          authorProviderId: row.authorProviderId,
+          createdAt: row.createdAt.toISOString(),
+          url: null,
+        }),
+      ),
+      nextCursor: offset + 50 < sorted.length ? String(offset + 50) : null,
+    };
+  },
+  async createComment(ctx, input) {
+    const body = input.body.trim();
+    if (!body) throw new ProviderError("Comment cannot be empty", "validation", false);
+    const id = `fake_cmt_${randomUUID()}`;
+    const authorLabel = ctx.credentials.accountLabel ?? "Fake user";
+    await ctx.tx.insert(fakeProviderComments).values({
+      id,
+      integrationId: ctx.integrationId,
+      providerProjectId: input.providerProjectId,
+      providerTaskId: input.providerTaskId,
+      body,
+      authorLabel,
+      authorProviderId: "fake-account",
+    });
+    return {
+      providerId: id,
+      body,
+      authorLabel,
+      authorProviderId: "fake-account",
+      createdAt: new Date().toISOString(),
+      url: null,
+    };
   },
   async verifyWebhook(ctx, request) {
     const secret = ctx.credentials.webhookSecret;

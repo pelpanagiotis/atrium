@@ -28,7 +28,16 @@ const CAPABILITIES = {
   updateTask: true,
   archiveTask: true,
   webhooks: true,
+  comments: true,
   fields: { title: true, description: true, status: true, priority: true, assignee: false, dueDate: false },
+};
+
+type GhComment = {
+  id: number;
+  body?: string | null;
+  html_url: string;
+  created_at: string;
+  user?: { id: number; login: string } | null;
 };
 
 function defaultMappings(): FieldMappings {
@@ -168,6 +177,42 @@ export const githubAdapter: IntegrationAdapter = {
   },
   async archiveTask(ctx, providerId, providerProjectId) {
     return this.updateTask(ctx, providerId, { providerProjectId, operationId: providerId, status: "done" });
+  },
+  async listComments(ctx, query) {
+    const page = query.cursor ?? "1";
+    const { data, response } = await gh<GhComment[]>(
+      `https://api.github.com/repos/${repo(query.providerProjectId)}/issues/${encodeURIComponent(query.providerTaskId)}/comments?per_page=50&page=${encodeURIComponent(page)}`,
+      ctx.credentials.accessToken,
+    );
+    const link = nextLink(response.headers.get("link"));
+    return {
+      items: data.map((comment) => ({
+        providerId: String(comment.id),
+        body: comment.body ?? "",
+        authorLabel: comment.user?.login ?? "Unknown",
+        authorProviderId: comment.user ? String(comment.user.id) : null,
+        createdAt: comment.created_at,
+        url: comment.html_url,
+      })),
+      nextCursor: link ? new URL(link).searchParams.get("page") : null,
+    };
+  },
+  async createComment(ctx, input) {
+    const body = input.body.trim();
+    if (!body) throw new ProviderError("Comment cannot be empty", "validation", false);
+    const { data } = await gh<GhComment>(
+      `https://api.github.com/repos/${repo(input.providerProjectId)}/issues/${encodeURIComponent(input.providerTaskId)}/comments`,
+      ctx.credentials.accessToken,
+      { method: "POST", body: JSON.stringify({ body }) },
+    );
+    return {
+      providerId: String(data.id),
+      body: data.body ?? body,
+      authorLabel: data.user?.login ?? "Unknown",
+      authorProviderId: data.user ? String(data.user.id) : null,
+      createdAt: data.created_at,
+      url: data.html_url,
+    };
   },
   async verifyWebhook(ctx, request) {
     const secret = ctx.credentials.webhookSecret;
