@@ -17,7 +17,6 @@ export function useHoverMenu(closeDelayMs = 140) {
   const [pinned, setPinned] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinnedRef = useRef(false);
-  pinnedRef.current = pinned;
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -25,6 +24,10 @@ export function useHoverMenu(closeDelayMs = 140) {
       closeTimerRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    pinnedRef.current = pinned;
+  }, [pinned]);
 
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
