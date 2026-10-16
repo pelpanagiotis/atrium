@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
+import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 
 const COLUMNS = ["open", "in_progress", "blocked", "done", "cancelled"] as const;
@@ -47,7 +48,10 @@ export function TaskBoard({
               });
             }}
           >
-            <h2 className="text-sm font-medium capitalize">{column.replace("_", " ")}</h2>
+            <h2 className="flex items-center gap-1.5 text-sm font-medium capitalize">
+              <StatusIcon status={column} className="size-3.5" />
+              {column.replace("_", " ")}
+            </h2>
             <div className="mt-3 space-y-2">
               {tasks.filter((task) => task.status === column).map((task) => (
                 <article
@@ -59,7 +63,10 @@ export function TaskBoard({
                   <p className="font-medium">{task.title}</p>
                   <p className="text-xs text-muted">{task.project_name}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge tone={task.priority}>{task.priority}</Badge>
+                    <Badge tone={task.priority}>
+                      <PriorityIcon priority={task.priority} className="size-3.5" />
+                      {task.priority}
+                    </Badge>
                     <ProviderIcon provider={task.provider} />
                   </div>
                   {task.external_url ? <a className="mt-2 inline-block text-xs underline" href={task.external_url}>Source</a> : null}

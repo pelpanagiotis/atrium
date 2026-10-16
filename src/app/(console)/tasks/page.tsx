@@ -9,6 +9,7 @@ import { bulkTaskAction, createTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
+import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
 import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
 import { Badge } from "@/components/ui/badge";
@@ -162,10 +163,16 @@ async function TasksResults({
                   </p>
                 </td>
                 <td className="p-3">
-                  <Badge tone={task.status}>{task.status.replace("_", " ")}</Badge>
+                  <Badge tone={task.status}>
+                    <StatusIcon status={task.status} className="size-3.5" />
+                    {task.status.replace("_", " ")}
+                  </Badge>
                 </td>
                 <td className="p-3">
-                  <Badge tone={task.priority}>{task.priority}</Badge>
+                  <Badge tone={task.priority}>
+                    <PriorityIcon priority={task.priority} className="size-3.5" />
+                    {task.priority}
+                  </Badge>
                 </td>
                 <td className="p-3">{formatWhen(task.due_at)}</td>
                 <td className="p-3">

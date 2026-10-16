@@ -1,25 +1,9 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Circle,
-  CircleDashed,
-  CircleDot,
-  CircleSlash,
-  Flame,
-  FolderKanban,
-  Layers,
-  Search,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
-  Siren,
-} from "lucide-react";
+import { Check, ChevronDown, CircleDashed, FolderKanban, Layers, Search } from "lucide-react";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
+import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,20 +49,20 @@ export function buildTasksHref(values: FilterValues): string {
 
 const STATUS_OPTIONS: PickerOption[] = [
   { value: "", label: "Any status", icon: <Layers className="size-4 text-muted" aria-hidden="true" /> },
-  { value: "open", label: "Open", icon: <Circle className="size-4 text-sky-500" aria-hidden="true" /> },
-  { value: "in_progress", label: "In progress", icon: <CircleDot className="size-4 text-amber-500" aria-hidden="true" /> },
-  { value: "blocked", label: "Blocked", icon: <AlertTriangle className="size-4 text-rose-500" aria-hidden="true" /> },
-  { value: "done", label: "Done", icon: <CheckCircle2 className="size-4 text-emerald-500" aria-hidden="true" /> },
-  { value: "cancelled", label: "Cancelled", icon: <CircleSlash className="size-4 text-stone-400" aria-hidden="true" /> },
+  { value: "open", label: "Open", icon: <StatusIcon status="open" /> },
+  { value: "in_progress", label: "In progress", icon: <StatusIcon status="in_progress" /> },
+  { value: "blocked", label: "Blocked", icon: <StatusIcon status="blocked" /> },
+  { value: "done", label: "Done", icon: <StatusIcon status="done" /> },
+  { value: "cancelled", label: "Cancelled", icon: <StatusIcon status="cancelled" /> },
 ];
 
 const PRIORITY_OPTIONS: PickerOption[] = [
   { value: "", label: "Any priority", icon: <Layers className="size-4 text-muted" aria-hidden="true" /> },
-  { value: "attention", label: "Needs attention", icon: <Siren className="size-4 text-rose-600" aria-hidden="true" /> },
-  { value: "urgent", label: "Urgent", icon: <Flame className="size-4 text-rose-600" aria-hidden="true" /> },
-  { value: "high", label: "High", icon: <SignalHigh className="size-4 text-orange-500" aria-hidden="true" /> },
-  { value: "medium", label: "Medium", icon: <SignalMedium className="size-4 text-amber-500" aria-hidden="true" /> },
-  { value: "low", label: "Low", icon: <SignalLow className="size-4 text-stone-400" aria-hidden="true" /> },
+  { value: "attention", label: "Needs attention", icon: <PriorityIcon priority="attention" /> },
+  { value: "urgent", label: "Urgent", icon: <PriorityIcon priority="urgent" /> },
+  { value: "high", label: "High", icon: <PriorityIcon priority="high" /> },
+  { value: "medium", label: "Medium", icon: <PriorityIcon priority="medium" /> },
+  { value: "low", label: "Low", icon: <PriorityIcon priority="low" /> },
 ];
 
 const SOURCE_OPTIONS: PickerOption[] = [
