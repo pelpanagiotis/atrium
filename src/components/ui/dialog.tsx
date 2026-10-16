@@ -12,7 +12,7 @@ export const DialogPortal = DialogPrimitive.Portal;
 export function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
-      className={cn("fixed inset-0 z-50 bg-foreground/40 backdrop-blur-[2px]", className)}
+      className={cn("fixed inset-0 z-50 bg-foreground/50 backdrop-blur-md", className)}
       {...props}
     />
   );

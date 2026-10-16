@@ -133,20 +133,15 @@ export function CreateMenu() {
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent
-          className={cn(
-            "top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0",
-            "grid grid-rows-[auto_1fr]",
-          )}
-        >
-          <DialogHeader className="border-b px-6 py-5 md:px-10">
-            <DialogTitle className="text-3xl">Create</DialogTitle>
+        <DialogContent className="w-[min(100%-2rem,56rem)] max-h-[min(90dvh,40rem)] gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b px-6 py-5 pr-12">
+            <DialogTitle className="text-2xl md:text-3xl">Create</DialogTitle>
             <DialogDescription className="max-w-2xl">
               Pick something to add to this workspace. Hover + for the quick menu, or choose a tile below for the full path.
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-auto px-6 py-6 md:px-10 md:py-8">
-            <div className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-3">
+          <div className="overflow-auto p-6">
+            <div className="grid gap-4 md:grid-cols-3">
               {OPTIONS.map((option) => {
                 const Icon = option.icon;
                 return (
