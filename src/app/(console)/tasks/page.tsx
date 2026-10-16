@@ -37,13 +37,17 @@ export default function TasksPage({
   searchParams: Promise<TasksSearchParams>;
 }) {
   return (
-    <Suspense fallback={<ScreenLoader />}>
-      <TasksShell>
-        <Suspense fallback={<ResultsLoader label="Updating tasks" />}>
-          <TasksResults searchParams={searchParams} />
-        </Suspense>
-      </TasksShell>
-    </Suspense>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <Suspense fallback={<ScreenLoader className="min-h-0 flex-1" />}>
+        <TasksShell>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <Suspense fallback={<ResultsLoader label="Updating tasks" />}>
+              <TasksResults searchParams={searchParams} />
+            </Suspense>
+          </div>
+        </TasksShell>
+      </Suspense>
+    </div>
   );
 }
 
@@ -81,9 +85,11 @@ async function TasksShell({ children }: { children: React.ReactNode }) {
           ) : null}
         </div>
       </div>
-      <Suspense fallback={<ResultsLoader label="Loading filters" />}>
-        <TasksFilterFrame projects={projectOptions}>{children}</TasksFilterFrame>
-      </Suspense>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<ResultsLoader label="Loading filters" />}>
+          <TasksFilterFrame projects={projectOptions}>{children}</TasksFilterFrame>
+        </Suspense>
+      </div>
     </div>
   );
 }
@@ -109,11 +115,13 @@ async function TasksResults({
 
   if (tasks.length === 0) {
     return (
-      <EmptyResults
-        icon={ListFilter}
-        title="No tasks match"
-        description="Create one on a native project, or widen the filters."
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <EmptyResults
+          icon={ListFilter}
+          title="No tasks match"
+          description="Create one on a native project, or widen the filters."
+        />
+      </div>
     );
   }
 
@@ -122,7 +130,7 @@ async function TasksResults({
   }
 
   return (
-    <form action={bulkTaskAction}>
+    <form action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="workspaceId" value={current.id} />
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[720px] text-left text-sm">

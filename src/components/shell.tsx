@@ -30,8 +30,8 @@ export function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[240px_1fr]">
-      <aside className="hidden bg-sidebar text-sidebar-foreground md:flex md:flex-col md:justify-between md:p-4">
+    <div className="h-dvh md:grid md:grid-cols-[240px_1fr]">
+      <aside className="hidden h-dvh bg-sidebar text-sidebar-foreground md:flex md:flex-col md:justify-between md:p-4">
         <div>
           <Link href="/home" className="serif block px-2 text-2xl">Atrium</Link>
           <div className="mt-3 flex items-center gap-2 px-2 pb-6">
@@ -54,8 +54,8 @@ export function Shell({
           <button className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-white/10">{user.name}</button>
         </form>
       </aside>
-      <div className="flex min-h-dvh min-w-0 flex-col">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
+      <div className="flex h-dvh min-w-0 flex-col overflow-hidden">
+        <header className="z-20 flex shrink-0 items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
             <WorkspaceSwitch currentId={current.id} workspaces={workspaces} />
@@ -82,7 +82,9 @@ export function Shell({
             ))}
           </nav>
         </header>
-        <main className="flex w-full flex-1 flex-col px-4 py-6 md:px-6">{children}</main>
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-auto px-4 py-6 md:px-6">
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        </main>
       </div>
     </div>
   );

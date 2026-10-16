@@ -32,18 +32,20 @@ export function TasksFilterFrame({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <TaskFilters
-        projects={projects}
-        values={values}
-        pending={pending}
-        onNavigate={(href) => {
-          startTransition(() => {
-            router.replace(href, { scroll: false });
-          });
-        }}
-      />
-      <div className="relative flex min-h-0 flex-1 flex-col" aria-busy={pending}>
-        {pending ? <ResultsLoader label="Updating tasks" className="h-full" /> : children}
+      <div className="shrink-0">
+        <TaskFilters
+          projects={projects}
+          values={values}
+          pending={pending}
+          onNavigate={(href) => {
+            startTransition(() => {
+              router.replace(href, { scroll: false });
+            });
+          }}
+        />
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col" aria-busy={pending}>
+        {pending ? <ResultsLoader label="Updating tasks" /> : children}
       </div>
     </div>
   );

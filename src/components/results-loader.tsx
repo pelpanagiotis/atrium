@@ -14,7 +14,7 @@ export function ResultsLoader({
       aria-live="polite"
       aria-busy="true"
       className={cn(
-        "flex min-h-[min(28rem,calc(100dvh-16rem))] w-full flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-card/60",
+        "flex h-full min-h-0 w-full flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-card/60",
         className,
       )}
     >
