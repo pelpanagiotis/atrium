@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
@@ -178,13 +179,17 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
         <ul className="mt-3 divide-y rounded-lg border bg-card">
           {tasks.map((task) => (
             <li key={task.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 text-sm">
-              <div>
-                <p className="font-medium">{task.title}</p>
+              <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1 transition-colors hover:text-foreground">
+                <p className="font-medium underline-offset-2 hover:underline">{task.title}</p>
                 <p className="text-xs text-muted">{task.status} · {task.priority} · {task.sync_state}</p>
-              </div>
+              </Link>
               <div className="flex gap-2">
                 <ProviderIcon provider={task.provider} />
-                {task.external_url ? <a className="underline" href={task.external_url}>Source</a> : null}
+                {task.external_url ? (
+                  <a className="underline" href={task.external_url} target="_blank" rel="noreferrer">
+                    Source
+                  </a>
+                ) : null}
               </div>
             </li>
           ))}

@@ -164,6 +164,33 @@ async function enqueueOutbox(
   `);
 }
 
+export async function getTask(
+  userId: string,
+  taskId: string,
+): Promise<TaskRecord | null> {
+  return withUser(userId, async (tx) => {
+    // RLS scopes rows to workspaces the caller can access.
+    const rows = await tx.execute<TaskRecord>(sql`
+      select t.id, t.workspace_id, t.project_id,
+             coalesce(nullif(btrim(p.nickname), ''), p.name) as project_name,
+             p.ownership_mode,
+             t.milestone_id, t.title, t.description, t.status, t.priority, t.due_at,
+             t.assignee_user_id, coalesce(u.name, t.assignee_label) as assignee_label,
+             t.provider, t.external_url, t.sync_state, t.sync_error, t.version, t.deleted_at, t.updated_at
+      from tasks t
+      join projects p on p.id = t.project_id
+      left join "user" u on u.id = t.assignee_user_id
+      where t.id = ${taskId}::uuid
+        and t.deleted_at is null
+      limit 1
+    `);
+    const task = rows[0];
+    if (!task) return null;
+    await requireAction(tx, task.workspace_id, "task.read");
+    return task;
+  });
+}
+
 export async function listTasks(
   userId: string,
   workspaceId: string,

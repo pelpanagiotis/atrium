@@ -60,7 +60,7 @@ async function SearchContent({ searchParams }: { searchParams: Promise<{ q?: str
           <ul className="mt-2 divide-y rounded-lg border bg-card">
             {results.tasks.map((task) => (
               <li key={String(task.id)} className="flex items-center justify-between px-3 py-3 text-sm">
-                <Link href={`/tasks?q=${encodeURIComponent(String(task.title))}`} className="font-medium underline">{String(task.title)}</Link>
+                <Link href={`/tasks/${String(task.id)}`} className="font-medium underline">{String(task.title)}</Link>
                 <ProviderIcon provider={task.provider as string | null} />
               </li>
             ))}

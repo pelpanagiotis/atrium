@@ -145,7 +145,7 @@ async function HomeContent({
           {feed.priorities.map((task) => (
             <TaskLine
               key={String(task.id)}
-              href={`${attentionHref}&q=${encodeURIComponent(String(task.title))}`}
+              href={`/tasks/${String(task.id)}`}
               title={String(task.title)}
               provider={task.provider as string | null}
               tags={[
@@ -166,7 +166,7 @@ async function HomeContent({
           {feed.dueSoon.map((task) => (
             <TaskLine
               key={String(task.id)}
-              href={`${dueSoonHref}&q=${encodeURIComponent(String(task.title))}`}
+              href={`/tasks/${String(task.id)}`}
               title={String(task.title)}
               provider={task.provider as string | null}
               tags={[
@@ -185,7 +185,7 @@ async function HomeContent({
           {feed.blocked.map((task) => (
             <TaskLine
               key={String(task.id)}
-              href={`${blockedHref}&q=${encodeURIComponent(String(task.title))}`}
+              href={`/tasks/${String(task.id)}`}
               title={String(task.title)}
               provider={task.provider as string | null}
               tags={[

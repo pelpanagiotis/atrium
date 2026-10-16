@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -53,8 +54,10 @@ async function CalendarContent({ searchParams }: { searchParams: Promise<{ month
               <ul className="mt-1 space-y-1">
                 {due.map((task) => (
                   <li key={String(task.id)} className="text-xs">
-                    <span className="font-medium">{String(task.title)}</span>
-                    <ProviderIcon provider={task.provider as string | null} />
+                    <Link href={`/tasks/${String(task.id)}`} className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline">
+                      <span>{String(task.title)}</span>
+                      <ProviderIcon provider={task.provider as string | null} />
+                    </Link>
                   </li>
                 ))}
               </ul>

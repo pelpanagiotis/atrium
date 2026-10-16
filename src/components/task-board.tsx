@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { updateTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
@@ -94,24 +95,36 @@ export function TaskBoard({
                   key={task.id}
                   draggable
                   onDragStart={(event) => event.dataTransfer.setData("text/plain", JSON.stringify({ id: task.id, version: task.version }))}
-                  className="cursor-grab rounded-md border bg-background p-3 text-sm"
+                  className="cursor-grab rounded-md border bg-background text-sm"
                 >
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-xs text-muted">{task.project_name}</p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge tone={task.priority}>
-                      <PriorityIcon priority={task.priority} className="size-3.5" />
-                      {task.priority}
-                    </Badge>
-                    <ProviderIcon provider={task.provider} />
+                  <Link href={`/tasks/${task.id}`} className="block p-3 transition-colors hover:bg-accent/40">
+                    <p className="font-medium">{task.title}</p>
+                    <p className="text-xs text-muted">{task.project_name}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <Badge tone={task.priority}>
+                        <PriorityIcon priority={task.priority} className="size-3.5" />
+                        {task.priority}
+                      </Badge>
+                      <ProviderIcon provider={task.provider} />
+                    </div>
+                  </Link>
+                  {task.external_url ? (
+                    <a
+                      className="mx-3 mb-2 inline-block text-xs underline"
+                      href={task.external_url}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Source
+                    </a>
+                  ) : null}
+                  <div className="px-3 pb-3">
+                    <MobileStatusForm
+                      workspaceId={workspaceId}
+                      taskId={task.id}
+                      version={task.version}
+                      status={task.status}
+                    />
                   </div>
-                  {task.external_url ? <a className="mt-2 inline-block text-xs underline" href={task.external_url}>Source</a> : null}
-                  <MobileStatusForm
-                    workspaceId={workspaceId}
-                    taskId={task.id}
-                    version={task.version}
-                    status={task.status}
-                  />
                 </article>
               ))}
             </div>

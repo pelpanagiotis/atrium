@@ -244,6 +244,25 @@ export async function updateTaskAction(formData: FormData): Promise<void> {
   redirect(returnTo);
 }
 
+export async function updateTaskDetailAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const taskId = String(formData.get("taskId") ?? "");
+  try {
+    await updateTask(await userId(), String(formData.get("workspaceId")), taskId, {
+      version: Number(formData.get("version")),
+      title: formData.has("title") ? String(formData.get("title")) : undefined,
+      description: formData.has("description") ? String(formData.get("description")) : undefined,
+      status: formData.get("status") ? (String(formData.get("status")) as "open") : undefined,
+      priority: formData.get("priority") ? (String(formData.get("priority")) as "medium") : undefined,
+      dueAt: formData.has("dueAt") ? String(formData.get("dueAt") ?? "") || null : undefined,
+      assigneeUserId: formData.has("assigneeUserId") ? String(formData.get("assigneeUserId") ?? "") || null : undefined,
+    });
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not update the task" };
+  }
+  redirect(String(formData.get("returnTo") ?? `/tasks/${taskId}`));
+}
+
 export async function bulkTaskAction(formData: FormData): Promise<void> {
   const ids = formData.getAll("ids").map(String);
   await bulkUpdateTasks(await userId(), String(formData.get("workspaceId")), {
