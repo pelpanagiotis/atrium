@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
+import { TaskFilters } from "@/components/task-filters";
 import { TaskForm } from "@/components/task-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,38 +71,17 @@ async function TasksContent({
           <Link href="/tasks?view=board">Board</Link>
         </div>
       </div>
-      <form className="grid gap-2 md:grid-cols-5" action="/tasks">
-        {params.view ? <input type="hidden" name="view" value={params.view} /> : null}
-        <input name="q" defaultValue={params.q} placeholder="Search" className="h-10 rounded-md border bg-card px-3 text-sm" />
-        <Select name="status" defaultValue={params.status ?? ""} aria-label="Status filter">
-          <option value="">Any status</option>
-          <option value="open">Open</option>
-          <option value="in_progress">In progress</option>
-          <option value="blocked">Blocked</option>
-          <option value="done">Done</option>
-          <option value="cancelled">Cancelled</option>
-        </Select>
-        <Select name="priority" defaultValue={params.priority ?? ""} aria-label="Priority filter">
-          <option value="">Any priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </Select>
-        <Select name="project" defaultValue={params.project ?? ""} aria-label="Project filter">
-          <option value="">Any project</option>
-          {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-        </Select>
-        <Select name="source" defaultValue={params.source ?? ""} aria-label="Source filter">
-          <option value="">Any source</option>
-          <option value="atrium">Atrium</option>
-          <option value="linear">Linear</option>
-          <option value="jira">Jira</option>
-          <option value="github">GitHub</option>
-          <option value="fake">Fake provider</option>
-        </Select>
-        <Button type="submit" variant="outline">Filter</Button>
-      </form>
+      <TaskFilters
+        projects={projects.map((project) => ({ id: project.id, name: project.name }))}
+        values={{
+          q: params.q,
+          status: params.status,
+          priority: params.priority,
+          project: params.project,
+          source: params.source,
+          view: params.view,
+        }}
+      />
       {tasks.length === 0 ? (
         <div className="rounded-lg border border-dashed bg-card p-8">
           <h2 className="text-2xl">No tasks match</h2>
