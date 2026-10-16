@@ -666,7 +666,7 @@ export async function syncHealth(userId: string, workspaceId: string) {
              s.last_success_at, s.last_error_at, s.last_error
       from integrations i
       left join integration_sync_cursors s on s.integration_id = i.id and s.resource = 'issues'
-      where i.workspace_id = ${workspaceId}::uuid
+      where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
       order by i.display_name
     `);
   });
