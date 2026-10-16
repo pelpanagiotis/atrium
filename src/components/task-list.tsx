@@ -27,10 +27,16 @@ export function TaskList({ tasks, canWrite }: { tasks: TaskListItem[]; canWrite:
 
           <div className="min-w-0">
             <p className="font-medium leading-snug">{task.title}</p>
-            <p className="mt-0.5 text-xs text-muted">
-              {task.projectName}
-              {task.assigneeLabel ? ` · ${task.assigneeLabel}` : ""}
-            </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-muted">
+                <span className="font-medium text-foreground/70">Project</span>
+                <span className="truncate">{task.projectName}</span>
+              </span>
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-muted">
+                <span className="font-medium text-foreground/70">Assignee</span>
+                <span className="truncate">{task.assigneeLabel || "Unassigned"}</span>
+              </span>
+            </div>
           </div>
 
           <div className="col-span-2 col-start-2 flex flex-wrap items-center gap-x-5 gap-y-2 lg:col-span-1 lg:col-start-auto lg:contents">
