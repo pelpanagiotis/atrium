@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plug, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CreateMenu } from "@/components/create-menu";
