@@ -135,9 +135,12 @@ function TaskLine({
   href: string;
 }) {
   return (
-    <Link href={href} className="block space-y-1.5">
-      <p className="font-medium">{title}</p>
-      <div className="flex flex-wrap items-center gap-1.5">
+    <Link
+      href={href}
+      className="block rounded-lg border border-border/80 bg-background px-3 py-2.5 shadow-sm transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <p className="font-medium leading-snug">{title}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {tags.map((tag) => (
           <Badge key={`${tag.tone}-${tag.label}`} tone={tag.tone}>{tag.label}</Badge>
         ))}
