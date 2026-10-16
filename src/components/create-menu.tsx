@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowRight,
   CheckSquare,
@@ -17,14 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 type CreateOption = {
@@ -60,127 +52,129 @@ const OPTIONS: CreateOption[] = [
 ];
 
 export function CreateMenu() {
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const [hoverOpen, setHoverOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function clearCloseTimer() {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
+  useEffect(() => {
+    if (!hoverOpen || modalOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setHoverOpen(false);
     }
-  }
-
-  function openHoverMenu() {
-    if (modalOpen) return;
-    clearCloseTimer();
-    setHoverOpen(true);
-  }
-
-  function scheduleCloseHoverMenu() {
-    clearCloseTimer();
-    closeTimer.current = setTimeout(() => setHoverOpen(false), 160);
-  }
-
-  function openModal() {
-    clearCloseTimer();
-    setHoverOpen(false);
-    setModalOpen(true);
-  }
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setHoverOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [hoverOpen, modalOpen]);
 
   return (
     <>
-      <DropdownMenu
-        open={hoverOpen && !modalOpen}
-        onOpenChange={(open) => {
-          if (!open) setHoverOpen(false);
+      <div
+        ref={rootRef}
+        className="relative"
+        onMouseEnter={() => {
+          if (!modalOpen) setHoverOpen(true);
         }}
+        onMouseLeave={() => setHoverOpen(false)}
       >
-        <DropdownMenuTrigger
+        <button
+          type="button"
           aria-label="Create"
           title="Create"
-          onMouseEnter={openHoverMenu}
-          onMouseLeave={scheduleCloseHoverMenu}
-          onPointerDown={(event) => event.preventDefault()}
-          onClick={openModal}
+          aria-haspopup="menu"
+          aria-expanded={hoverOpen}
+          aria-controls={menuId}
+          onClick={() => {
+            setHoverOpen(false);
+            setModalOpen(true);
+          }}
           className="inline-flex size-9 items-center justify-center rounded-md border bg-card text-foreground transition hover:bg-accent outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Plus className="size-4" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-56"
-          onMouseEnter={openHoverMenu}
-          onMouseLeave={scheduleCloseHoverMenu}
-          onCloseAutoFocus={(event) => event.preventDefault()}
-        >
-          <DropdownMenuLabel>Create</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {OPTIONS.map((option) => {
-            const Icon = option.icon;
-            return (
-              <DropdownMenuItem key={option.href} asChild>
-                <Link href={option.href}>
-                  <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="flex min-w-0 flex-col">
-                    <span>{option.title}</span>
-                    <span className="text-xs font-normal text-muted">{option.description}</span>
-                  </span>
-                </Link>
-              </DropdownMenuItem>
-            );
-          })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={(event) => {
-              event.preventDefault();
-              openModal();
-            }}
-          >
-            Browse all options
-            <ArrowRight className="ml-auto size-3.5 text-muted" aria-hidden="true" />
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </button>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="w-[min(100%-2rem,36rem)]">
-          <DialogHeader>
-            <DialogTitle>Create</DialogTitle>
-            <DialogDescription>
-              Choose what to add to this workspace. Hover the + button for a quick list anytime.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
+        {hoverOpen && !modalOpen ? (
+          <div
+            id={menuId}
+            role="menu"
+            aria-label="Create"
+            className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border bg-card p-1 text-foreground shadow-lg"
+          >
+            <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+              Create
+            </p>
+            <div className="-mx-1 my-1 h-px bg-border" />
             {OPTIONS.map((option) => {
               const Icon = option.icon;
               return (
                 <Link
                   key={option.href}
                   href={option.href}
-                  onClick={() => setModalOpen(false)}
-                  className={cn(
-                    "group flex items-start gap-3 rounded-xl border bg-background p-4 text-left transition",
-                    "hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  )}
+                  role="menuitem"
+                  onClick={() => setHoverOpen(false)}
+                  className="flex items-center gap-2 rounded-md px-2 py-2 text-sm outline-none transition hover:bg-accent focus-visible:bg-accent"
                 >
-                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border bg-card text-foreground">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="text-base font-medium">{option.title}</span>
-                      <ArrowRight
-                        className="size-3.5 text-muted opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100"
-                        aria-hidden="true"
-                      />
-                    </span>
-                    <span className="mt-0.5 block text-sm text-muted">{option.description}</span>
-                    <span className="mt-2 block text-xs leading-relaxed text-muted">{option.detail}</span>
+                  <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="font-medium">{option.title}</span>
+                    <span className="text-xs text-muted">{option.description}</span>
                   </span>
                 </Link>
               );
             })}
+          </div>
+        ) : null}
+      </div>
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent
+          className={cn(
+            "top-0 left-0 h-dvh w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0",
+            "grid grid-rows-[auto_1fr]",
+          )}
+        >
+          <DialogHeader className="border-b px-6 py-5 md:px-10">
+            <DialogTitle className="text-3xl">Create</DialogTitle>
+            <DialogDescription className="max-w-2xl">
+              Pick something to add to this workspace. Hover + for the quick menu, or choose a tile below for the full path.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto px-6 py-6 md:px-10 md:py-8">
+            <div className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-3">
+              {OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Link
+                    key={option.href}
+                    href={option.href}
+                    onClick={() => setModalOpen(false)}
+                    className={cn(
+                      "group flex h-full flex-col rounded-2xl border bg-background p-5 text-left transition",
+                      "hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    )}
+                  >
+                    <span className="inline-flex size-12 items-center justify-center rounded-xl border bg-card text-foreground">
+                      <Icon className="size-6" aria-hidden="true" />
+                    </span>
+                    <span className="mt-5 flex items-center gap-2">
+                      <span className="text-xl font-medium">{option.title}</span>
+                      <ArrowRight
+                        className="size-4 text-muted transition group-hover:translate-x-0.5 group-hover:text-foreground"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <span className="mt-1 text-sm text-muted">{option.description}</span>
+                    <span className="mt-4 text-sm leading-relaxed text-muted">{option.detail}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
