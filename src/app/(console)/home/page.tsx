@@ -14,6 +14,7 @@ import {
   Plug,
   RefreshCw,
 } from "lucide-react";
+import { homeHref, HomeSourceFilter } from "@/components/home-source-filter";
 import { ProviderIcon } from "@/components/provider-icon";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Badge } from "@/components/ui/badge";
@@ -24,30 +25,46 @@ import { formatWhen } from "@/lib/utils";
 
 export const instant = false;
 
-export default function HomePage() {
+type HomeSearchParams = {
+  source?: string;
+};
+
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<HomeSearchParams>;
+}) {
   return (
     <Suspense fallback={<ScreenLoader />}>
-      <HomeContent />
+      <HomeContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function HomeContent() {
+async function HomeContent({
+  searchParams,
+}: {
+  searchParams: Promise<HomeSearchParams>;
+}) {
   await connection();
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const { current } = await workspaceContext(user.id);
+  const params = await searchParams;
   // eslint-disable-next-line react-hooks/purity -- connection() already opted this request out of prerender
   const now = Date.now();
-  const feed = await homeFeed(user.id, current.id, now);
+  const feed = await homeFeed(user.id, current.id, now, params.source);
+  const source = feed.source;
+  const sourceQuery = source ? `&source=${encodeURIComponent(source)}` : "";
   const dueBefore = feed.weekEnd;
   const staleCount = feed.health.filter((row) => row.stale || row.last_error).length;
-  const attentionHref = "/tasks?priority=attention";
-  const dueSoonHref = `/tasks?dueBefore=${encodeURIComponent(dueBefore)}`;
-  const blockedHref = "/tasks?status=blocked";
-  const openHref = "/tasks?status=open";
-  const inProgressHref = "/tasks?status=in_progress";
-  const doneHref = "/tasks?status=done";
+  const attentionHref = `/tasks?priority=attention${sourceQuery}`;
+  const dueSoonHref = `/tasks?dueBefore=${encodeURIComponent(dueBefore)}${sourceQuery}`;
+  const blockedHref = `/tasks?status=blocked${sourceQuery}`;
+  const openHref = `/tasks?status=open${sourceQuery}`;
+  const inProgressHref = `/tasks?status=in_progress${sourceQuery}`;
+  const doneHref = `/tasks?status=done${sourceQuery}`;
+  const projectsHref = "/projects";
 
   return (
     <div className="space-y-8">
@@ -62,13 +79,16 @@ async function HomeContent() {
             Workspace dashboard — open counts jump into filtered task lists, calendar, projects, and sync.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <QuickLink href="/tasks" label="All tasks" icon={ListTodo} />
-          <QuickLink href="/tasks?view=board" label="Board" icon={Columns3} />
-          <QuickLink href="/calendar" label="Calendar" icon={CalendarDays} />
-          <QuickLink href="/projects" label="Projects" icon={FolderKanban} />
-          <QuickLink href="/integrations" label="Integrations" icon={Plug} />
-          <QuickLink href="/sync" label="Sync" icon={RefreshCw} />
+        <div className="flex flex-col items-stretch gap-3 sm:items-end">
+          <div className="flex flex-wrap gap-2 text-sm">
+            <QuickLink href={`/tasks${source ? `?source=${encodeURIComponent(source)}` : ""}`} label="All tasks" icon={ListTodo} />
+            <QuickLink href={`/tasks?view=board${sourceQuery}`} label="Board" icon={Columns3} />
+            <QuickLink href="/calendar" label="Calendar" icon={CalendarDays} />
+            <QuickLink href={projectsHref} label="Projects" icon={FolderKanban} />
+            <QuickLink href="/integrations" label="Integrations" icon={Plug} />
+            <QuickLink href="/sync" label="Sync" icon={RefreshCw} />
+          </div>
+          <HomeSourceFilter source={source} sources={feed.sources} />
         </div>
       </div>
 
@@ -104,7 +124,7 @@ async function HomeContent() {
           value={feed.stats.inProgress}
           hint="Actively being worked"
         />
-        <StatCard href="/projects" label="Projects" value={feed.stats.projects} hint="Active in this workspace" />
+        <StatCard href={projectsHref} label="Projects" value={feed.stats.projects} hint="Active in this workspace" />
         <StatCard
           href={staleCount ? "/sync" : "/integrations"}
           label="Integrations"
@@ -187,19 +207,27 @@ async function HomeContent() {
           </div>
           {feed.health.length === 0 ? (
             <div className="mt-3 space-y-3">
-              <p className="text-sm text-muted">No provider is connected. Native work still lives here.</p>
-              <Link
-                href="/integrations"
-                className="inline-flex items-center gap-1.5 text-sm font-medium transition hover:underline"
-              >
-                <Plug className="size-4" aria-hidden="true" />
-                Connect a provider
-              </Link>
+              <p className="text-sm text-muted">
+                {source === "atrium"
+                  ? "Native Atrium work has no provider sync health."
+                  : source
+                    ? "This provider is not connected."
+                    : "No provider is connected. Native work still lives here."}
+              </p>
+              {!source || source === "atrium" ? (
+                <Link
+                  href="/integrations"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium transition hover:underline"
+                >
+                  <Plug className="size-4" aria-hidden="true" />
+                  Connect a provider
+                </Link>
+              ) : null}
             </div>
           ) : null}
           <ul className="mt-3 space-y-3">
             {feed.health.map((row) => (
-              <li key={row.display_name}>
+              <li key={`${row.provider}:${row.display_name}`}>
                 <Link
                   href="/integrations"
                   className="flex items-start justify-between gap-3 rounded-md px-1 py-1 text-sm transition hover:bg-accent/40"
@@ -234,7 +262,9 @@ async function HomeContent() {
           {feed.activity.length === 0 ? (
             <p className="mt-3 flex items-center gap-2 text-sm text-muted">
               <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
-              Synchronization events will show up here.
+              {source === "atrium"
+                ? "Native tasks do not produce provider sync events."
+                : "Synchronization events will show up here."}
             </p>
           ) : null}
           <ul className="mt-3 space-y-2 text-sm">

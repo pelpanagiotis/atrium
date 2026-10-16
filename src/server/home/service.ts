@@ -1,14 +1,38 @@
 import { sql } from "drizzle-orm";
 import { requireAction } from "../authz/membership";
 import { withUser } from "../db/client";
+import { PROVIDERS, type ProviderId } from "../integrations/types";
 
 const STALE_MS = 15 * 60 * 1000;
 
-export async function homeFeed(userId: string, workspaceId: string, now: number) {
+const PROVIDER_SOURCES = new Set<string>(PROVIDERS.filter((provider) => provider !== "fake"));
+
+export type HomeSource = "" | "atrium" | ProviderId;
+
+function parseHomeSource(source?: string | null): HomeSource {
+  const value = source?.trim() ?? "";
+  if (!value || value === "all") return "";
+  if (value === "atrium" || value === "native") return "atrium";
+  if (PROVIDER_SOURCES.has(value)) return value as ProviderId;
+  return "";
+}
+
+export async function homeFeed(userId: string, workspaceId: string, now: number, source?: string | null) {
+  const selected = parseHomeSource(source);
+  const atriumOnly = selected === "atrium";
+  const providerSource = selected && selected !== "atrium" ? selected : "";
+
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     const weekEnd = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
     const weekStart = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const taskSourceMatch = sql`(
+      ${selected} = ''
+      or (${atriumOnly ? "atrium" : ""} = 'atrium' and t.provider is null)
+      or (${providerSource} <> '' and t.provider = ${providerSource})
+    )`;
+
     const priorities = await tx.execute(sql`
       select t.id, t.title, t.priority, t.status, t.due_at, p.name as project_name, t.provider, t.external_url
       from tasks t join projects p on p.id = t.project_id
@@ -16,6 +40,7 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
         and t.deleted_at is null
         and t.status in ('open', 'in_progress', 'blocked')
         and t.priority in ('urgent', 'high')
+        and ${taskSourceMatch}
       order by case t.priority when 'urgent' then 0 else 1 end, t.due_at nulls last
       limit 8
     `);
@@ -27,20 +52,36 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
         and t.status not in ('done', 'cancelled')
         and t.due_at is not null
         and t.due_at <= ${weekEnd}
+        and ${taskSourceMatch}
       order by t.due_at
       limit 8
     `);
     const blocked = await tx.execute(sql`
       select t.id, t.title, p.name as project_name, t.provider
       from tasks t join projects p on p.id = t.project_id
-      where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null and t.status = 'blocked'
+      where t.workspace_id = ${workspaceId}::uuid
+        and t.deleted_at is null
+        and t.status = 'blocked'
+        and ${taskSourceMatch}
       order by t.updated_at desc limit 8
     `);
     const activity = await tx.execute(sql`
-      select id, direction as action, entity_type, provider_id as entity_id, created_at, status
-      from sync_events
-      where workspace_id = ${workspaceId}::uuid
-      order by created_at desc limit 12
+      select e.id, e.direction as action, e.entity_type, e.provider_id as entity_id, e.created_at, e.status
+      from sync_events e
+      left join integrations i on i.id = e.integration_id
+      where e.workspace_id = ${workspaceId}::uuid
+        and (
+          ${providerSource} = ''
+          or i.provider = ${providerSource}
+        )
+        and ${atriumOnly ? sql`false` : sql`true`}
+      order by e.created_at desc limit 12
+    `);
+    const sources = await tx.execute<{ provider: string; display_name: string }>(sql`
+      select distinct on (i.provider) i.provider, i.display_name
+      from integrations i
+      where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
+      order by i.provider, i.display_name
     `);
     const health = await tx.execute<{
       display_name: string;
@@ -52,7 +93,10 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
       select i.display_name, i.provider, i.status, s.last_success_at, coalesce(s.last_error, i.last_error) as last_error
       from integrations i
       left join integration_sync_cursors s on s.integration_id = i.id and s.resource = 'issues'
-      where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
+      where i.workspace_id = ${workspaceId}::uuid
+        and i.status <> 'revoked'
+        and (${providerSource} = '' or i.provider = ${providerSource})
+        and ${atriumOnly ? sql`false` : sql`true`}
     `);
     const statsRows = await tx.execute<{
       open_count: number;
@@ -65,29 +109,46 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
       integration_count: number;
     }>(sql`
       select
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null and status = 'open') as open_count,
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null and status = 'in_progress') as in_progress_count,
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null and status = 'blocked') as blocked_count,
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null
-            and status in ('open', 'in_progress', 'blocked')
-            and priority in ('urgent', 'high')) as attention_count,
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null
-            and status not in ('done', 'cancelled')
-            and due_at is not null
-            and due_at <= ${weekEnd}) as due_soon_count,
-        (select count(*)::int from tasks
-          where workspace_id = ${workspaceId}::uuid and deleted_at is null
-            and status = 'done'
-            and updated_at >= ${weekStart}) as done_week_count,
-        (select count(*)::int from projects
-          where workspace_id = ${workspaceId}::uuid and status = 'active') as project_count,
-        (select count(*)::int from integrations
-          where workspace_id = ${workspaceId}::uuid and status <> 'revoked') as integration_count
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null and t.status = 'open'
+            and ${taskSourceMatch}) as open_count,
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null and t.status = 'in_progress'
+            and ${taskSourceMatch}) as in_progress_count,
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null and t.status = 'blocked'
+            and ${taskSourceMatch}) as blocked_count,
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null
+            and t.status in ('open', 'in_progress', 'blocked')
+            and t.priority in ('urgent', 'high')
+            and ${taskSourceMatch}) as attention_count,
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null
+            and t.status not in ('done', 'cancelled')
+            and t.due_at is not null
+            and t.due_at <= ${weekEnd}
+            and ${taskSourceMatch}) as due_soon_count,
+        (select count(*)::int from tasks t
+          where t.workspace_id = ${workspaceId}::uuid and t.deleted_at is null
+            and t.status = 'done'
+            and t.updated_at >= ${weekStart}
+            and ${taskSourceMatch}) as done_week_count,
+        (select count(*)::int from projects p
+          where p.workspace_id = ${workspaceId}::uuid and p.status = 'active'
+            and (
+              ${selected} = ''
+              or (${atriumOnly ? "atrium" : ""} = 'atrium' and p.ownership_mode = 'native')
+              or exists (
+                select 1 from project_connections c
+                join integrations i on i.id = c.integration_id
+                where c.project_id = p.id and i.provider = ${providerSource} and ${providerSource} <> ''
+              )
+            )) as project_count,
+        (select count(*)::int from integrations i
+          where i.workspace_id = ${workspaceId}::uuid and i.status <> 'revoked'
+            and (${providerSource} = '' or i.provider = ${providerSource})
+            and ${atriumOnly ? sql`false` : sql`true`}) as integration_count
     `);
     const prefs = await tx.execute<{ notify_sync_errors: boolean }>(sql`
       select notify_sync_errors from user_preferences
@@ -105,10 +166,12 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
       integration_count: 0,
     };
     return {
+      source: selected,
+      sources,
       priorities,
       dueSoon,
       blocked,
-      activity,
+      activity: atriumOnly ? [] : activity,
       weekEnd,
       stats: {
         open: stats.open_count,
@@ -118,13 +181,15 @@ export async function homeFeed(userId: string, workspaceId: string, now: number)
         dueSoon: stats.due_soon_count,
         doneWeek: stats.done_week_count,
         projects: stats.project_count,
-        integrations: stats.integration_count,
+        integrations: atriumOnly ? 0 : stats.integration_count,
       },
-      health: health.map((row) => ({
-        ...row,
-        last_error: showErrors ? row.last_error : null,
-        stale: row.status === "connected" && (!row.last_success_at || now - new Date(row.last_success_at).getTime() > STALE_MS),
-      })),
+      health: atriumOnly
+        ? []
+        : health.map((row) => ({
+            ...row,
+            last_error: showErrors ? row.last_error : null,
+            stale: row.status === "connected" && (!row.last_success_at || now - new Date(row.last_success_at).getTime() > STALE_MS),
+          })),
     };
   });
 }
