@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { CalendarDays, Clock3, FolderKanban, UserRound } from "lucide-react";
 import { updateTaskDetailAction } from "@/app/actions";
+import { MarkdownContent } from "@/components/markdown-content";
 import { PriorityIcon, StatusIcon, SyncStateIcon, syncStateLabel } from "@/components/task-meta-icons";
 import { MenuSelect } from "@/components/ui/menu-select";
 import { cn, formatWhen } from "@/lib/utils";
@@ -80,6 +81,7 @@ export function TaskDetailForm({
   const [status, setStatus] = useState(initialStatus);
   const [priority, setPriority] = useState(initialPriority);
   const [dueAt, setDueAt] = useState(dueInputValue(initialDueAt));
+  const [editingDescription, setEditingDescription] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -87,7 +89,6 @@ export function TaskDetailForm({
   const descriptionRef = useRef(initialDescription);
   const dueRef = useRef(dueInputValue(initialDueAt));
   const versionRef = useRef(initialVersion);
-
   function saveField(field: "title" | "description" | "status" | "priority" | "dueAt", value: string) {
     if (!canWrite) return;
     startTransition(async () => {
@@ -110,6 +111,13 @@ export function TaskDetailForm({
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 1200);
     });
+  }
+
+  function finishDescriptionEdit() {
+    setEditingDescription(false);
+    if (description === descriptionRef.current) return;
+    descriptionRef.current = description;
+    saveField("description", description);
   }
 
   return (
@@ -205,6 +213,55 @@ export function TaskDetailForm({
         </div>
       </div>
 
+      {canWrite && editingDescription ? (
+        <textarea
+          id="task-detail-description"
+          value={description}
+          autoFocus
+          onChange={(event) => setDescription(event.target.value)}
+          onFocus={(event) => {
+            const length = event.currentTarget.value.length;
+            event.currentTarget.setSelectionRange(length, length);
+          }}
+          onBlur={finishDescriptionEdit}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setDescription(descriptionRef.current);
+              setEditingDescription(false);
+            }
+          }}
+          rows={12}
+          aria-label="Description"
+          placeholder="Add a description…"
+          className="min-h-40 w-full resize-y rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm leading-relaxed outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        />
+      ) : canWrite ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setEditingDescription(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setEditingDescription(true);
+            }
+          }}
+          className="rounded-lg border border-transparent px-1 py-1 transition hover:border-border/60 hover:bg-card/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          aria-label={description.trim() ? "Edit description" : "Add description"}
+        >
+          {description.trim() ? (
+            <MarkdownContent content={description} />
+          ) : (
+            <p className="text-sm text-muted">Add a description…</p>
+          )}
+        </div>
+      ) : description.trim() ? (
+        <MarkdownContent content={description} />
+      ) : (
+        <p className="text-sm text-muted">No description for this task.</p>
+      )}
+
       <dl className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-2">
         <div className="flex gap-3">
           <FolderKanban className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden="true" />
@@ -257,34 +314,6 @@ export function TaskDetailForm({
           </div>
         </div>
       </dl>
-
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-wide text-muted">Description</p>
-        {canWrite ? (
-          <textarea
-            id="task-detail-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            onBlur={() => {
-              if (description === descriptionRef.current) return;
-              descriptionRef.current = description;
-              saveField("description", description);
-            }}
-            rows={10}
-            aria-label="Description"
-            placeholder="Add a description…"
-            className="min-h-40 w-full resize-y rounded-lg border border-border/70 bg-card px-3 py-2.5 text-sm leading-relaxed outline-none transition-[border-color,box-shadow] placeholder:text-muted hover:border-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-          />
-        ) : description.trim() ? (
-          <div className="rounded-lg border border-border/70 bg-card px-3 py-2.5">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{description}</p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border/70 px-3 py-2.5">
-            <p className="text-sm text-muted">No description for this task.</p>
-          </div>
-        )}
-      </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {!canWrite ? (
