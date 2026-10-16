@@ -10,7 +10,7 @@ export async function GET(
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const { provider } = await context.params;
-  if (provider !== "linear" && provider !== "jira" && provider !== "github") {
+  if (provider !== "linear" && provider !== "jira" && provider !== "github" && provider !== "gitlab") {
     return new Response("Unknown provider", { status: 404 });
   }
   const url = new URL(request.url);

@@ -5,6 +5,7 @@ const LABELS: Record<string, string> = {
   linear: "Linear",
   jira: "Jira",
   github: "GitHub",
+  gitlab: "GitLab",
   fake: "Fake provider",
   native: "Native",
 };
@@ -51,6 +52,17 @@ function NativeMark({ className }: { className?: string }) {
   );
 }
 
+function GitLabMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.919 1.263a.455.455 0 0 0-.867 0L1.388 9.452.045 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.624-8.443a.92.92 0 0 0 .331-1.024"
+      />
+    </svg>
+  );
+}
+
 function FakeMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -63,7 +75,8 @@ function FakeMark({ className }: { className?: string }) {
 const tones: Record<string, string> = {
   linear: "bg-[#5E6AD2]/10 text-[#5E6AD2] ring-1 ring-[#5E6AD2]/25",
   jira: "bg-[#2684FF]/10 text-[#2684FF] ring-1 ring-[#2684FF]/25",
-  github: "bg-stone-900/5 text-stone-900 ring-1 ring-stone-900/15",
+  github: "bg-white text-[#24292f] ring-1 ring-black/15",
+  gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
   fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200",
 };
@@ -83,6 +96,7 @@ function ProviderMark({
   if (provider === "linear") return <LinearMark className={className} />;
   if (provider === "jira") return <JiraMark className={className} />;
   if (provider === "github") return <GitHubMark className={className} />;
+  if (provider === "gitlab") return <GitLabMark className={className} />;
   if (provider === "fake") return <FakeMark className={className} />;
   return <NativeMark className={className} />;
 }

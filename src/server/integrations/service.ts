@@ -27,7 +27,7 @@ export type IntegrationView = {
 const SECRET_FREE = sql`id, workspace_id, provider, status, display_name, external_account_id, last_validated_at, last_error, revoked_at, credential_ciphertext`;
 
 function parseProvider(provider: string): ProviderId {
-  if (provider !== "linear" && provider !== "jira" && provider !== "github" && provider !== "fake") {
+  if (provider !== "linear" && provider !== "jira" && provider !== "github" && provider !== "gitlab" && provider !== "fake") {
     throw new Error("Unknown provider");
   }
   if (provider === "fake" && process.env.ALLOW_FAKE_PROVIDER !== "true") {
@@ -385,6 +385,17 @@ export async function beginOAuth(userId: string, workspaceId: string, provider: 
     url.searchParams.set("code_challenge_method", "S256");
     return url.toString();
   }
+  if (provider === "gitlab") {
+    const url = new URL("https://gitlab.com/oauth/authorize");
+    url.searchParams.set("client_id", clientId);
+    url.searchParams.set("redirect_uri", redirectUri);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", OAUTH_SCOPES.gitlab.join(" "));
+    url.searchParams.set("state", state);
+    url.searchParams.set("code_challenge", challenge);
+    url.searchParams.set("code_challenge_method", "S256");
+    return url.toString();
+  }
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
@@ -464,6 +475,29 @@ async function exchangeCode(
       accessToken: json.access_token,
       refreshToken: json.refresh_token,
       expiresAt: json.expires_in ? new Date(Date.now() + json.expires_in * 1000).toISOString() : undefined,
+    };
+  }
+  if (provider === "gitlab") {
+    const body = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: input.clientId,
+      client_secret: input.clientSecret,
+      redirect_uri: input.redirectUri,
+      code: input.code,
+      code_verifier: input.verifier,
+    });
+    const response = await fetch("https://gitlab.com/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const json = (await response.json()) as { access_token?: string; refresh_token?: string; expires_in?: number; error?: string };
+    if (!json.access_token) throw new Error(json.error ?? "GitLab did not return a token");
+    return {
+      accessToken: json.access_token,
+      refreshToken: json.refresh_token,
+      expiresAt: json.expires_in ? new Date(Date.now() + json.expires_in * 1000).toISOString() : undefined,
+      siteUrl: "https://gitlab.com",
     };
   }
   const response = await fetch("https://auth.atlassian.com/oauth/token", {

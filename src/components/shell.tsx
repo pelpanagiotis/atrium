@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Plus, Plug, RefreshCw, Search } from "lucide-react";
+import { Plug, RefreshCw, Search } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CreateMenu } from "@/components/create-menu";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
@@ -45,7 +46,7 @@ export function Shell({
             />
           </form>
           <div className="flex shrink-0 items-center gap-1">
-            <HeaderAction href="/tasks" label="New task" icon={Plus} />
+            <CreateMenu />
             <HeaderAction href="/integrations" label="Integrations" icon={Plug} className="hidden sm:inline-flex" />
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
             <AccountMenu user={user} theme={theme} />

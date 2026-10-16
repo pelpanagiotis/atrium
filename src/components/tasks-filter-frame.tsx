@@ -26,6 +26,8 @@ export function TasksFilterFrame({
       project: searchParams.get("project") ?? undefined,
       source: searchParams.get("source") ?? undefined,
       view: searchParams.get("view") ?? undefined,
+      dueBefore: searchParams.get("dueBefore") ?? undefined,
+      dueAfter: searchParams.get("dueAfter") ?? undefined,
     }),
     [searchParams],
   );

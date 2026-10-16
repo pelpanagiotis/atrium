@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Building2,
   CalendarDays,
@@ -38,6 +38,35 @@ function writeCollapsedCookie(collapsed: boolean) {
   document.cookie = `${COOKIE}=${collapsed ? "collapsed" : "expanded"}; path=/; max-age=31536000; samesite=lax`;
 }
 
+function SidebarTip({
+  label,
+  show,
+  children,
+}: {
+  label: string;
+  show: boolean;
+  children: ReactNode;
+}) {
+  if (!show) return <>{children}</>;
+  return (
+    <div className="group/tip relative">
+      {children}
+      <span
+        role="tooltip"
+        className={cn(
+          "pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2",
+          "whitespace-nowrap rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground shadow-lg",
+          "opacity-0 translate-x-1 transition duration-150",
+          "group-hover/tip:translate-x-0 group-hover/tip:opacity-100",
+          "group-focus-within/tip:translate-x-0 group-focus-within/tip:opacity-100",
+        )}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export function AppSidebar({
   userName,
   current,
@@ -64,6 +93,7 @@ export function AppSidebar({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
+  const workspaceLabel = `${current.kind === "personal" ? "Personal" : "Work"} workspace`;
 
   return (
     <aside
@@ -79,9 +109,11 @@ export function AppSidebar({
               Atrium
             </Link>
           ) : (
-            <Link href="/home" className="serif text-lg" aria-label="Atrium">
-              A
-            </Link>
+            <SidebarTip label="Atrium" show>
+              <Link href="/home" className="serif text-lg" aria-label="Atrium">
+                A
+              </Link>
+            </SidebarTip>
           )}
           {!collapsed ? (
             <button
@@ -89,7 +121,6 @@ export function AppSidebar({
               onClick={toggle}
               className="inline-flex size-8 items-center justify-center rounded-md text-sidebar-foreground/70 transition hover:bg-white/10 hover:text-sidebar-foreground"
               aria-label="Collapse sidebar"
-              title="Collapse sidebar"
             >
               <PanelLeftClose className="size-4" aria-hidden="true" />
             </button>
@@ -98,24 +129,27 @@ export function AppSidebar({
 
         {collapsed ? (
           <div className="mt-3 flex justify-center">
-            <button
-              type="button"
-              onClick={toggle}
-              className="inline-flex size-9 items-center justify-center rounded-md text-sidebar-foreground/70 transition hover:bg-white/10 hover:text-sidebar-foreground"
-              aria-label="Expand sidebar"
-              title="Expand sidebar"
-            >
-              <PanelLeftOpen className="size-4" aria-hidden="true" />
-            </button>
+            <SidebarTip label="Expand sidebar" show>
+              <button
+                type="button"
+                onClick={toggle}
+                className="inline-flex size-9 items-center justify-center rounded-md text-sidebar-foreground/70 transition hover:bg-white/10 hover:text-sidebar-foreground"
+                aria-label="Expand sidebar"
+              >
+                <PanelLeftOpen className="size-4" aria-hidden="true" />
+              </button>
+            </SidebarTip>
           </div>
         ) : null}
 
         <div className={cn("mt-3 flex items-center gap-2 pb-6", collapsed ? "justify-center px-0" : "px-2")}>
-          <WorkspaceIconBadge
-            icon={current.icon}
-            kind={current.kind}
-            className="size-8 border-white/15 bg-white/5 text-sm text-sidebar-foreground"
-          />
+          <SidebarTip label={workspaceLabel} show={collapsed}>
+            <WorkspaceIconBadge
+              icon={current.icon}
+              kind={current.kind}
+              className="size-8 border-white/15 bg-white/5 text-sm text-sidebar-foreground"
+            />
+          </SidebarTip>
           {!collapsed ? (
             <p className="truncate text-xs uppercase tracking-[0.18em] text-sidebar-foreground/60">
               {current.kind} workspace
@@ -127,33 +161,35 @@ export function AppSidebar({
           {LINKS.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
-              <Link
-                key={href}
-                href={href}
-                title={label}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center rounded-md text-sm transition hover:bg-white/10",
-                  collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-2 py-2",
-                  active && "bg-white/10",
-                )}
-              >
-                <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
-                {!collapsed ? <span className="truncate">{label}</span> : null}
-              </Link>
+              <SidebarTip key={href} label={label} show={collapsed}>
+                <Link
+                  href={href}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center rounded-md text-sm transition hover:bg-white/10",
+                    collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-2 py-2",
+                    active && "bg-white/10",
+                  )}
+                >
+                  <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
+                  {!collapsed ? <span className="truncate">{label}</span> : null}
+                </Link>
+              </SidebarTip>
             );
           })}
         </nav>
       </div>
 
       <div className={cn("flex items-center gap-2", collapsed ? "justify-center px-0 py-2" : "px-2 py-2")}>
-        <span
-          aria-hidden="true"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xs font-medium"
-        >
-          {initials || "?"}
-        </span>
+        <SidebarTip label={userName} show={collapsed}>
+          <span
+            aria-label={userName}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xs font-medium"
+          >
+            {initials || "?"}
+          </span>
+        </SidebarTip>
         {!collapsed ? <span className="truncate text-sm text-sidebar-foreground/70">{userName}</span> : null}
       </div>
     </aside>

@@ -1,5 +1,6 @@
 import { fakeAdapter } from "./fake";
 import { githubAdapter } from "./github";
+import { gitlabAdapter } from "./gitlab";
 import { jiraAdapter } from "./jira";
 import { linearAdapter } from "./linear";
 import { type IntegrationAdapter, type ProviderId } from "./types";
@@ -9,6 +10,7 @@ const ADAPTERS: Record<ProviderId, IntegrationAdapter> = {
   linear: linearAdapter,
   jira: jiraAdapter,
   github: githubAdapter,
+  gitlab: gitlabAdapter,
 };
 
 export function getAdapter(provider: ProviderId): IntegrationAdapter {
@@ -21,7 +23,11 @@ export function getAdapter(provider: ProviderId): IntegrationAdapter {
 }
 
 export function listAdapterProviders(): ProviderId[] {
-  const providers: ProviderId[] = ["linear", "jira", "github"];
+  return ["linear", "jira", "github", "gitlab"];
+}
+
+export function listAllAdapterProviders(): ProviderId[] {
+  const providers = listAdapterProviders();
   if (process.env.ALLOW_FAKE_PROVIDER === "true") providers.push("fake");
   return providers;
 }
@@ -30,4 +36,5 @@ export const OAUTH_SCOPES: Record<Exclude<ProviderId, "fake">, string[]> = {
   linear: ["read", "write"],
   jira: ["read:jira-work", "write:jira-work", "offline_access"],
   github: ["repo"],
+  gitlab: ["api", "read_user"],
 };

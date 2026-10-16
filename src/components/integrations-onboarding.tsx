@@ -30,7 +30,7 @@ const COPY: Record<string, string> = {
   linear: "Sync issues from Linear teams into Atrium projects.",
   jira: "Bring Jira Cloud projects and issues into this workspace.",
   github: "Track GitHub issues from repositories you choose.",
-  fake: "Local fake provider for development and tests.",
+  gitlab: "Sync GitLab issues from projects you choose.",
 };
 
 export function IntegrationsOnboarding({
@@ -147,7 +147,7 @@ export function IntegrationsOnboarding({
                   </div>
                 </div>
               </DialogHeader>
-              {oauth[selected] && selected !== "fake" ? (
+              {oauth[selected] ? (
                 <form action={oauthStartAction}>
                   <input type="hidden" name="workspaceId" value={workspaceId} />
                   <input type="hidden" name="provider" value={selected} />

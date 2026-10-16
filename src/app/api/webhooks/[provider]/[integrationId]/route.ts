@@ -6,7 +6,7 @@ export async function POST(
   context: { params: Promise<{ provider: string; integrationId: string }> },
 ) {
   const { provider, integrationId } = await context.params;
-  if (!["linear", "jira", "github", "fake"].includes(provider)) {
+  if (!["linear", "jira", "github", "gitlab", "fake"].includes(provider)) {
     return new Response("Unknown provider", { status: 404 });
   }
   const rawBody = await request.text();

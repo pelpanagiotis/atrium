@@ -21,6 +21,7 @@ export function ConnectForm({
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
   const selected = provider ?? providers[0] ?? "linear";
   const showJira = selected === "jira";
+  const showGitLab = selected === "gitlab";
   return (
     <form action={formAction} className={compact ? "space-y-3" : "rounded-lg border bg-card p-4"}>
       {!compact ? (
@@ -54,10 +55,18 @@ export function ConnectForm({
             minLength={8}
             autoComplete="off"
             className="mt-1"
-            placeholder={selected === "linear" ? "lin_api_…" : "Paste access token"}
+            placeholder={
+              selected === "linear"
+                ? "lin_api_…"
+                : selected === "gitlab"
+                  ? "glpat-…"
+                  : "Paste access token"
+            }
           />
           {selected === "linear" ? (
             <p className="mt-1 text-xs text-muted">Paste a Linear personal API key as copied. Atrium sends that key without a Bearer prefix.</p>
+          ) : selected === "gitlab" ? (
+            <p className="mt-1 text-xs text-muted">Paste a GitLab personal access token with the api scope. Self-managed instances can set a site URL below.</p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
           )}
@@ -77,6 +86,18 @@ export function ConnectForm({
               <Input id="siteUrl" name="siteUrl" placeholder="https://your-site.atlassian.net" className="mt-1" />
             </div>
           </>
+        ) : null}
+        {showGitLab ? (
+          <div className="md:col-span-2">
+            <Label htmlFor="siteUrl">GitLab site URL</Label>
+            <Input
+              id="siteUrl"
+              name="siteUrl"
+              placeholder="https://gitlab.com"
+              defaultValue="https://gitlab.com"
+              className="mt-1"
+            />
+          </div>
         ) : null}
       </div>
       {state.error ? <p className="mt-2 text-sm text-destructive">{state.error}</p> : null}

@@ -191,7 +191,9 @@ export async function listTasks(
     const source = filter.source?.trim() ?? "";
     const atriumOnly = source === "atrium" || source === "native";
     const providerSource =
-      source === "linear" || source === "jira" || source === "github" || source === "fake" ? source : "";
+      source === "linear" || source === "jira" || source === "github" || source === "gitlab" || source === "fake"
+        ? source
+        : "";
     return tx.execute<TaskRecord>(sql`
       select t.id, t.workspace_id, t.project_id, p.name as project_name, p.ownership_mode,
              t.milestone_id, t.title, t.description, t.status, t.priority, t.due_at,
@@ -204,7 +206,11 @@ export async function listTasks(
         and (${filter.includeDeleted ?? false} or t.deleted_at is null)
         and (${projectId}::uuid is null or t.project_id = ${projectId}::uuid)
         and (${status} = '' or t.status = ${status})
-        and (${priority} = '' or t.priority = ${priority})
+        and (
+          ${priority} = ''
+          or (${priority} = 'attention' and t.priority in ('urgent', 'high'))
+          or t.priority = ${priority}
+        )
         and (${assignee} = '' or t.assignee_user_id = ${assignee})
         and (${query} = '' or t.title ilike ${"%" + query + "%"} or t.description ilike ${"%" + query + "%"})
         and (${dueBefore}::timestamptz is null or t.due_at <= ${dueBefore}::timestamptz)

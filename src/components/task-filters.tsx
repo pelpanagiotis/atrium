@@ -13,6 +13,8 @@ type FilterValues = {
   project?: string;
   source?: string;
   view?: string;
+  dueBefore?: string;
+  dueAfter?: string;
 };
 
 function buildTasksHref(values: FilterValues): string {
@@ -23,6 +25,8 @@ function buildTasksHref(values: FilterValues): string {
   if (values.priority) params.set("priority", values.priority);
   if (values.project) params.set("project", values.project);
   if (values.source) params.set("source", values.source);
+  if (values.dueBefore) params.set("dueBefore", values.dueBefore);
+  if (values.dueAfter) params.set("dueAfter", values.dueAfter);
   const query = params.toString();
   return query ? `/tasks?${query}` : "/tasks";
 }
@@ -53,7 +57,13 @@ export function TaskFilters({
   }, [values.q, values.status, values.priority, values.project, values.source]);
 
   function navigate(next: FilterValues) {
-    onNavigate(buildTasksHref(next));
+    onNavigate(
+      buildTasksHref({
+        ...next,
+        dueBefore: values.dueBefore,
+        dueAfter: values.dueAfter,
+      }),
+    );
   }
 
   function onSelectChange(
@@ -116,6 +126,7 @@ export function TaskFilters({
         onChange={(event) => onSelectChange("priority", event)}
       >
         <option value="">Any priority</option>
+        <option value="attention">Needs attention</option>
         <option value="urgent">Urgent</option>
         <option value="high">High</option>
         <option value="medium">Medium</option>
@@ -145,7 +156,7 @@ export function TaskFilters({
         <option value="linear">Linear</option>
         <option value="jira">Jira</option>
         <option value="github">GitHub</option>
-        <option value="fake">Fake provider</option>
+        <option value="gitlab">GitLab</option>
       </Select>
     </form>
   );

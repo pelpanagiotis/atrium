@@ -25,11 +25,9 @@ async function IntegrationsContent() {
   const { current } = await workspaceContext(user.id);
   const integrations = await listIntegrations(user.id, current.id);
   const canAdmin = current.role === "owner" || current.role === "admin";
-  const providers = listAdapterProviders();
+  const providers = listAdapterProviders().filter((provider) => provider !== "fake");
   const oauth = Object.fromEntries(
-    providers
-      .filter((provider) => provider !== "fake")
-      .map((provider) => [provider, oauthConfigured(provider)]),
+    providers.map((provider) => [provider, oauthConfigured(provider)]),
   );
   return (
     <IntegrationsOnboarding

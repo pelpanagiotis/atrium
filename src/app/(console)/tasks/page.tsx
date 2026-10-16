@@ -29,6 +29,8 @@ type TasksSearchParams = {
   source?: string;
   q?: string;
   view?: string;
+  dueBefore?: string;
+  dueAfter?: string;
 };
 
 export default function TasksPage({
@@ -111,6 +113,8 @@ async function TasksResults({
     projectId: params.project,
     source: params.source,
     query: params.q,
+    dueBefore: params.dueBefore,
+    dueAfter: params.dueAfter,
   });
 
   if (tasks.length === 0) {

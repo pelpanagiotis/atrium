@@ -130,7 +130,7 @@ export const tasks = pgTable(
     assigneeUserId: text("assignee_user_id"),
     assigneeProviderId: text("assignee_provider_id"),
     assigneeLabel: text("assignee_label"),
-    provider: text("provider").$type<"linear" | "jira" | "github" | "fake" | null>(),
+    provider: text("provider").$type<"linear" | "jira" | "github" | "gitlab" | "fake" | null>(),
     externalUrl: text("external_url"),
     syncState: text("sync_state").$type<"pending" | "synced" | "error" | "tombstone">().notNull().default("synced"),
     syncError: text("sync_error"),
@@ -146,7 +146,7 @@ export const tasks = pgTable(
 export const integrations = pgTable("integrations", {
   id: uuid("id").primaryKey().defaultRandom(),
   workspaceId: uuid("workspace_id").notNull(),
-  provider: text("provider").$type<"linear" | "jira" | "github" | "fake">().notNull(),
+  provider: text("provider").$type<"linear" | "jira" | "github" | "gitlab" | "fake">().notNull(),
   status: text("status").$type<"connected" | "error" | "revoked">().notNull(),
   displayName: text("display_name").notNull(),
   externalAccountId: text("external_account_id"),
