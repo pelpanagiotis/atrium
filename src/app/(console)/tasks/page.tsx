@@ -6,10 +6,10 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ListFilter } from "lucide-react";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
-import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
+import { TaskSourceCell } from "@/components/task-source-cell";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
 import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
 import { Badge } from "@/components/ui/badge";
@@ -176,15 +176,12 @@ async function TasksResults({
                 </td>
                 <td className="p-3">{formatWhen(task.due_at)}</td>
                 <td className="p-3">
-                  <Badge tone={task.sync_state}>{task.sync_state}</Badge>
-                  <div className="mt-1">
-                    <ProviderIcon provider={task.provider} />
-                    {task.external_url ? (
-                      <a className="ml-2 underline" href={task.external_url}>
-                        Open
-                      </a>
-                    ) : null}
-                  </div>
+                  <TaskSourceCell
+                    syncState={task.sync_state}
+                    provider={task.provider}
+                    externalUrl={task.external_url}
+                    title={task.title}
+                  />
                 </td>
               </tr>
             ))}

@@ -4,7 +4,10 @@ import {
   Circle,
   CircleDot,
   CircleSlash,
+  CloudOff,
   Flame,
+  LoaderCircle,
+  RefreshCw,
   SignalHigh,
   SignalLow,
   SignalMedium,
@@ -29,6 +32,13 @@ const PRIORITY_ICONS: Record<string, { icon: LucideIcon; className: string }> = 
   low: { icon: SignalLow, className: "text-stone-400" },
 };
 
+const SYNC_ICONS: Record<string, { icon: LucideIcon; className: string; label: string }> = {
+  synced: { icon: CheckCircle2, className: "text-emerald-500", label: "Synced" },
+  pending: { icon: LoaderCircle, className: "animate-spin text-amber-500", label: "Pending sync" },
+  error: { icon: CloudOff, className: "text-rose-500", label: "Sync error" },
+  tombstone: { icon: RefreshCw, className: "text-stone-400", label: "Removed upstream" },
+};
+
 export function StatusIcon({ status, className }: { status: string; className?: string }) {
   const meta = STATUS_ICONS[status];
   if (!meta) return null;
@@ -41,4 +51,15 @@ export function PriorityIcon({ priority, className }: { priority: string; classN
   if (!meta) return null;
   const Icon = meta.icon;
   return <Icon className={cn("size-4 shrink-0", meta.className, className)} aria-hidden="true" />;
+}
+
+export function SyncStateIcon({ state, className }: { state: string; className?: string }) {
+  const meta = SYNC_ICONS[state] ?? SYNC_ICONS.synced;
+  if (!meta) return null;
+  const Icon = meta.icon;
+  return (
+    <span title={meta.label} className="inline-flex">
+      <Icon className={cn("size-4 shrink-0", meta.className, className)} aria-label={meta.label} />
+    </span>
+  );
 }
