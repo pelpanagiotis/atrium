@@ -55,12 +55,21 @@ async function WorkspacesContent() {
         <form action={updateWorkspaceAction} className="space-y-4 rounded-lg border bg-card p-4">
           <div>
             <h2 className="text-xl">Edit current workspace</h2>
-            <p className="mt-1 text-sm text-muted">Update the name and icon for {current.name}.</p>
+            <p className="mt-1 text-sm text-muted">Update the name, type, and icon for {current.name}.</p>
           </div>
           <input type="hidden" name="workspaceId" value={current.id} />
-          <div className="grid gap-2">
-            <Label htmlFor="rename">Name</Label>
-            <Input id="rename" name="name" defaultValue={current.name} required />
+          <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+            <div className="grid gap-2">
+              <Label htmlFor="rename">Name</Label>
+              <Input id="rename" name="name" defaultValue={current.name} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-workspace-kind">Type</Label>
+              <Select id="edit-workspace-kind" name="kind" defaultValue={current.kind} aria-label="Workspace type">
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+              </Select>
+            </div>
           </div>
           <WorkspaceIconPicker defaultValue={current.icon} id="edit-workspace-icon" />
           <Button type="submit" variant="outline">Save workspace</Button>

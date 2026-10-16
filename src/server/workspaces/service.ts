@@ -90,18 +90,21 @@ export async function createWorkspace(
 export async function updateWorkspace(
   userId: string,
   workspaceId: string,
-  input: { name: string; icon?: string | null },
+  input: { name: string; kind: "personal" | "work"; icon?: string | null },
 ): Promise<void> {
   const trimmed = input.name.trim();
   if (trimmed.length < 2 || trimmed.length > 80) {
     throw new Error("Workspace name must be between 2 and 80 characters");
+  }
+  if (input.kind !== "personal" && input.kind !== "work") {
+    throw new Error("Workspace kind must be personal or work");
   }
   const icon = normalizeWorkspaceIcon(input.icon);
   await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "workspace.update");
     const updated = await tx.execute(sql`
       update workspaces
-      set name = ${trimmed}, icon = ${icon}, updated_at = now()
+      set name = ${trimmed}, kind = ${input.kind}, icon = ${icon}, updated_at = now()
       where id = ${workspaceId}::uuid
       returning id
     `);

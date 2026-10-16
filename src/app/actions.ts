@@ -121,6 +121,7 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
 export async function updateWorkspaceAction(formData: FormData): Promise<void> {
   await updateWorkspace(await userId(), String(formData.get("workspaceId")), {
     name: String(formData.get("name") ?? ""),
+    kind: String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
     icon: String(formData.get("icon") ?? ""),
   });
   redirect("/workspaces");
