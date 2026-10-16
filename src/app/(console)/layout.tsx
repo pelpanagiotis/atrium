@@ -11,7 +11,7 @@ export const instant = false;
 
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<ScreenLoader className="min-h-screen" />}>
+    <Suspense fallback={<ScreenLoader />}>
       <Frame>{children}</Frame>
     </Suspense>
   );

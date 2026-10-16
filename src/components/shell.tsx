@@ -74,7 +74,7 @@ export function Shell({
             ))}
           </nav>
         </header>
-        <main className="w-full px-4 py-6 md:px-6">{children}</main>
+        <main className="flex w-full flex-1 flex-col px-4 py-6 md:px-6">{children}</main>
       </div>
     </div>
   );
