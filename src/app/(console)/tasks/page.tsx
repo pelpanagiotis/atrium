@@ -12,6 +12,7 @@ import { TaskForm } from "@/components/task-form";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
 import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listProjects } from "@/server/projects/service";
@@ -150,7 +151,7 @@ async function TasksResults({
               <tr key={task.id} className="border-b last:border-0">
                 <td className="p-3">
                   {canWrite ? (
-                    <input type="checkbox" name="ids" value={task.id} aria-label={`Select ${task.title}`} />
+                    <Checkbox name="ids" value={task.id} aria-label={`Select ${task.title}`} />
                   ) : null}
                 </td>
                 <td className="p-3">
