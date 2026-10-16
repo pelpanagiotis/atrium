@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LABELS: Record<string, string> = {
@@ -72,6 +73,20 @@ export function providerLabel(provider: string | null | undefined): string {
   return LABELS.native ?? "Native";
 }
 
+function ProviderMark({
+  provider,
+  className,
+}: {
+  provider: string;
+  className?: string;
+}) {
+  if (provider === "linear") return <LinearMark className={className} />;
+  if (provider === "jira") return <JiraMark className={className} />;
+  if (provider === "github") return <GitHubMark className={className} />;
+  if (provider === "fake") return <FakeMark className={className} />;
+  return <NativeMark className={className} />;
+}
+
 export function ProviderIcon({
   provider,
   className,
@@ -96,11 +111,43 @@ export function ProviderIcon({
         className,
       )}
     >
-      {key === "linear" ? <LinearMark className={iconClass} /> : null}
-      {key === "jira" ? <JiraMark className={iconClass} /> : null}
-      {key === "github" ? <GitHubMark className={iconClass} /> : null}
-      {key === "fake" ? <FakeMark className={iconClass} /> : null}
-      {key === "native" ? <NativeMark className={iconClass} /> : null}
+      <ProviderMark provider={key} className={iconClass} />
     </span>
+  );
+}
+
+export function OpenInProviderButton({
+  provider,
+  href,
+  className,
+}: {
+  provider: string | null | undefined;
+  href: string;
+  className?: string;
+}) {
+  const key = provider && LABELS[provider] ? provider : null;
+  if (!key || key === "native") return null;
+  const label = LABELS[key] ?? "provider";
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-2.5 text-xs font-medium text-foreground transition hover:bg-accent",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "inline-flex size-5 items-center justify-center rounded-full",
+          tones[key] ?? tones.native,
+        )}
+      >
+        <ProviderMark provider={key} className="size-3" />
+      </span>
+      Open in {label}
+      <ExternalLink className="size-3 text-muted" aria-hidden="true" />
+    </a>
   );
 }

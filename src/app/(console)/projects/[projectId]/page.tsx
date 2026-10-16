@@ -3,7 +3,7 @@ import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { archiveProjectAction, createMilestoneAction, createTaskAction, mappingAction, publishAction, updateProjectAction } from "@/app/actions";
-import { ProviderIcon } from "@/components/provider-icon";
+import { OpenInProviderButton, ProviderIcon } from "@/components/provider-icon";
 import { TaskForm } from "@/components/task-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,9 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>{project.ownership_mode}</Badge>
             {project.provider ? <Badge tone="external">{project.provider}</Badge> : null}
-            {project.provider_project_url ? <a className="text-sm underline" href={project.provider_project_url}>Open in {project.provider}</a> : null}
+            {project.provider_project_url ? (
+              <OpenInProviderButton provider={project.provider} href={project.provider_project_url} />
+            ) : null}
           </div>
         </div>
         {canAdmin ? (

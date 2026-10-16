@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { createProjectAction } from "@/app/actions";
 import { ProjectForm } from "@/components/project-form";
+import { OpenInProviderButton, providerLabel } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
@@ -57,10 +58,14 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
               </div>
               <p className="mt-2 line-clamp-2 text-sm text-muted">{project.description || "No description yet."}</p>
               {project.provider ? (
-                <p className="mt-3 text-xs text-muted">
-                  {project.provider} · {project.provider_project_name}
-                  {project.provider_project_url ? <> · <a className="underline" href={project.provider_project_url}>Open provider</a></> : null}
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-muted">
+                    {providerLabel(project.provider)} · {project.provider_project_name}
+                  </p>
+                  {project.provider_project_url ? (
+                    <OpenInProviderButton provider={project.provider} href={project.provider_project_url} />
+                  ) : null}
+                </div>
               ) : null}
             </li>
           ))}
