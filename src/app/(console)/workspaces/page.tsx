@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { inviteAction, removeMemberAction, roleAction, updateWorkspaceAction } from "@/app/actions";
 import { CreateWorkspaceForm } from "@/components/create-workspace-form";
 import { InviteForm } from "@/components/invite-form";
+import { WorkspaceIconBadge, WorkspaceIconPicker } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/field";
 import { getSessionUser } from "@/server/auth/session";
@@ -38,19 +39,31 @@ async function WorkspacesContent() {
       <ul className="grid gap-3 md:grid-cols-2">
         {workspaces.map((workspace) => (
           <li key={workspace.id} className="rounded-lg border bg-card p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted">{workspace.kind}</p>
-            <p className="text-lg font-medium">{workspace.name}</p>
-            <p className="text-sm text-muted">Your role: {workspace.role}</p>
+            <div className="flex items-start gap-3">
+              <WorkspaceIconBadge icon={workspace.icon} kind={workspace.kind} />
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.16em] text-muted">{workspace.kind}</p>
+                <p className="text-lg font-medium">{workspace.name}</p>
+                <p className="text-sm text-muted">Your role: {workspace.role}</p>
+              </div>
+            </div>
           </li>
         ))}
       </ul>
       <CreateWorkspaceForm />
       {canAdmin ? (
-        <form action={updateWorkspaceAction} className="flex flex-wrap gap-2">
+        <form action={updateWorkspaceAction} className="space-y-4 rounded-lg border bg-card p-4">
+          <div>
+            <h2 className="text-xl">Edit current workspace</h2>
+            <p className="mt-1 text-sm text-muted">Update the name and icon for {current.name}.</p>
+          </div>
           <input type="hidden" name="workspaceId" value={current.id} />
-          <Label className="sr-only" htmlFor="rename">Rename {current.name}</Label>
-          <Input id="rename" name="name" defaultValue={current.name} />
-          <Button type="submit" variant="outline">Rename current workspace</Button>
+          <div className="grid gap-2">
+            <Label htmlFor="rename">Name</Label>
+            <Input id="rename" name="name" defaultValue={current.name} required />
+          </div>
+          <WorkspaceIconPicker defaultValue={current.icon} id="edit-workspace-icon" />
+          <Button type="submit" variant="outline">Save workspace</Button>
         </form>
       ) : null}
       <section>

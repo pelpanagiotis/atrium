@@ -108,6 +108,7 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
     const id = await createWorkspace(await userId(), {
       name: String(formData.get("name") ?? ""),
       kind: String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
+      icon: String(formData.get("icon") ?? ""),
     });
     (await cookies()).set("atrium_workspace", id, { httpOnly: true, sameSite: "lax", path: "/" });
   } catch (error) {
@@ -117,7 +118,10 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
 }
 
 export async function updateWorkspaceAction(formData: FormData): Promise<void> {
-  await updateWorkspace(await userId(), String(formData.get("workspaceId")), String(formData.get("name") ?? ""));
+  await updateWorkspace(await userId(), String(formData.get("workspaceId")), {
+    name: String(formData.get("name") ?? ""),
+    icon: String(formData.get("icon") ?? ""),
+  });
   redirect("/workspaces");
 }
 

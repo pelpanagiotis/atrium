@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createWorkspaceAction, type ActionState } from "@/app/actions";
+import { WorkspaceIconPicker } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 
@@ -19,6 +20,9 @@ export function CreateWorkspaceForm() {
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create"}
         </Button>
+      </div>
+      <div className="mt-4">
+        <WorkspaceIconPicker defaultValue="🏢" />
       </div>
       {state.error ? <p className="mt-2 text-sm text-danger">{state.error}</p> : null}
     </form>

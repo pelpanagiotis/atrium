@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
+import { normalizeWorkspaceIcon } from "@/lib/workspace-icons";
 import { sha256, randomToken } from "../crypto/secrets";
 import { withUser, type Tx } from "../db/client";
 import { requireAction } from "../authz/membership";
@@ -10,6 +11,7 @@ export type WorkspaceSummary = {
   name: string;
   slug: string;
   kind: "personal" | "work";
+  icon: string | null;
   role: WorkspaceRole;
 };
 
@@ -29,15 +31,16 @@ export async function listWorkspaces(userId: string): Promise<WorkspaceSummary[]
       name: string;
       slug: string;
       kind: "personal" | "work";
+      icon: string | null;
       role: WorkspaceRole;
     }>(sql`
-      select w.id, w.name, w.slug, w.kind, m.role
+      select w.id, w.name, w.slug, w.kind, w.icon, m.role
       from workspaces w
       join workspace_members m on m.workspace_id = w.id
       where m.user_id = current_setting('app.current_user_id', true)
       order by w.kind, w.name
     `);
-    return result.map((row) => ({ ...row }));
+    return result.map((row) => ({ ...row, icon: row.icon ?? null }));
   });
 }
 
@@ -57,7 +60,7 @@ export async function ensurePersonalWorkspace(userId: string, name: string): Pro
 
 export async function createWorkspace(
   userId: string,
-  input: { name: string; kind: "personal" | "work" },
+  input: { name: string; kind: "personal" | "work"; icon?: string | null },
 ): Promise<string> {
   const name = input.name.trim();
   if (name.length < 2 || name.length > 80) {
@@ -66,6 +69,7 @@ export async function createWorkspace(
   if (input.kind !== "personal" && input.kind !== "work") {
     throw new Error("Workspace kind must be personal or work");
   }
+  const icon = normalizeWorkspaceIcon(input.icon);
   return withUser(userId, async (tx) => {
     const count = await tx.execute<{ count: number }>(sql`
       select count(*)::int as count from workspace_members
@@ -75,7 +79,7 @@ export async function createWorkspace(
       throw new Error("Workspace limit reached (20 owned workspaces)");
     }
     const created = await tx.execute<{ id: string }>(sql`
-      select create_workspace(${name}, ${slugify(name)}, ${input.kind}) as id
+      select create_workspace(${name}, ${slugify(name)}, ${input.kind}, ${icon}) as id
     `);
     const id = created[0]?.id;
     if (!id) throw new Error("Workspace was not created");
@@ -83,15 +87,23 @@ export async function createWorkspace(
   });
 }
 
-export async function updateWorkspace(userId: string, workspaceId: string, name: string): Promise<void> {
-  const trimmed = name.trim();
+export async function updateWorkspace(
+  userId: string,
+  workspaceId: string,
+  input: { name: string; icon?: string | null },
+): Promise<void> {
+  const trimmed = input.name.trim();
   if (trimmed.length < 2 || trimmed.length > 80) {
     throw new Error("Workspace name must be between 2 and 80 characters");
   }
+  const icon = normalizeWorkspaceIcon(input.icon);
   await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "workspace.update");
     const updated = await tx.execute(sql`
-      update workspaces set name = ${trimmed} where id = ${workspaceId}::uuid returning id
+      update workspaces
+      set name = ${trimmed}, icon = ${icon}, updated_at = now()
+      where id = ${workspaceId}::uuid
+      returning id
     `);
     if (!updated[0]) throw new Error("Workspace not found");
   });

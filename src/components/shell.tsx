@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Plug, RefreshCw, Search, Settings } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
@@ -33,7 +34,14 @@ export function Shell({
       <aside className="hidden bg-sidebar text-sidebar-foreground md:flex md:flex-col md:justify-between md:p-4">
         <div>
           <Link href="/home" className="serif block px-2 text-2xl">Atrium</Link>
-          <p className="px-2 pb-6 text-xs uppercase tracking-[0.18em] text-sidebar-foreground/60">{current.kind} workspace</p>
+          <div className="mt-3 flex items-center gap-2 px-2 pb-6">
+            <WorkspaceIconBadge
+              icon={current.icon}
+              kind={current.kind}
+              className="size-8 border-white/15 bg-white/5 text-sm text-sidebar-foreground"
+            />
+            <p className="text-xs uppercase tracking-[0.18em] text-sidebar-foreground/60">{current.kind} workspace</p>
+          </div>
           <nav className="flex flex-col gap-1">
             {LINKS.map(([label, href]) => (
               <Link key={href} href={href} className="rounded-md px-2 py-2 text-sm hover:bg-white/10">

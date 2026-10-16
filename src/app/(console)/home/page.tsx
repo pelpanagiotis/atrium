@@ -4,6 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ProviderIcon } from "@/components/provider-icon";
+import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
@@ -31,7 +32,10 @@ async function HomeContent() {
     <div className="space-y-8">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-muted">{current.kind}</p>
-        <h1 className="text-4xl">{current.name}</h1>
+        <div className="mt-1 flex items-center gap-3">
+          <WorkspaceIconBadge icon={current.icon} kind={current.kind} className="size-11 text-xl" />
+          <h1 className="text-4xl">{current.name}</h1>
+        </div>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           Priorities, deadlines, and sync health for this workspace. Records from a provider stay labeled and link back to the source.
         </p>
