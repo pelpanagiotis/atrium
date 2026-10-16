@@ -1,6 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { WORKSPACE_ICONS, workspaceIconOrFallback } from "@/lib/workspace-icons";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceIconPicker({
@@ -12,34 +22,66 @@ export function WorkspaceIconPicker({
   defaultValue?: string | null;
   id?: string;
 }) {
-  const selected = defaultValue && (WORKSPACE_ICONS as readonly string[]).includes(defaultValue)
-    ? defaultValue
-    : WORKSPACE_ICONS[0];
+  const initial =
+    defaultValue && (WORKSPACE_ICONS as readonly string[]).includes(defaultValue)
+      ? defaultValue
+      : WORKSPACE_ICONS[0];
+  const [selected, setSelected] = useState(initial ?? "🏠");
+  const [open, setOpen] = useState(false);
+
   return (
-    <fieldset>
-      <legend className="text-sm font-medium">Icon</legend>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {WORKSPACE_ICONS.map((icon) => (
-          <label
-            key={icon}
-            className={cn(
-              "inline-flex size-10 cursor-pointer items-center justify-center rounded-lg border bg-card text-lg transition hover:border-foreground/20 hover:bg-accent/50 has-[:checked]:border-foreground/40 has-[:checked]:bg-accent has-[:checked]:ring-2 has-[:checked]:ring-ring",
-            )}
+    <div className="space-y-2">
+      <p className="text-sm font-medium" id={`${id}-label`}>
+        Icon
+      </p>
+      <input type="hidden" name={name} value={selected} />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            id={id}
+            aria-labelledby={`${id}-label`}
+            className="h-11 gap-2 px-3"
           >
-            <input
-              type="radio"
-              id={`${id}-${icon}`}
-              name={name}
-              value={icon}
-              defaultChecked={icon === selected}
-              className="sr-only"
-            />
-            <span aria-hidden="true">{icon}</span>
-            <span className="sr-only">Workspace icon {icon}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+            <span className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-lg" aria-hidden="true">
+              {selected}
+            </span>
+            Choose icon
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="w-[min(100%-2rem,28rem)]">
+          <DialogHeader>
+            <DialogTitle>Choose workspace icon</DialogTitle>
+            <DialogDescription>Pick an icon that will show in the sidebar and workspace switcher.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6" role="listbox" aria-label="Workspace icons">
+            {WORKSPACE_ICONS.map((icon) => {
+              const active = icon === selected;
+              return (
+                <button
+                  key={icon}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  aria-label={`Workspace icon ${icon}`}
+                  className={cn(
+                    "inline-flex size-12 items-center justify-center rounded-lg border bg-card text-xl transition hover:border-foreground/20 hover:bg-accent/50",
+                    active && "border-primary bg-accent ring-2 ring-ring",
+                  )}
+                  onClick={() => {
+                    setSelected(icon);
+                    setOpen(false);
+                  }}
+                >
+                  <span aria-hidden="true">{icon}</span>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
