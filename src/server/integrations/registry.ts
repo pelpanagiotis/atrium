@@ -1,4 +1,5 @@
 import { fakeAdapter } from "./fake";
+import { giteaAdapter } from "./gitea";
 import { githubAdapter } from "./github";
 import { gitlabAdapter } from "./gitlab";
 import { jiraAdapter } from "./jira";
@@ -11,6 +12,7 @@ const ADAPTERS: Record<ProviderId, IntegrationAdapter> = {
   jira: jiraAdapter,
   github: githubAdapter,
   gitlab: gitlabAdapter,
+  gitea: giteaAdapter,
 };
 
 export function getAdapter(provider: ProviderId): IntegrationAdapter {
@@ -23,7 +25,7 @@ export function getAdapter(provider: ProviderId): IntegrationAdapter {
 }
 
 export function listAdapterProviders(): ProviderId[] {
-  return ["linear", "jira", "github", "gitlab"];
+  return ["linear", "jira", "github", "gitlab", "gitea"];
 }
 
 export function listAllAdapterProviders(): ProviderId[] {
@@ -37,4 +39,5 @@ export const OAUTH_SCOPES: Record<Exclude<ProviderId, "fake">, string[]> = {
   jira: ["read:jira-work", "write:jira-work", "offline_access"],
   github: ["repo"],
   gitlab: ["api", "read_user"],
+  gitea: ["read:user", "read:repository", "write:issue"],
 };

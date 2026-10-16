@@ -31,6 +31,7 @@ const COPY: Record<string, string> = {
   jira: "Bring Jira Cloud projects and issues into this workspace.",
   github: "Track GitHub issues from repositories you choose.",
   gitlab: "Sync GitLab issues from projects you choose.",
+  gitea: "Sync Gitea issues from repositories you choose.",
 };
 
 export function IntegrationsOnboarding({

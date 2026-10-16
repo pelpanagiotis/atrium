@@ -6,6 +6,7 @@ const LABELS: Record<string, string> = {
   jira: "Jira",
   github: "GitHub",
   gitlab: "GitLab",
+  gitea: "Gitea",
   fake: "Fake provider",
   native: "Native",
 };
@@ -63,6 +64,17 @@ function GitLabMark({ className }: { className?: string }) {
   );
 }
 
+function GiteaMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M1.906 0 .76 2.826v2.524L0 6.914v8.604c0 .9.546 2.118 1.214 2.71l2.285 2.023c.668.593 1.766.593 2.434 0l1.695-1.502.89-.788 1.695-1.502c.668-.593.668-1.557 0-2.15l-2.285-2.024c-.668-.593-1.766-.593-2.434 0l-.89.788V7.902l3.57-3.16V2.826L7.264 0H1.906zm14.128 0L14.888 2.826v1.915l3.57 3.16v3.546l-.89-.788c-.668-.593-1.766-.593-2.434 0l-2.285 2.024c-.668.593-.668 1.557 0 2.15l1.695 1.502.89.788 1.695 1.502c.668.593 1.766.593 2.434 0l2.285-2.023c.668-.592 1.214-1.81 1.214-2.71V6.914l-.76-1.564V2.826L18.094 0h-2.06zM9.25 10.488c-.49 0-.94.216-1.258.59l-2.37 2.972c-.64.8-.64 1.95 0 2.75l2.37 2.972c.318.374.768.59 1.258.59s.94-.216 1.258-.59l2.37-2.972c.64-.8.64-1.95 0-2.75l-2.37-2.972a1.68 1.68 0 0 0-1.258-.59z"
+      />
+    </svg>
+  );
+}
+
 function FakeMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -77,6 +89,7 @@ const tones: Record<string, string> = {
   jira: "bg-[#2684FF]/10 text-[#2684FF] ring-1 ring-[#2684FF]/25",
   github: "bg-white text-[#24292f] ring-1 ring-black/15",
   gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
+  gitea: "bg-[#609926]/15 text-[#609926] ring-1 ring-[#609926]/35",
   fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200",
 };
@@ -97,6 +110,7 @@ function ProviderMark({
   if (provider === "jira") return <JiraMark className={className} />;
   if (provider === "github") return <GitHubMark className={className} />;
   if (provider === "gitlab") return <GitLabMark className={className} />;
+  if (provider === "gitea") return <GiteaMark className={className} />;
   if (provider === "fake") return <FakeMark className={className} />;
   return <NativeMark className={className} />;
 }

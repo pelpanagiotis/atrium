@@ -72,6 +72,7 @@ const SOURCE_OPTIONS: PickerOption[] = [
   { value: "jira", label: providerLabel("jira"), icon: <ProviderIcon provider="jira" /> },
   { value: "github", label: providerLabel("github"), icon: <ProviderIcon provider="github" /> },
   { value: "gitlab", label: providerLabel("gitlab"), icon: <ProviderIcon provider="gitlab" /> },
+  { value: "gitea", label: providerLabel("gitea"), icon: <ProviderIcon provider="gitea" /> },
 ];
 
 function FilterPicker({

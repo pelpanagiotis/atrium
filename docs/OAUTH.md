@@ -1,6 +1,6 @@
 # Provider OAuth setup
 
-Atrium can connect Linear, Jira Cloud, GitHub, and GitLab through each provider’s authorize screen. Without OAuth client credentials, admins can still paste a personal access token.
+Atrium can connect Linear, Jira Cloud, GitHub, GitLab, and Gitea through each provider’s authorize screen. Without OAuth client credentials, admins can still paste a personal access token.
 
 OAuth is enabled per provider when both env vars are set:
 
@@ -56,6 +56,24 @@ GITLAB_CLIENT_SECRET=...
 7. Restart `pnpm dev`.
 
 OAuth targets `https://gitlab.com`. Self-managed GitLab can still connect with a personal access token and site URL on the token form.
+
+## Gitea
+
+1. On your Gitea instance open **Settings → Applications → OAuth2 Applications** (or the site admin equivalent).
+2. Name: `Atrium`.
+3. Redirect URI: `{BETTER_AUTH_URL}/api/integrations/oauth/gitea/callback`.
+4. Create the application, then copy **Client ID** and **Client Secret** into `.env.local`:
+
+```bash
+GITEA_CLIENT_ID=...
+GITEA_CLIENT_SECRET=...
+# Optional — defaults to https://gitea.com
+GITEA_SITE_URL=https://gitea.example.com
+```
+
+5. Restart `pnpm dev`.
+
+Atrium requests `read:user`, `read:repository`, and `write:issue`. OAuth uses `GITEA_SITE_URL` (or `https://gitea.com`). Self-hosted instances can also connect with a personal access token and site URL on the token form.
 
 ## Linear
 

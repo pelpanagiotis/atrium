@@ -9,6 +9,7 @@ const EXACT_HOSTS = new Set([
   "api.github.com",
   "github.com",
   "gitlab.com",
+  "gitea.com",
 ]);
 
 export type DnsResolver = (hostname: string) => Promise<string[]>;
@@ -39,7 +40,9 @@ export function isPrivateAddress(address: string): boolean {
 export function hostAllowed(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, "");
   if (EXACT_HOSTS.has(host)) return true;
-  return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.atlassian\.net$/.test(host);
+  if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.atlassian\.net$/.test(host)) return true;
+  // Self-hosted Gitea/GitLab: any dotted public hostname; DNS private-IP check is the gate.
+  return host.includes(".") && !host.endsWith(".local");
 }
 
 export async function assertSafeOutboundUrl(

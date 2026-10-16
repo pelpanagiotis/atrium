@@ -1,6 +1,6 @@
 # Atrium
 
-Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, and GitLab projects stay owned by those providers, and Atrium keeps a synchronized projection.
+Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection.
 
 Workspaces are isolated. Roles are owner, admin, member, and viewer. The database enforces that with row-level security, and the server checks the same rules before every mutation.
 
@@ -59,5 +59,5 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md), [docs/SECURITY.md](docs/SECURITY.m
 - Hybrid ownership is reserved in the schema and rejected at runtime.
 - GitHub issues do not support due dates or assignees from Atrium. Those controls are refused.
 - Linear status changes need a workflow state UUID in the field mapping. A status name is not sent as a state id.
-- Live Linear, Jira, GitHub, and GitLab accounts are not contacted by the test suite. The fake provider and mocked HTTP clients cover the adapter and sync loop.
+- Live Linear, Jira, GitHub, GitLab, and Gitea accounts are not contacted by the test suite. The fake provider and mocked HTTP clients cover the adapter and sync loop.
 - Invitations are links, not email. The inviter sees the token once.

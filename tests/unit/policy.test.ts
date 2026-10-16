@@ -7,10 +7,11 @@ import { decryptSecret, encryptSecret, signHmacSha256, verifyHmacSha256 } from "
 import { assertSafeOutboundUrl, isPrivateAddress } from "@/server/crypto/ssrf";
 import { redact } from "@/server/log";
 import { ProviderError } from "@/server/integrations/types";
+import { giteaAdapter } from "@/server/integrations/gitea";
 import { githubAdapter } from "@/server/integrations/github";
 import { jiraAdapter } from "@/server/integrations/jira";
 import { linearAdapter } from "@/server/integrations/linear";
-import { setProviderFetch } from "@/server/integrations/http";
+import { setDnsResolver, setProviderFetch } from "@/server/integrations/http";
 
 const snapshot = (title: string): CanonicalSnapshot => ({
   title,
@@ -119,17 +120,23 @@ describe("credentials and outbound safety", () => {
     expect(isPrivateAddress("10.1.2.3")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
     await expect(assertSafeOutboundUrl("http://api.github.com/user")).rejects.toThrow(/https/);
-    await expect(assertSafeOutboundUrl("https://evil.example/hook")).rejects.toThrow(/allowlisted/);
+    await expect(assertSafeOutboundUrl("https://evil.example/hook", async () => ["10.0.0.8"])).rejects.toThrow(
+      /blocked address/,
+    );
     await expect(assertSafeOutboundUrl("https://127.0.0.1/")).rejects.toThrow(/not allowed/);
     const url = await assertSafeOutboundUrl("https://api.github.com/user");
     expect(url.hostname).toBe("api.github.com");
     const gitlab = await assertSafeOutboundUrl("https://gitlab.com/api/v4/user");
     expect(gitlab.hostname).toBe("gitlab.com");
+    const giteaSaaS = await assertSafeOutboundUrl("https://gitea.com/api/v1/user");
+    expect(giteaSaaS.hostname).toBe("gitea.com");
     await expect(
       assertSafeOutboundUrl("https://acme.atlassian.net/rest", async () => ["10.0.0.8"]),
     ).rejects.toThrow(/blocked address/);
     const site = await assertSafeOutboundUrl("https://acme.atlassian.net/rest", async () => ["8.8.4.4"]);
     expect(site.hostname).toBe("acme.atlassian.net");
+    const selfHosted = await assertSafeOutboundUrl("https://git.example.com/api/v1/user", async () => ["8.8.4.4"]);
+    expect(selfHosted.hostname).toBe("git.example.com");
   });
 });
 
@@ -248,5 +255,53 @@ describe("provider adapters", () => {
     setProviderFetch(async () => json({}, 401));
     await expect(jiraAdapter.validateConnection({ ...ctx, mappings: jiraAdapter.defaultMappings() })).rejects.toBeInstanceOf(ProviderError);
     setProviderFetch(null);
+  });
+
+  it("lists Gitea repositories and verifies webhooks", async () => {
+    const giteaCtx = {
+      ...ctx,
+      credentials: { accessToken: "token", webhookSecret: "hook", siteUrl: "https://git.example.com" },
+      mappings: giteaAdapter.defaultMappings(),
+    };
+    setDnsResolver(async () => ["8.8.4.4"]);
+    setProviderFetch(async (url) => {
+      if (url.endsWith("/api/v1/user")) return json({ id: 3, login: "ada" });
+      if (url.includes("/api/v1/user/repos")) {
+        return json([{ full_name: "ada/board", name: "board", html_url: "https://git.example.com/ada/board" }], 200, {
+          link: '<https://git.example.com/api/v1/user/repos?page=2>; rel="next"',
+        });
+      }
+      return json({}, 404);
+    });
+    const account = await giteaAdapter.validateConnection(giteaCtx);
+    expect(account.accountLabel).toBe("ada");
+    const page = await giteaAdapter.listProjects(giteaCtx, null);
+    expect(page.items[0]?.providerId).toBe("ada/board");
+    expect(page.nextCursor).toBe("2");
+
+    const raw = JSON.stringify({
+      action: "opened",
+      repository: { full_name: "ada/board" },
+      issue: {
+        id: 1,
+        number: 4,
+        title: "Fix gate",
+        body: "details",
+        state: "open",
+        html_url: "https://git.example.com/ada/board/issues/4",
+        updated_at: "2026-10-15T00:00:00Z",
+        labels: [{ id: 1, name: "priority:high" }],
+      },
+    });
+    const signature = signHmacSha256("hook", raw).toString("hex");
+    const request = {
+      rawBody: raw,
+      headers: { "x-gitea-signature": signature, "x-gitea-event": "issues" },
+    };
+    expect(await giteaAdapter.verifyWebhook(giteaCtx, request)).toBe(true);
+    const parsed = await giteaAdapter.parseWebhook(giteaCtx, request);
+    expect(parsed.events[0]?.kind).toBe("task.upsert");
+    setProviderFetch(null);
+    setDnsResolver(undefined);
   });
 });

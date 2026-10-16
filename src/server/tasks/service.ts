@@ -191,7 +191,7 @@ export async function listTasks(
     const source = filter.source?.trim() ?? "";
     const atriumOnly = source === "atrium" || source === "native";
     const providerSource =
-      source === "linear" || source === "jira" || source === "github" || source === "gitlab" || source === "fake"
+      source === "linear" || source === "jira" || source === "github" || source === "gitlab" || source === "gitea" || source === "fake"
         ? source
         : "";
     return tx.execute<TaskRecord>(sql`

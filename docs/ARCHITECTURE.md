@@ -36,4 +36,4 @@ Inbound webhooks are verified against the raw body, stored, and acknowledged onl
 
 - A member who can open a SQL session as `atrium_app` can set `app.current_user_id` to their own id, and also to another id. Give that role only to the application.
 - Audit rows are written by a definer function. They are not a tamper-proof ledger against a database superuser.
-- Live Linear, Jira, and GitHub calls are not exercised without operator credentials. Adapter tests use a mocked HTTP client. The fake provider covers the sync loop against Postgres.
+- Live Linear, Jira, GitHub, GitLab, and Gitea calls are not exercised without operator credentials. Adapter tests use a mocked HTTP client. The fake provider covers the sync loop against Postgres.

@@ -21,7 +21,8 @@ export function ConnectForm({
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
   const selected = provider ?? providers[0] ?? "linear";
   const showJira = selected === "jira";
-  const showGitLab = selected === "gitlab";
+  const showGitea = selected === "gitea";
+  const showSiteUrl = selected === "gitlab" || showGitea;
   return (
     <form action={formAction} className={compact ? "space-y-3" : "rounded-lg border bg-card p-4"}>
       {!compact ? (
@@ -60,13 +61,17 @@ export function ConnectForm({
                 ? "lin_api_…"
                 : selected === "gitlab"
                   ? "glpat-…"
-                  : "Paste access token"
+                  : selected === "gitea"
+                    ? "Personal access token"
+                    : "Paste access token"
             }
           />
           {selected === "linear" ? (
             <p className="mt-1 text-xs text-muted">Paste a Linear personal API key as copied. Atrium sends that key without a Bearer prefix.</p>
           ) : selected === "gitlab" ? (
             <p className="mt-1 text-xs text-muted">Paste a GitLab personal access token with the api scope. Self-managed instances can set a site URL below.</p>
+          ) : selected === "gitea" ? (
+            <p className="mt-1 text-xs text-muted">Paste a Gitea personal access token with issue and repository read/write. Set the site URL for self-hosted instances.</p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
           )}
@@ -87,14 +92,14 @@ export function ConnectForm({
             </div>
           </>
         ) : null}
-        {showGitLab ? (
+        {showSiteUrl ? (
           <div className="md:col-span-2">
-            <Label htmlFor="siteUrl">GitLab site URL</Label>
+            <Label htmlFor="siteUrl">{showGitea ? "Gitea site URL" : "GitLab site URL"}</Label>
             <Input
               id="siteUrl"
               name="siteUrl"
-              placeholder="https://gitlab.com"
-              defaultValue="https://gitlab.com"
+              placeholder={showGitea ? "https://gitea.com" : "https://gitlab.com"}
+              defaultValue={showGitea ? "https://gitea.com" : "https://gitlab.com"}
               className="mt-1"
             />
           </div>

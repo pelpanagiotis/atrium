@@ -1,6 +1,6 @@
 import type { Tx } from "../db/client";
 
-export const PROVIDERS = ["linear", "jira", "github", "gitlab", "fake"] as const;
+export const PROVIDERS = ["linear", "jira", "github", "gitlab", "gitea", "fake"] as const;
 export type ProviderId = (typeof PROVIDERS)[number];
 
 export const TASK_STATUSES = ["open", "in_progress", "blocked", "done", "cancelled"] as const;

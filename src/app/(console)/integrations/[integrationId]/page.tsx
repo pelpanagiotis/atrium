@@ -73,7 +73,7 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
           <div>
             <h2 className="text-2xl">Link a project</h2>
             <p className="text-sm text-muted">
-              Filter by {integration.provider === "github" ? "owner or organization" : integration.provider === "gitlab" ? "group or namespace" : "namespace"} before linking.
+              Filter by {integration.provider === "github" || integration.provider === "gitea" ? "owner or organization" : integration.provider === "gitlab" ? "group or namespace" : "namespace"} before linking.
             </p>
           </div>
           <LinkProjectForm

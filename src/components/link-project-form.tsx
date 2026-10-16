@@ -71,7 +71,12 @@ export function LinkProjectForm({
     }
   }, [filtered, selectedId]);
 
-  const namespaceLabel = provider === "github" ? "Owner / org" : provider === "gitlab" ? "Group / namespace" : "Namespace";
+  const namespaceLabel =
+    provider === "github" || provider === "gitea"
+      ? "Owner / org"
+      : provider === "gitlab"
+        ? "Group / namespace"
+        : "Namespace";
 
   return (
     <form action={formAction} className="space-y-3">

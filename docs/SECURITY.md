@@ -11,7 +11,7 @@
 - [ ] Auth and webhook endpoints are rate limited in Postgres.
 - [ ] Provider tokens are encrypted. Disconnect sets `credential_ciphertext` to null. List responses expose `hasCredential`, not the secret.
 - [ ] Logs pass through `redact` for keys that look like tokens, secrets, passwords, or cookies.
-- [ ] Outbound provider calls allow only https on port 443 to Linear, Atlassian, and GitHub hosts. `*.atlassian.net` is resolved and rejected if it points at a private address.
+- [ ] Outbound provider calls allow only https on port 443. Known SaaS hosts (Linear, Atlassian, GitHub, GitLab, Gitea) are allowlisted; self-hosted Gitea/GitLab hostnames are allowed only when DNS resolves to a public address.
 - [ ] OAuth scopes stay at the minimum listed in `docs/DEPLOYMENT.md`. Revoke a connection from Integrations; that clears the stored credential.
 - [ ] Invitations store only a SHA-256 of the token. The raw link is shown once to the inviter. There is no mail transport.
 - [ ] Every private page and server action reads the session. Workspace role checks run in the service, not only in the interface.
