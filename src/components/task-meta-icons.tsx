@@ -53,6 +53,10 @@ export function PriorityIcon({ priority, className }: { priority: string; classN
   return <Icon className={cn("size-4 shrink-0", meta.className, className)} aria-hidden="true" />;
 }
 
+export function syncStateLabel(state: string): string {
+  return SYNC_ICONS[state]?.label ?? SYNC_ICONS.synced?.label ?? "Synced";
+}
+
 export function SyncStateIcon({ state, className }: { state: string; className?: string }) {
   const meta = SYNC_ICONS[state] ?? SYNC_ICONS.synced;
   if (!meta) return null;

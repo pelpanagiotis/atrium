@@ -8,17 +8,13 @@ import { ListFilter } from "lucide-react";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
-import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
-import { TaskSourceCell } from "@/components/task-source-cell";
+import { TaskList } from "@/components/task-list";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
 import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listProjects } from "@/server/projects/service";
 import { listTasks } from "@/server/tasks/service";
-import { formatWhen } from "@/lib/utils";
 
 export const instant = false;
 
@@ -133,69 +129,28 @@ async function TasksResults({
   }
 
   return (
-    <form id={TASK_BULK_FORM_ID} action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col">
+    <form id={TASK_BULK_FORM_ID} action={bulkTaskAction} className="flex min-h-0 flex-1 flex-col gap-3">
       <input type="hidden" name="workspaceId" value={current.id} />
-      <div className="min-h-0 flex-1 overflow-x-auto rounded-lg border bg-card">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b text-xs uppercase tracking-wide text-muted">
-            <tr>
-              <th className="p-3"> </th>
-              <th className="p-3">Task</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Priority</th>
-              <th className="p-3">Due</th>
-              <th className="p-3">Source</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.id} className="border-b last:border-0">
-                <td className="p-3">
-                  {canWrite ? (
-                    <Checkbox name="ids" value={task.id} aria-label={`Select ${task.title}`} />
-                  ) : null}
-                </td>
-                <td className="p-3">
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-xs text-muted">
-                    {task.project_name}
-                    {task.assignee_label ? ` · ${task.assignee_label}` : ""}
-                  </p>
-                </td>
-                <td className="p-3">
-                  <Badge tone={task.status}>
-                    <StatusIcon status={task.status} className="size-3.5" />
-                    {task.status.replace("_", " ")}
-                  </Badge>
-                </td>
-                <td className="p-3">
-                  <Badge tone={task.priority}>
-                    <PriorityIcon priority={task.priority} className="size-3.5" />
-                    {task.priority}
-                  </Badge>
-                </td>
-                <td className="p-3">{formatWhen(task.due_at)}</td>
-                <td className="p-3">
-                  <TaskSourceCell
-                    syncState={task.sync_state}
-                    provider={task.provider}
-                    externalUrl={task.external_url}
-                    title={task.title}
-                    description={task.description}
-                    status={task.status}
-                    priority={task.priority}
-                    dueAt={task.due_at}
-                    projectName={task.project_name}
-                    assigneeLabel={task.assignee_label}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <TaskList
+          canWrite={canWrite}
+          tasks={tasks.map((task) => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            dueAt: task.due_at,
+            projectName: task.project_name,
+            assigneeLabel: task.assignee_label,
+            provider: task.provider,
+            externalUrl: task.external_url,
+            syncState: task.sync_state,
+          }))}
+        />
       </div>
       {!canWrite ? (
-        <p className="mt-3 text-sm text-muted">Your role can view tasks. Members and above can edit them.</p>
+        <p className="text-sm text-muted">Your role can view tasks. Members and above can edit them.</p>
       ) : null}
     </form>
   );
