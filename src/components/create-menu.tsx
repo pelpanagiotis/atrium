@@ -54,8 +54,29 @@ const OPTIONS: CreateOption[] = [
 export function CreateMenu() {
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hoverOpen, setHoverOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+
+  function clearCloseTimer() {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
+
+  function openHoverMenu() {
+    if (modalOpen) return;
+    clearCloseTimer();
+    setHoverOpen(true);
+  }
+
+  function scheduleCloseHoverMenu() {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => setHoverOpen(false), 160);
+  }
+
+  useEffect(() => () => clearCloseTimer(), []);
 
   useEffect(() => {
     if (!hoverOpen || modalOpen) return;
@@ -78,10 +99,8 @@ export function CreateMenu() {
       <div
         ref={rootRef}
         className="relative"
-        onMouseEnter={() => {
-          if (!modalOpen) setHoverOpen(true);
-        }}
-        onMouseLeave={() => setHoverOpen(false)}
+        onPointerEnter={openHoverMenu}
+        onPointerLeave={scheduleCloseHoverMenu}
       >
         <button
           type="button"
@@ -91,6 +110,7 @@ export function CreateMenu() {
           aria-expanded={hoverOpen}
           aria-controls={menuId}
           onClick={() => {
+            clearCloseTimer();
             setHoverOpen(false);
             setModalOpen(true);
           }}
@@ -98,8 +118,7 @@ export function CreateMenu() {
             "group inline-flex size-9 items-center justify-center rounded-md border bg-card text-foreground outline-none",
             "transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out",
             "hover:border-foreground/20 hover:bg-accent hover:shadow-md",
-            "motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-105",
-            "motion-safe:active:translate-y-0 motion-safe:active:scale-95",
+            "motion-safe:hover:scale-105 motion-safe:active:scale-95",
             "focus-visible:ring-2 focus-visible:ring-ring",
             hoverOpen && "border-foreground/20 bg-accent shadow-md",
           )}
@@ -112,35 +131,40 @@ export function CreateMenu() {
 
         {hoverOpen && !modalOpen ? (
           <div
-            id={menuId}
-            role="menu"
-            aria-label="Create"
-            className="menu-surface absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-lg border bg-card p-1 text-foreground shadow-lg data-[state=open]:block"
-            data-state="open"
-            data-side="bottom"
+            className="absolute right-0 top-full z-50 pt-2"
+            onPointerEnter={openHoverMenu}
           >
-            <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
-              Create
-            </p>
-            <div className="-mx-1 my-1 h-px bg-border" />
-            {OPTIONS.map((option) => {
-              const Icon = option.icon;
-              return (
-                <Link
-                  key={option.href}
-                  href={option.href}
-                  role="menuitem"
-                  onClick={() => setHoverOpen(false)}
-                  className="flex items-center gap-2 rounded-md px-2 py-2 text-sm outline-none transition hover:bg-accent focus-visible:bg-accent"
-                >
-                  <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="font-medium">{option.title}</span>
-                    <span className="text-xs text-muted">{option.description}</span>
-                  </span>
-                </Link>
-              );
-            })}
+            <div
+              id={menuId}
+              role="menu"
+              aria-label="Create"
+              className="menu-surface w-64 overflow-hidden rounded-lg border bg-card p-1 text-foreground shadow-lg"
+              data-state="open"
+              data-side="bottom"
+            >
+              <p className="px-2 py-1.5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                Create
+              </p>
+              <div className="-mx-1 my-1 h-px bg-border" />
+              {OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Link
+                    key={option.href}
+                    href={option.href}
+                    role="menuitem"
+                    onClick={() => setHoverOpen(false)}
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm outline-none transition hover:bg-accent focus-visible:bg-accent"
+                  >
+                    <Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="font-medium">{option.title}</span>
+                      <span className="text-xs text-muted">{option.description}</span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         ) : null}
       </div>
