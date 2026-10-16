@@ -46,7 +46,7 @@ export function Shell({
           <button className="w-full rounded-md px-2 py-2 text-left text-sm hover:bg-white/10">{user.name}</button>
         </form>
       </aside>
-      <div className="min-w-0">
+      <div className="flex min-h-dvh min-w-0 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
