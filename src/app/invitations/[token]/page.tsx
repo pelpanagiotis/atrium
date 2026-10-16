@@ -9,7 +9,7 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
   const { token } = use(params);
   const [state, action, pending] = useActionState<ActionState, FormData>(acceptInviteAction, {});
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+    <main className="mx-auto flex h-full min-h-0 overflow-y-auto max-w-md flex-col justify-center px-6">
       <h1 className="text-4xl">Accept invitation</h1>
       <p className="mt-2 text-sm text-muted">Sign in with the email address that received this invite, then confirm.</p>
       <form action={action} className="mt-6">

@@ -16,10 +16,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${fraunces.variable} h-full antialiased${theme === "dark" ? " dark" : ""}`}
+      className={`${outfit.variable} ${fraunces.variable} h-full overflow-hidden antialiased${theme === "dark" ? " dark" : ""}`}
       suppressHydrationWarning
     >
-      <body className="min-h-full">{children}</body>
+      <body className="h-full overflow-hidden">{children}</body>
     </html>
   );
 }

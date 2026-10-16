@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Page() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-16">
+    <main className="mx-auto flex h-full min-h-0 overflow-y-auto max-w-3xl flex-col justify-center px-6 py-16">
       <p className="text-xs uppercase tracking-[0.22em] text-muted">Self-hosted operations</p>
       <h1 className="mt-3 text-5xl leading-tight">One desk for personal work and the company backlog.</h1>
       <p className="mt-4 max-w-xl text-lg text-muted">

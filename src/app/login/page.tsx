@@ -9,7 +9,7 @@ import { Input, Label } from "@/components/ui/field";
 export default function LoginPage() {
   const [state, action, pending] = useActionState<ActionState, FormData>(loginAction, {});
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+    <main className="mx-auto flex h-full min-h-0 overflow-y-auto max-w-md flex-col justify-center px-6">
       <h1 className="text-4xl">Sign in</h1>
       <p className="mt-2 text-sm text-muted">Use the account you created on this Atrium server.</p>
       <form action={action} className="mt-6 space-y-4">

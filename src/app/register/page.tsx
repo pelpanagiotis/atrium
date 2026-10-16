@@ -9,7 +9,7 @@ import { Input, Label } from "@/components/ui/field";
 export default function RegisterPage() {
   const [state, action, pending] = useActionState<ActionState, FormData>(registerAction, {});
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+    <main className="mx-auto flex h-full min-h-0 overflow-y-auto max-w-md flex-col justify-center px-6">
       <h1 className="text-4xl">Create your account</h1>
       <p className="mt-2 text-sm text-muted">A personal workspace is created with you. Work workspaces stay separate until you invite someone.</p>
       <form action={action} className="mt-6 space-y-4">

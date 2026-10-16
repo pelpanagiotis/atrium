@@ -98,11 +98,11 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "hidden h-dvh shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
+        "hidden h-full min-h-0 shrink-0 flex-col justify-between overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
         collapsed ? "w-[72px] p-2" : "w-60 p-4",
       )}
     >
-      <div className="min-w-0">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <div className={cn("flex items-center gap-2", collapsed ? "justify-center px-0" : "justify-between px-2")}>
           {!collapsed ? (
             <Link href="/home" className="serif text-2xl">

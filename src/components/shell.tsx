@@ -23,14 +23,14 @@ export function Shell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-dvh">
+    <div className="flex h-dvh max-h-dvh overflow-hidden">
       <AppSidebar
         userName={user.name}
         current={{ kind: current.kind, icon: current.icon }}
         initialCollapsed={sidebarCollapsed}
       />
-      <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-20 flex shrink-0 items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
             <WorkspaceSwitch currentId={current.id} workspaces={workspaces} />
@@ -50,7 +50,7 @@ export function Shell({
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
             <AccountMenu user={user} theme={theme} />
           </div>
-          <nav className="flex gap-3 overflow-x-auto text-sm md:hidden">
+          <nav className="flex w-full gap-3 overflow-x-auto text-sm md:hidden">
             {[
               ["Home", "/home"],
               ["Projects", "/projects"],
