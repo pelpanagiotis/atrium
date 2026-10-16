@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Check, ChevronDown, CircleDashed, FolderKanban, Layers, Search } from "lucide-react";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
@@ -161,6 +161,8 @@ export function TaskViewToggle({
   );
 }
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 export function TaskSearch({
   values,
   pending = false,
@@ -179,14 +181,19 @@ export function TaskSearch({
     setQ(values.q ?? "");
   }
 
+  useEffect(() => {
+    const next = q.trim();
+    const current = (values.q ?? "").trim();
+    if (next === current) return;
+    const timer = window.setTimeout(() => {
+      onNavigate(buildTasksHref({ ...values, q: next || undefined }));
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [q, values, onNavigate]);
+
   function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onNavigate(
-      buildTasksHref({
-        ...values,
-        q,
-      }),
-    );
+    onNavigate(buildTasksHref({ ...values, q: q.trim() || undefined }));
   }
 
   return (
