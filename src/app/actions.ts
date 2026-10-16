@@ -112,6 +112,7 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
     });
     (await cookies()).set("atrium_workspace", id, { httpOnly: true, sameSite: "lax", path: "/" });
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not create the workspace" };
   }
   redirect("/workspaces");
@@ -142,6 +143,7 @@ export async function acceptInviteAction(_state: ActionState, formData: FormData
     const workspaceId = await acceptInvitation(await userId(), String(formData.get("token") ?? ""));
     (await cookies()).set("atrium_workspace", workspaceId, { httpOnly: true, sameSite: "lax", path: "/" });
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Invitation could not be accepted" };
   }
   redirect("/home");
@@ -169,6 +171,7 @@ export async function createProjectAction(_state: ActionState, formData: FormDat
       description: String(formData.get("description") ?? ""),
     });
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not create the project" };
   }
   redirect("/projects");
@@ -212,6 +215,7 @@ export async function createTaskAction(_state: ActionState, formData: FormData):
       assigneeUserId: String(formData.get("assigneeUserId") ?? "") || null,
     });
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not create the task" };
   }
   redirect(String(formData.get("returnTo") ?? "/tasks"));
@@ -252,6 +256,7 @@ export async function connectTokenAction(_state: ActionState, formData: FormData
       siteUrl: String(formData.get("siteUrl") ?? ""),
     });
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not connect" };
   }
   redirect("/integrations");
@@ -283,18 +288,20 @@ export async function oauthStartAction(formData: FormData): Promise<void> {
 }
 
 export async function linkProjectAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  let id: string;
   try {
-    const id = await createExternalProject(await userId(), String(formData.get("workspaceId")), {
+    id = await createExternalProject(await userId(), String(formData.get("workspaceId")), {
       integrationId: String(formData.get("integrationId")),
       providerProjectId: String(formData.get("providerProjectId")),
       name: String(formData.get("name") ?? ""),
       key: String(formData.get("key") ?? "") || null,
       url: String(formData.get("url") ?? "") || null,
     });
-    redirect(`/projects/${id}`);
   } catch (error) {
+    unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not link the project" };
   }
+  redirect(`/projects/${id}`);
 }
 
 export async function mappingAction(formData: FormData): Promise<void> {
