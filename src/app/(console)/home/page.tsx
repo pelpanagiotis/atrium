@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
-  CheckCircle2,
   Columns3,
   FolderKanban,
   ListTodo,
@@ -194,90 +193,6 @@ async function HomeContent({
             />
           ))}
         </Panel>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl">Sync health</h2>
-            <Link href="/sync" className="inline-flex items-center gap-1 text-sm text-muted transition hover:text-foreground">
-              Open sync
-              <ArrowRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-          {feed.health.length === 0 ? (
-            <div className="mt-3 space-y-3">
-              <p className="text-sm text-muted">
-                {source === "atrium"
-                  ? "Native Atrium work has no provider sync health."
-                  : source
-                    ? "This provider is not connected."
-                    : "No provider is connected. Native work still lives here."}
-              </p>
-              {!source || source === "atrium" ? (
-                <Link
-                  href="/integrations"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium transition hover:underline"
-                >
-                  <Plug className="size-4" aria-hidden="true" />
-                  Connect a provider
-                </Link>
-              ) : null}
-            </div>
-          ) : null}
-          <ul className="mt-3 space-y-3">
-            {feed.health.map((row) => (
-              <li key={`${row.provider}:${row.display_name}`}>
-                <Link
-                  href="/integrations"
-                  className="flex items-start justify-between gap-3 rounded-md px-1 py-1 text-sm transition hover:bg-accent/40"
-                >
-                  <div className="flex min-w-0 items-start gap-2">
-                    <ProviderIcon provider={row.provider} />
-                    <div className="min-w-0">
-                      <p className="font-medium">{row.display_name}</p>
-                      <p className="text-muted">
-                        {row.last_error
-                          ? row.last_error
-                          : row.last_success_at
-                            ? `Synced ${formatWhen(row.last_success_at)}`
-                            : "Waiting for the first sync"}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge tone={row.stale ? "error" : row.status}>{row.stale ? "stale" : row.status}</Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl">Recent sync activity</h2>
-            <Link href="/sync" className="inline-flex items-center gap-1 text-sm text-muted transition hover:text-foreground">
-              View sync
-              <ArrowRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          </div>
-          {feed.activity.length === 0 ? (
-            <p className="mt-3 flex items-center gap-2 text-sm text-muted">
-              <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
-              {source === "atrium"
-                ? "Native tasks do not produce provider sync events."
-                : "Synchronization events will show up here."}
-            </p>
-          ) : null}
-          <ul className="mt-3 space-y-2 text-sm">
-            {feed.activity.map((row) => (
-              <li key={String(row.id)} className="flex justify-between gap-3">
-                <span>
-                  {String(row.action)} {String(row.entity_type)} · {String(row.status)}
-                </span>
-                <span className="text-muted">{formatWhen(row.created_at as Date)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       </section>
     </div>
   );
