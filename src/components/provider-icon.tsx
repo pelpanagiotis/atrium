@@ -67,22 +67,31 @@ const tones: Record<string, string> = {
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200",
 };
 
+export function providerLabel(provider: string | null | undefined): string {
+  if (provider && LABELS[provider]) return LABELS[provider];
+  return LABELS.native ?? "Native";
+}
+
 export function ProviderIcon({
   provider,
   className,
+  size = "sm",
 }: {
   provider: string | null | undefined;
   className?: string;
+  size?: "sm" | "md" | "lg";
 }) {
   const key = provider && LABELS[provider] ? provider : "native";
   const label = LABELS[key] ?? "Native";
-  const iconClass = "size-3.5";
+  const shell = size === "lg" ? "size-12" : size === "md" ? "size-9" : "size-6";
+  const iconClass = size === "lg" ? "size-6" : size === "md" ? "size-5" : "size-3.5";
   return (
     <span
       title={label}
       aria-label={label}
       className={cn(
-        "inline-flex size-6 items-center justify-center rounded-full",
+        "inline-flex items-center justify-center rounded-full",
+        shell,
         tones[key] ?? tones.native,
         className,
       )}
