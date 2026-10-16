@@ -3,16 +3,8 @@ import { ScreenLoader } from "@/components/screen-loader";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarDays,
-  Columns3,
-  FolderKanban,
-  ListTodo,
-  Plug,
-  RefreshCw,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
+import { HomeActionsMenu } from "@/components/home-actions-menu";
 import { HomeSourceFilter } from "@/components/home-source-filter";
 import { ProviderIcon } from "@/components/provider-icon";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
@@ -78,15 +70,25 @@ async function HomeContent({
             Workspace dashboard — open counts jump into filtered task lists, calendar, projects, and sync.
           </p>
         </div>
-        <div className="flex flex-col items-stretch gap-3 sm:items-end">
-          <div className="flex flex-wrap gap-2 text-sm">
-            <QuickLink href={`/tasks${source ? `?source=${encodeURIComponent(source)}` : ""}`} label="All tasks" icon={ListTodo} />
-            <QuickLink href={`/tasks?view=board${sourceQuery}`} label="Board" icon={Columns3} />
-            <QuickLink href="/calendar" label="Calendar" icon={CalendarDays} />
-            <QuickLink href={projectsHref} label="Projects" icon={FolderKanban} />
-            <QuickLink href="/integrations" label="Integrations" icon={Plug} />
-            <QuickLink href="/sync" label="Sync" icon={RefreshCw} />
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <HomeActionsMenu
+            items={[
+              {
+                href: `/tasks${source ? `?source=${encodeURIComponent(source)}` : ""}`,
+                label: "All tasks",
+                icon: "ListTodo",
+              },
+              {
+                href: `/tasks?view=board${sourceQuery}`,
+                label: "Board",
+                icon: "Columns3",
+              },
+              { href: "/calendar", label: "Calendar", icon: "CalendarDays" },
+              { href: projectsHref, label: "Projects", icon: "FolderKanban" },
+              { href: "/integrations", label: "Integrations", icon: "Plug" },
+              { href: "/sync", label: "Sync", icon: "RefreshCw" },
+            ]}
+          />
           <HomeSourceFilter source={source} sources={feed.sources} />
         </div>
       </div>
@@ -195,26 +197,6 @@ async function HomeContent({
         </Panel>
       </section>
     </div>
-  );
-}
-
-function QuickLink({
-  href,
-  label,
-  icon: Icon,
-}: {
-  href: string;
-  label: string;
-  icon: typeof ListTodo;
-}) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-9 items-center gap-1.5 rounded-md border bg-card px-3 text-foreground transition hover:bg-accent"
-    >
-      <Icon className="size-3.5 text-muted" aria-hidden="true" />
-      {label}
-    </Link>
   );
 }
 
