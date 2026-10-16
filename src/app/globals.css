@@ -134,7 +134,7 @@ html {
     radial-gradient(ellipse 50% 40% at 40% 70%, color-mix(in srgb, #8a6a45 18%, transparent) 0%, transparent 55%),
     var(--background);
   background-size: 120% 120%;
-  animation: landing-mesh 36s ease-in-out infinite alternate;
+  animation: landing-mesh 14s ease-in-out infinite alternate;
 }
 
 .dark .landing-gradient {
@@ -163,7 +163,7 @@ html {
   left: -10%;
   background: color-mix(in srgb, var(--primary) 55%, transparent);
   opacity: 0.85;
-  animation: landing-drift-a 18s ease-in-out infinite alternate;
+  animation: landing-drift-a 8s ease-in-out infinite alternate;
 }
 
 .landing-gradient::after {
@@ -173,7 +173,7 @@ html {
   bottom: -22%;
   background: color-mix(in srgb, #b8956a 48%, transparent);
   opacity: 0.8;
-  animation: landing-drift-b 24s ease-in-out infinite alternate;
+  animation: landing-drift-b 11s ease-in-out infinite alternate;
 }
 
 .dark .landing-gradient::before {
@@ -191,7 +191,7 @@ html {
     transform: translate3d(0, 0, 0) scale(1);
   }
   100% {
-    transform: translate3d(-4%, 3%, 0) scale(1.06);
+    transform: translate3d(-6%, 5%, 0) scale(1.08);
   }
 }
 
@@ -201,11 +201,11 @@ html {
     opacity: 0.75;
   }
   50% {
-    transform: translate3d(22%, 26%, 0) scale(1.16);
+    transform: translate3d(28%, 32%, 0) scale(1.2);
     opacity: 0.95;
   }
   100% {
-    transform: translate3d(10%, 42%, 0) scale(0.94);
+    transform: translate3d(14%, 48%, 0) scale(0.92);
     opacity: 0.7;
   }
 }
@@ -216,11 +216,11 @@ html {
     opacity: 0.7;
   }
   50% {
-    transform: translate3d(-26%, -20%, 0) scale(1.22);
+    transform: translate3d(-32%, -26%, 0) scale(1.28);
     opacity: 0.9;
   }
   100% {
-    transform: translate3d(-12%, -34%, 0) scale(1);
+    transform: translate3d(-16%, -40%, 0) scale(1);
     opacity: 0.65;
   }
 }
