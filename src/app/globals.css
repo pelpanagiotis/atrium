@@ -306,3 +306,76 @@ html {
     transform: translate(-50%, -50%);
   }
 }
+
+/* Dropdowns, selects, and popovers */
+@keyframes menu-surface-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes menu-surface-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98) translateY(-2px);
+  }
+}
+
+@keyframes menu-surface-in-top {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes menu-surface-out-top {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98) translateY(2px);
+  }
+}
+
+.menu-surface {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, var(--radix-popover-content-transform-origin, top center));
+  will-change: transform, opacity;
+}
+
+.menu-surface[data-state="open"] {
+  animation: menu-surface-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.menu-surface[data-state="closed"] {
+  animation: menu-surface-out 120ms ease-in both;
+}
+
+.menu-surface[data-state="open"][data-side="top"] {
+  animation-name: menu-surface-in-top;
+}
+
+.menu-surface[data-state="closed"][data-side="top"] {
+  animation-name: menu-surface-out-top;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-surface[data-state="open"],
+  .menu-surface[data-state="closed"] {
+    animation: none;
+  }
+}
