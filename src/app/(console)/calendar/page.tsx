@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { ProviderIcon } from "@/components/provider-icon";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { calendarTasks } from "@/server/home/service";
@@ -53,7 +53,7 @@ async function CalendarContent({ searchParams }: { searchParams: Promise<{ month
                 {due.map((task) => (
                   <li key={String(task.id)} className="text-xs">
                     <span className="font-medium">{String(task.title)}</span>
-                    <Badge tone={task.provider ? "external" : "native"}>{task.provider ? String(task.provider) : "native"}</Badge>
+                    <ProviderIcon provider={task.provider as string | null} />
                   </li>
                 ))}
               </ul>

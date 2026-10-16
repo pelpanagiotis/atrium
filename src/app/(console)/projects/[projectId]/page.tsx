@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { archiveProjectAction, createMilestoneAction, createTaskAction, mappingAction, publishAction, updateProjectAction } from "@/app/actions";
+import { ProviderIcon } from "@/components/provider-icon";
 import { TaskForm } from "@/components/task-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,7 +146,7 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
                 <p className="text-xs text-muted">{task.status} · {task.priority} · {task.sync_state}</p>
               </div>
               <div className="flex gap-2">
-                <Badge tone={task.provider ? "external" : "native"}>{task.provider ?? "native"}</Badge>
+                <ProviderIcon provider={task.provider} />
                 {task.external_url ? <a className="underline" href={task.external_url}>Source</a> : null}
               </div>
             </li>

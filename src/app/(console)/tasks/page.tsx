@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
+import { ProviderIcon } from "@/components/provider-icon";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +118,7 @@ async function TasksContent({
                     <td className="p-3">
                       <Badge tone={task.sync_state}>{task.sync_state}</Badge>
                       <div className="mt-1">
-                        <Badge tone={task.provider ? "external" : "native"}>{task.provider ?? "native"}</Badge>
+                        <ProviderIcon provider={task.provider} />
                         {task.external_url ? <a className="ml-2 underline" href={task.external_url}>Open</a> : null}
                       </div>
                     </td>

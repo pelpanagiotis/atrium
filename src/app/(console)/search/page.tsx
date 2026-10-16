@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { ProviderIcon } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
@@ -59,7 +60,7 @@ async function SearchContent({ searchParams }: { searchParams: Promise<{ q?: str
             {results.tasks.map((task) => (
               <li key={String(task.id)} className="flex items-center justify-between px-3 py-3 text-sm">
                 <Link href={`/tasks?q=${encodeURIComponent(String(task.title))}`} className="font-medium underline">{String(task.title)}</Link>
-                <Badge tone={task.provider ? "external" : "native"}>{task.provider ? String(task.provider) : "native"}</Badge>
+                <ProviderIcon provider={task.provider as string | null} />
               </li>
             ))}
           </ul>

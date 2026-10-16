@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateTaskAction } from "@/app/actions";
+import { ProviderIcon } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 
 const COLUMNS = ["open", "in_progress", "blocked", "done", "cancelled"] as const;
@@ -59,7 +60,7 @@ export function TaskBoard({
                   <p className="text-xs text-muted">{task.project_name}</p>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <Badge tone={task.priority}>{task.priority}</Badge>
-                    <Badge tone={task.provider ? "external" : "native"}>{task.provider ?? "native"}</Badge>
+                    <ProviderIcon provider={task.provider} />
                   </div>
                   {task.external_url ? <a className="mt-2 inline-block text-xs underline" href={task.external_url}>Source</a> : null}
                   <form action={updateTaskAction} className="mt-2 md:hidden">

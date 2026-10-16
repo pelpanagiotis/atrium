@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { ProviderIcon } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
@@ -100,7 +101,7 @@ function TaskLine({ title, meta, provider, href }: { title: string; meta: string
     <Link href={href} className="block">
       <p className="font-medium">{title}</p>
       <p className="text-xs text-muted">{meta}</p>
-      <Badge tone={provider ? "external" : "native"}>{provider ?? "native"}</Badge>
+      <ProviderIcon provider={provider} className="mt-1" />
     </Link>
   );
 }
