@@ -182,11 +182,16 @@ export async function listTasks(
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     const query = filter.query?.trim() ?? "";
+    const status = filter.status?.trim() ?? "";
+    const priority = filter.priority?.trim() ?? "";
+    const assignee = filter.assignee?.trim() ?? "";
+    const projectId = filter.projectId?.trim() || null;
+    const dueBefore = filter.dueBefore?.trim() || null;
+    const dueAfter = filter.dueAfter?.trim() || null;
     const source = filter.source?.trim() ?? "";
-    const atriumSource = source === "atrium" || source === "native";
-    const providerSource = source === "linear" || source === "jira" || source === "github" || source === "fake"
-      ? source
-      : "";
+    const atriumOnly = source === "atrium" || source === "native";
+    const providerSource =
+      source === "linear" || source === "jira" || source === "github" || source === "fake" ? source : "";
     return tx.execute<TaskRecord>(sql`
       select t.id, t.workspace_id, t.project_id, p.name as project_name, p.ownership_mode,
              t.milestone_id, t.title, t.description, t.status, t.priority, t.due_at,
@@ -197,16 +202,16 @@ export async function listTasks(
       left join "user" u on u.id = t.assignee_user_id
       where t.workspace_id = ${workspaceId}::uuid
         and (${filter.includeDeleted ?? false} or t.deleted_at is null)
-        and (${filter.projectId ?? null}::uuid is null or t.project_id = ${filter.projectId ?? null}::uuid)
-        and (${filter.status ?? ""} = '' or t.status = ${filter.status ?? ""})
-        and (${filter.priority ?? ""} = '' or t.priority = ${filter.priority ?? ""})
-        and (${filter.assignee ?? ""} = '' or t.assignee_user_id = ${filter.assignee ?? ""})
+        and (${projectId}::uuid is null or t.project_id = ${projectId}::uuid)
+        and (${status} = '' or t.status = ${status})
+        and (${priority} = '' or t.priority = ${priority})
+        and (${assignee} = '' or t.assignee_user_id = ${assignee})
         and (${query} = '' or t.title ilike ${"%" + query + "%"} or t.description ilike ${"%" + query + "%"})
-        and (${filter.dueBefore ?? null}::timestamptz is null or t.due_at <= ${filter.dueBefore ?? null}::timestamptz)
-        and (${filter.dueAfter ?? null}::timestamptz is null or t.due_at >= ${filter.dueAfter ?? null}::timestamptz)
+        and (${dueBefore}::timestamptz is null or t.due_at <= ${dueBefore}::timestamptz)
+        and (${dueAfter}::timestamptz is null or t.due_at >= ${dueAfter}::timestamptz)
         and (
           ${source} = ''
-          or (${atriumSource} and t.provider is null)
+          or (${atriumOnly ? "atrium" : ""} = 'atrium' and t.provider is null)
           or (${providerSource} <> '' and t.provider = ${providerSource})
         )
       order by
