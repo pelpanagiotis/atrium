@@ -242,7 +242,7 @@ export async function createExternalProject(
     `);
     const projectId = rows[0]?.id;
     if (!projectId) throw new Error("Project was not created");
-    await tx.execute(sql`
+    const connectionRows = await tx.execute<{ id: string }>(sql`
       insert into project_connections (
         workspace_id, project_id, integration_id, provider_project_id, provider_project_key,
         provider_project_name, provider_project_url, field_mappings, publish_outbound, sync_inbound
@@ -258,6 +258,21 @@ export async function createExternalProject(
         false,
         true
       )
+      returning id
+    `);
+    const connectionId = connectionRows[0]?.id;
+    if (!connectionId) throw new Error("Project connection was not created");
+    // Pull remote issues immediately instead of waiting for the 5-minute reconcile sweep.
+    await tx.execute(sql`
+      insert into jobs (workspace_id, kind, payload, status, idempotency_key)
+      values (
+        ${workspaceId}::uuid,
+        'reconcile',
+        ${JSON.stringify({ connectionId })}::jsonb,
+        'pending',
+        ${`reconcile:${connectionId}:initial`}
+      )
+      on conflict (idempotency_key) do nothing
     `);
     await writeAudit(tx, {
       workspaceId,
