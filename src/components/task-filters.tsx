@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Select } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +30,14 @@ function buildTasksHref(values: FilterValues): string {
 export function TaskFilters({
   projects,
   values,
+  pending = false,
+  onNavigate,
 }: {
   projects: ProjectOption[];
   values: FilterValues;
+  pending?: boolean;
+  onNavigate: (href: string) => void;
 }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(values.q ?? "");
   const [status, setStatus] = useState(values.status ?? "");
   const [priority, setPriority] = useState(values.priority ?? "");
@@ -52,9 +53,7 @@ export function TaskFilters({
   }, [values.q, values.status, values.priority, values.project, values.source]);
 
   function navigate(next: FilterValues) {
-    startTransition(() => {
-      router.replace(buildTasksHref(next), { scroll: false });
-    });
+    onNavigate(buildTasksHref(next));
   }
 
   function onSelectChange(
