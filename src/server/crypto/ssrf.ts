@@ -8,6 +8,7 @@ const EXACT_HOSTS = new Set([
   "auth.atlassian.com",
   "api.github.com",
   "github.com",
+  "gitlab.com",
 ]);
 
 export type DnsResolver = (hostname: string) => Promise<string[]>;

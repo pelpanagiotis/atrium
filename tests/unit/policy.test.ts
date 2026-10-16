@@ -123,6 +123,8 @@ describe("credentials and outbound safety", () => {
     await expect(assertSafeOutboundUrl("https://127.0.0.1/")).rejects.toThrow(/not allowed/);
     const url = await assertSafeOutboundUrl("https://api.github.com/user");
     expect(url.hostname).toBe("api.github.com");
+    const gitlab = await assertSafeOutboundUrl("https://gitlab.com/api/v4/user");
+    expect(gitlab.hostname).toBe("gitlab.com");
     await expect(
       assertSafeOutboundUrl("https://acme.atlassian.net/rest", async () => ["10.0.0.8"]),
     ).rejects.toThrow(/blocked address/);
