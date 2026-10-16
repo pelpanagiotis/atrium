@@ -181,6 +181,12 @@ async function TasksResults({
                     provider={task.provider}
                     externalUrl={task.external_url}
                     title={task.title}
+                    description={task.description}
+                    status={task.status}
+                    priority={task.priority}
+                    dueAt={task.due_at}
+                    projectName={task.project_name}
+                    assigneeLabel={task.assignee_label}
                   />
                 </td>
               </tr>
