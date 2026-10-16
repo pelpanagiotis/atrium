@@ -98,19 +98,25 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "hidden h-full min-h-0 shrink-0 flex-col justify-between overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
-        collapsed ? "w-[72px] p-2" : "w-60 p-4",
+        "hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
+        collapsed ? "w-12 overflow-visible p-1.5" : "w-60 overflow-hidden p-4",
       )}
     >
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        <div className={cn("flex items-center gap-2", collapsed ? "justify-center px-0" : "justify-between px-2")}>
+      <div
+        className={cn(
+          "min-h-0 min-w-0 flex-1",
+          // Hover tips sit outside the rail; scrolling here would create a native horizontal bar.
+          collapsed ? "overflow-visible" : "overflow-x-hidden overflow-y-auto",
+        )}
+      >
+        <div className={cn("flex items-center gap-2", collapsed ? "justify-center" : "justify-between px-2")}>
           {!collapsed ? (
             <Link href="/home" className="serif text-2xl">
               Atrium
             </Link>
           ) : (
             <SidebarTip label="Atrium" show>
-              <Link href="/home" className="serif text-lg" aria-label="Atrium">
+              <Link href="/home" className="serif text-base leading-none" aria-label="Atrium">
                 A
               </Link>
             </SidebarTip>
@@ -128,12 +134,12 @@ export function AppSidebar({
         </div>
 
         {collapsed ? (
-          <div className="mt-3 flex justify-center">
+          <div className="mt-2 flex justify-center">
             <SidebarTip label="Expand sidebar" show>
               <button
                 type="button"
                 onClick={toggle}
-                className="inline-flex size-9 items-center justify-center rounded-md text-sidebar-foreground/70 transition hover:bg-white/10 hover:text-sidebar-foreground"
+                className="inline-flex size-8 items-center justify-center rounded-md text-sidebar-foreground/70 transition hover:bg-white/10 hover:text-sidebar-foreground"
                 aria-label="Expand sidebar"
               >
                 <PanelLeftOpen className="size-4" aria-hidden="true" />
@@ -142,12 +148,12 @@ export function AppSidebar({
           </div>
         ) : null}
 
-        <div className={cn("mt-3 flex items-center gap-2 pb-6", collapsed ? "justify-center px-0" : "px-2")}>
+        <div className={cn("mt-2 flex items-center gap-2 pb-4", collapsed ? "justify-center" : "px-2")}>
           <SidebarTip label={workspaceLabel} show={collapsed}>
             <WorkspaceIconBadge
               icon={current.icon}
               kind={current.kind}
-              className="size-8 border-white/15 bg-white/5 text-sm text-sidebar-foreground"
+              className="size-7 border-white/15 bg-white/5 text-xs text-sidebar-foreground"
             />
           </SidebarTip>
           {!collapsed ? (
@@ -157,7 +163,7 @@ export function AppSidebar({
           ) : null}
         </div>
 
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-0.5">
           {LINKS.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -168,7 +174,7 @@ export function AppSidebar({
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex items-center rounded-md text-sm transition hover:bg-white/10",
-                    collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-2 py-2",
+                    collapsed ? "justify-center p-2" : "gap-3 px-2 py-2",
                     active && "bg-white/10",
                   )}
                 >
@@ -181,11 +187,11 @@ export function AppSidebar({
         </nav>
       </div>
 
-      <div className={cn("flex items-center gap-2", collapsed ? "justify-center px-0 py-2" : "px-2 py-2")}>
+      <div className={cn("flex items-center gap-2", collapsed ? "justify-center py-1.5" : "px-2 py-2")}>
         <SidebarTip label={userName} show={collapsed}>
           <span
             aria-label={userName}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-xs font-medium"
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-[11px] font-medium"
           >
             {initials || "?"}
           </span>

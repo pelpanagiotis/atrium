@@ -61,7 +61,7 @@ export function Shell({
             ))}
           </nav>
         </header>
-        <main className="flex min-h-0 w-full flex-1 flex-col overflow-auto px-4 py-6 md:px-6">
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-6 md:px-6">
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </main>
       </div>
