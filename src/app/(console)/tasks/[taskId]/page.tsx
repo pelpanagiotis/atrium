@@ -153,7 +153,7 @@ async function TaskDetailContent({
           </section>
         </div>
 
-        <aside className="min-w-0 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+        <aside className="min-w-0 rounded-lg border bg-card/40 p-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:p-5">
           <TaskComments
             taskId={task.id}
             comments={commentBundle.comments}
@@ -161,6 +161,7 @@ async function TaskDetailContent({
             canComment={commentBundle.canComment}
             canWrite={canWrite}
             unavailableReason={commentBundle.unavailableReason}
+            currentUserName={user.name}
           />
         </aside>
       </div>
