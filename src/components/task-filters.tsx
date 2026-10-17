@@ -205,7 +205,11 @@ export function TaskViewToggle({
 }) {
   const board = values.view === "board";
   return (
-    <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Task views">
+    <nav
+      data-drag-inert=""
+      className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm"
+      aria-label="Task views"
+    >
       <button
         type="button"
         aria-pressed={!board}
@@ -338,6 +342,7 @@ export function TaskFilters({
 
   return (
     <div
+      data-drag-inert=""
       className={cn("grid gap-2 sm:grid-cols-2 lg:grid-cols-5", pending && "opacity-70")}
       aria-busy={pending}
     >

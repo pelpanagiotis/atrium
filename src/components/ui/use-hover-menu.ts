@@ -46,8 +46,19 @@ export function useHoverMenu(closeDelayMs = 140) {
   );
 
   const keepOpen = useCallback(() => {
+    if (document.body.classList.contains("board-dragging")) return;
     clearCloseTimer();
     setOpen(true);
+  }, [clearCloseTimer]);
+
+  useEffect(() => {
+    function onBoardDrag() {
+      if (pinnedRef.current) return;
+      clearCloseTimer();
+      setOpen(false);
+    }
+    window.addEventListener("atrium-board-drag-start", onBoardDrag);
+    return () => window.removeEventListener("atrium-board-drag-start", onBoardDrag);
   }, [clearCloseTimer]);
 
   const scheduleClose = useCallback(() => {

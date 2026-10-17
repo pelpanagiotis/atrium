@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ExternalLink } from "lucide-react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { updateTaskAction } from "@/app/actions";
@@ -34,11 +34,6 @@ type BoardTask = {
 type DragState = {
   taskId: string;
   width: number;
-  height: number;
-  offsetX: number;
-  offsetY: number;
-  x: number;
-  y: number;
 };
 
 type DropIndicator = {
@@ -48,10 +43,10 @@ type DropIndicator = {
 
 function DropInsertBar() {
   return (
-    <div className="board-drop-bar relative h-3" aria-hidden="true">
-      <div className="absolute inset-x-1 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-foreground/80" />
-      <div className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-foreground" />
-      <div className="absolute right-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+    <div className="board-drop-bar pointer-events-none relative z-10 h-0" aria-hidden="true">
+      <div className="absolute inset-x-1 top-0 h-0.5 -translate-y-1/2 rounded-full bg-foreground/80" />
+      <div className="absolute left-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+      <div className="absolute right-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
     </div>
   );
 }
@@ -174,6 +169,16 @@ export function TaskBoard({
   const savingIdsRef = useRef<Record<string, true>>({});
   const dropIndicatorRef = useRef<DropIndicator | null>(null);
   const dragSessionRef = useRef<{ pointerId: number; active: boolean } | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const pointerRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+  const frameRef = useRef(0);
+
+  function placePreview() {
+    const node = previewRef.current;
+    if (!node) return;
+    const { x, y, offsetX, offsetY } = pointerRef.current;
+    node.style.transform = `translate3d(${x - offsetX}px, ${y - offsetY}px, 0) rotate(2deg) scale(1.03)`;
+  }
 
   const visibleTasks = tasks.map((task) => {
     const status = statusOverrides[task.id];
@@ -186,14 +191,34 @@ export function TaskBoard({
 
   const draggedTask = drag ? visibleTasks.find((task) => task.id === drag.taskId) ?? null : null;
 
+  function setBoardDragging(active: boolean) {
+    document.body.classList.toggle("board-dragging", active);
+    if (active) window.dispatchEvent(new Event("atrium-board-drag-start"));
+  }
+
   function clearDrag() {
     dragSessionRef.current = null;
     dropIndicatorRef.current = null;
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = 0;
+    }
+    setBoardDragging(false);
     setDrag(null);
     setDropIndicator(null);
   }
 
+  useEffect(() => () => document.body.classList.remove("board-dragging"), []);
+
+  useLayoutEffect(() => {
+    if (!drag) return;
+    placePreview();
+  }, [drag]);
+
   function showDropIndicator(next: DropIndicator | null) {
+    const current = dropIndicatorRef.current;
+    if (current === next) return;
+    if (current && next && current.column === next.column && current.index === next.index) return;
     dropIndicatorRef.current = next;
     setDropIndicator(next);
   }
@@ -259,38 +284,29 @@ export function TaskBoard({
     const offsetX = event.clientX - rect.left;
     const offsetY = event.clientY - rect.top;
     const width = rect.width;
-    const height = rect.height;
     const session = { pointerId, active: false };
     dragSessionRef.current = session;
+    pointerRef.current = { x: event.clientX, y: event.clientY, offsetX, offsetY };
 
     function onMove(moveEvent: PointerEvent) {
       if (moveEvent.pointerId !== pointerId || dragSessionRef.current !== session) return;
+      pointerRef.current.x = moveEvent.clientX;
+      pointerRef.current.y = moveEvent.clientY;
       if (!session.active) {
         const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
         if (distance < 5) return;
         session.active = true;
         suppressClickRef.current = true;
-        setDrag({
-          taskId: task.id,
-          width,
-          height,
-          offsetX,
-          offsetY,
-          x: moveEvent.clientX,
-          y: moveEvent.clientY,
-        });
-      } else {
-        setDrag((current) =>
-          current
-            ? {
-                ...current,
-                x: moveEvent.clientX,
-                y: moveEvent.clientY,
-              }
-            : null,
-        );
+        setBoardDragging(true);
+        setDrag({ taskId: task.id, width });
       }
-      updateIndicatorFromPoint(moveEvent.clientX, moveEvent.clientY, task.id);
+      if (frameRef.current) return;
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = 0;
+        if (dragSessionRef.current !== session) return;
+        placePreview();
+        updateIndicatorFromPoint(pointerRef.current.x, pointerRef.current.y, task.id);
+      });
     }
 
     function finish(endEvent: PointerEvent) {
@@ -479,13 +495,10 @@ export function TaskBoard({
 
       {drag && draggedTask ? (
         <div
+          ref={previewRef}
           aria-hidden="true"
-          className="board-drag-preview pointer-events-none fixed z-[80] rounded-md border bg-background p-3 text-sm shadow-xl"
-          style={{
-            width: drag.width,
-            left: drag.x - drag.offsetX,
-            top: drag.y - drag.offsetY,
-          }}
+          className="board-drag-preview pointer-events-none fixed top-0 left-0 z-[80] rounded-md border bg-background p-3 text-sm shadow-xl"
+          style={{ width: drag.width }}
         >
           <TaskCardBody task={draggedTask} reserveSourceSlot />
         </div>
