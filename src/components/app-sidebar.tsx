@@ -282,7 +282,8 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "shell-sidebar-in hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
+        // Keep the rail above shell-chrome-in so collapsed hover tips are not covered.
+        "shell-sidebar-in relative z-40 hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
         collapsed ? "w-12 overflow-visible p-1.5" : "w-60 overflow-hidden p-4",
       )}
     >

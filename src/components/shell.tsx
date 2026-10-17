@@ -34,8 +34,8 @@ export function Shell({
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
       />
-      <div className="shell-chrome-in flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
+      <div className="shell-chrome-in relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
             <WorkspaceSwitch currentId={current.id} workspaces={workspaces} />
