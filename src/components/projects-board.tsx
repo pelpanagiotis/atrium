@@ -318,7 +318,7 @@ export function ProjectsBoard({
               />
             ),
             busiest: (
-              <section className="rounded-lg border bg-card p-4">
+              <section className="flex h-full min-h-[13.5rem] flex-col rounded-lg border bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="text-xl">Busiest projects</h2>
@@ -329,7 +329,7 @@ export function ProjectsBoard({
                 {busiest.length === 0 ? (
                   <p className="mt-3 text-sm text-muted">No open work in {scopeLabel}.</p>
                 ) : (
-                  <ul className="mt-3 space-y-2">
+                  <ul className="mt-3 flex-1 space-y-2">
                     {busiest.map((project) => (
                       <li key={project.id}>
                         <Link
@@ -410,7 +410,11 @@ export function ProjectsBoard({
                       </EditableTile>
                     );
                   }
-                  return <div key={insight.id}>{insightNodes[insight.id]}</div>;
+                  return (
+                    <div key={insight.id} className="h-full min-h-0">
+                      {insightNodes[insight.id]}
+                    </div>
+                  );
                 })}
               </section>
             </EditableBlock>
@@ -579,7 +583,7 @@ function EditableTile({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 rounded-lg transition",
+        "flex h-full min-h-0 flex-col gap-1.5 rounded-lg transition",
         dragging && "ring-2 ring-primary ring-offset-2 ring-offset-background",
         hidden && "opacity-50",
       )}
@@ -615,7 +619,7 @@ function EditableTile({
           {hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </button>
       </div>
-      <div className="min-w-0">{children}</div>
+      <div className="min-h-0 min-w-0 flex-1">{children}</div>
     </div>
   );
 }

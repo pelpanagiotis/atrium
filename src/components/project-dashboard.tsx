@@ -184,7 +184,7 @@ export function ProjectStatusBreakdown({
   const total = Math.max(stats.total, 1);
 
   return (
-    <section className="rounded-lg border bg-card p-4">
+    <section className="flex h-full min-h-[13.5rem] flex-col rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl">Status mix</h2>
