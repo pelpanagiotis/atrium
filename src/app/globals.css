@@ -420,9 +420,30 @@ html {
   animation: board-card-enter 180ms ease-out both;
 }
 
+@keyframes board-drop-bar-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.board-drop-bar {
+  animation: board-drop-bar-in 140ms ease-out both;
+}
+
+.board-drop-bar > div:nth-child(1) {
+  background: color-mix(in srgb, var(--foreground) 78%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .board-card-enter,
-  .board-drop-placeholder {
+  .board-drop-placeholder,
+  .board-drop-bar {
     animation: none;
   }
 
