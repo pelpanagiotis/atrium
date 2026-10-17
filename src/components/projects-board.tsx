@@ -79,22 +79,59 @@ type DragState = {
 type DropIndicator = {
   kind: LayoutKind;
   index: number;
+  multiline: boolean;
+  listLeft: number;
+  listTop: number;
+  listWidth: number;
+  listHeight: number;
+  lineX: number;
+  lineY: number;
 };
 
-function DropInsertBar({ span = false }: { span?: boolean }) {
+function DropGuideOverlay({ indicator }: { indicator: DropIndicator }) {
+  const left = indicator.lineX - indicator.listLeft;
+  const top = indicator.lineY - indicator.listTop;
   return (
     <div
-      className={cn("board-drop-bar pointer-events-none relative z-10 h-0", span && "col-span-full")}
+      className="pointer-events-none fixed z-[70]"
+      style={{
+        left: indicator.listLeft,
+        top: indicator.listTop,
+        width: indicator.listWidth,
+        height: indicator.listHeight,
+      }}
       aria-hidden="true"
     >
-      <div className="absolute inset-x-1 top-0 h-0.5 -translate-y-1/2 rounded-full bg-foreground/80" />
-      <div className="absolute left-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
-      <div className="absolute right-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+      <div className="board-drop-bar absolute inset-x-0" style={{ top }}>
+        <div className="absolute inset-x-1 top-0 h-0.5 -translate-y-1/2 rounded-full" />
+        <div className="absolute left-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+        <div className="absolute right-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+      </div>
+      {indicator.multiline ? (
+        <div className="board-drop-bar-vertical absolute inset-y-0" style={{ left }}>
+          <div className="absolute inset-y-1 left-0 w-0.5 -translate-x-1/2 rounded-full" />
+          <div className="absolute left-0 top-0 size-2 -translate-x-1/2 rounded-full bg-foreground" />
+          <div className="absolute bottom-0 left-0 size-2 -translate-x-1/2 rounded-full bg-foreground" />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function insertIndexFromPointer(list: HTMLElement, clientX: number, clientY: number, draggedId: string | null) {
+function hitTestLayoutList(
+  list: HTMLElement,
+  clientX: number,
+  clientY: number,
+  draggedId: string | null,
+): Omit<DropIndicator, "kind"> | null {
+  const listRect = list.getBoundingClientRect();
+  const near =
+    clientX >= listRect.left - 24 &&
+    clientX <= listRect.right + 24 &&
+    clientY >= listRect.top - 24 &&
+    clientY <= listRect.bottom + 24;
+  if (!near) return null;
+
   const cards = [...list.querySelectorAll<HTMLElement>("[data-layout-item]")].filter(
     (card) =>
       card.closest("[data-layout-list]") === list &&
@@ -108,14 +145,48 @@ function insertIndexFromPointer(list: HTMLElement, clientX: number, clientY: num
     if (Math.abs(dy) > 12) return dy;
     return aBox.left - bBox.left;
   });
-  for (let index = 0; index < cards.length; index += 1) {
-    const rect = cards[index]!.getBoundingClientRect();
+
+  const tops = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top / 12)));
+  const lefts = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().left / 12)));
+  const multiline = tops.size > 1 && lefts.size > 1;
+
+  let index = cards.length;
+  for (let i = 0; i < cards.length; i += 1) {
+    const rect = cards[i]!.getBoundingClientRect();
     const before =
       clientY < rect.top + rect.height / 2 ||
       (Math.abs(clientY - (rect.top + rect.height / 2)) <= 12 && clientX < rect.left + rect.width / 2);
-    if (before) return index;
+    if (before) {
+      index = i;
+      break;
+    }
   }
-  return cards.length;
+
+  let lineX = listRect.left;
+  let lineY = listRect.top;
+  if (cards.length === 0) {
+    lineX = listRect.left + listRect.width / 2;
+    lineY = listRect.top + 8;
+  } else if (index < cards.length) {
+    const rect = cards[index]!.getBoundingClientRect();
+    lineX = rect.left;
+    lineY = rect.top;
+  } else {
+    const rect = cards[cards.length - 1]!.getBoundingClientRect();
+    lineX = multiline ? rect.right : listRect.left;
+    lineY = multiline ? rect.top : rect.bottom;
+  }
+
+  return {
+    index,
+    multiline,
+    listLeft: listRect.left,
+    listTop: listRect.top,
+    listWidth: listRect.width,
+    listHeight: listRect.height,
+    lineX,
+    lineY,
+  };
 }
 
 export function ProjectsBoard({
@@ -210,7 +281,17 @@ export function ProjectsBoard({
   function showDropIndicator(next: DropIndicator | null) {
     const current = dropIndicatorRef.current;
     if (current === next) return;
-    if (current && next && current.kind === next.kind && current.index === next.index) return;
+    if (
+      current &&
+      next &&
+      current.kind === next.kind &&
+      current.index === next.index &&
+      current.multiline === next.multiline &&
+      Math.abs(current.lineX - next.lineX) < 1 &&
+      Math.abs(current.lineY - next.lineY) < 1
+    ) {
+      return;
+    }
     dropIndicatorRef.current = next;
     setDropIndicator(next);
   }
@@ -221,20 +302,12 @@ export function ProjectsBoard({
       showDropIndicator(null);
       return;
     }
-    const rect = list.getBoundingClientRect();
-    const near =
-      clientX >= rect.left - 24 &&
-      clientX <= rect.right + 24 &&
-      clientY >= rect.top - 24 &&
-      clientY <= rect.bottom + 24;
-    if (!near) {
+    const hit = hitTestLayoutList(list, clientX, clientY, draggedId);
+    if (!hit) {
       showDropIndicator(null);
       return;
     }
-    showDropIndicator({
-      kind,
-      index: insertIndexFromPointer(list, clientX, clientY, draggedId),
-    });
+    showDropIndicator({ kind, ...hit });
   }
 
   function markEntering(id: string) {
@@ -361,13 +434,6 @@ export function ProjectsBoard({
   const hiddenInsights = layout.insights.filter((item) => item.hidden);
   const hiddenSections = layout.sections.filter((item) => item.hidden);
 
-  const sectionInsertAt =
-    dropIndicator?.kind === "section" && drag?.kind === "section" ? dropIndicator.index : null;
-  const statInsertAt =
-    dropIndicator?.kind === "stat" && drag?.kind === "stat" ? dropIndicator.index : null;
-  const insightInsertAt =
-    dropIndicator?.kind === "insight" && drag?.kind === "insight" ? dropIndicator.index : null;
-
   return (
     <div className={cn("space-y-8", editing && "pb-24")} data-no-reveal="">
       <div className="flex flex-wrap items-end justify-between gap-3" data-drag-inert="">
@@ -465,13 +531,9 @@ export function ProjectsBoard({
         data-layout-list={editing ? "section" : undefined}
         className="flex flex-col gap-8"
       >
-        {editing && sectionInsertAt === 0 ? <DropInsertBar /> : null}
-        {visibleSections.map((section, sectionIndex) => {
+        {visibleSections.map((section) => {
           const hidden = Boolean(section.hidden);
           const isDragSource = drag?.kind === "section" && drag.id === section.id;
-          const visualIndex = visibleSections
-            .slice(0, sectionIndex)
-            .filter((item) => !(drag?.kind === "section" && drag.id === item.id)).length;
           const isEntering = Boolean(enteringIds[section.id]);
 
           let body: ReactNode = null;
@@ -487,15 +549,11 @@ export function ProjectsBoard({
                     drag?.kind === "stat" && "rounded-md bg-accent/20",
                   )}
                 >
-                  {editing && statInsertAt === 0 ? <DropInsertBar span /> : null}
-                  {visibleStats.map((stat, statIndex) => {
+                  {visibleStats.map((stat) => {
                     const meta = statsCatalog[stat.id];
                     const tileHidden = Boolean(stat.hidden);
                     const tileDragging = drag?.kind === "stat" && drag.id === stat.id;
                     const tileEntering = Boolean(enteringIds[stat.id]);
-                    const tileVisualIndex = visibleStats
-                      .slice(0, statIndex)
-                      .filter((item) => !(drag?.kind === "stat" && drag.id === item.id)).length;
                     const card = (
                       <ProjectStatCard
                         href={meta.href}
@@ -507,28 +565,24 @@ export function ProjectsBoard({
                     );
                     if (editing) {
                       return (
-                        <div key={stat.id} className="contents">
-                          <EditableTile
-                            id={stat.id}
-                            kind="stat"
-                            label={PROJECT_STAT_LABELS[stat.id]}
-                            hidden={tileHidden}
-                            dragging={tileDragging}
-                            entering={tileEntering}
-                            onPointerDown={onHandlePointerDown}
-                            onToggleHidden={() =>
-                              persist({
-                                ...layout,
-                                stats: toggleLayoutItem(layout.stats, stat.id, !tileHidden),
-                              })
-                            }
-                          >
-                            {card}
-                          </EditableTile>
-                          {!tileDragging && statInsertAt === tileVisualIndex + 1 ? (
-                            <DropInsertBar span />
-                          ) : null}
-                        </div>
+                        <EditableTile
+                          key={stat.id}
+                          id={stat.id}
+                          kind="stat"
+                          label={PROJECT_STAT_LABELS[stat.id]}
+                          hidden={tileHidden}
+                          dragging={tileDragging}
+                          entering={tileEntering}
+                          onPointerDown={onHandlePointerDown}
+                          onToggleHidden={() =>
+                            persist({
+                              ...layout,
+                              stats: toggleLayoutItem(layout.stats, stat.id, !tileHidden),
+                            })
+                          }
+                        >
+                          {card}
+                        </EditableTile>
                       );
                     }
                     return (
@@ -604,38 +658,30 @@ export function ProjectsBoard({
                     drag?.kind === "insight" && "rounded-md bg-accent/20",
                   )}
                 >
-                  {editing && insightInsertAt === 0 ? <DropInsertBar span /> : null}
-                  {shown.map((insight, insightIndex) => {
+                  {shown.map((insight) => {
                     const tileHidden = Boolean(insight.hidden);
                     const tileDragging = drag?.kind === "insight" && drag.id === insight.id;
                     const tileEntering = Boolean(enteringIds[insight.id]);
-                    const tileVisualIndex = shown
-                      .slice(0, insightIndex)
-                      .filter((item) => !(drag?.kind === "insight" && drag.id === item.id)).length;
                     if (editing) {
                       return (
-                        <div key={insight.id} className="contents">
-                          <EditableTile
-                            id={insight.id}
-                            kind="insight"
-                            label={PROJECT_INSIGHT_LABELS[insight.id]}
-                            hidden={tileHidden}
-                            dragging={tileDragging}
-                            entering={tileEntering}
-                            onPointerDown={onHandlePointerDown}
-                            onToggleHidden={() =>
-                              persist({
-                                ...layout,
-                                insights: toggleLayoutItem(layout.insights, insight.id, !tileHidden),
-                              })
-                            }
-                          >
-                            {insightNodes[insight.id]}
-                          </EditableTile>
-                          {!tileDragging && insightInsertAt === tileVisualIndex + 1 ? (
-                            <DropInsertBar span />
-                          ) : null}
-                        </div>
+                        <EditableTile
+                          key={insight.id}
+                          id={insight.id}
+                          kind="insight"
+                          label={PROJECT_INSIGHT_LABELS[insight.id]}
+                          hidden={tileHidden}
+                          dragging={tileDragging}
+                          entering={tileEntering}
+                          onPointerDown={onHandlePointerDown}
+                          onToggleHidden={() =>
+                            persist({
+                              ...layout,
+                              insights: toggleLayoutItem(layout.insights, insight.id, !tileHidden),
+                            })
+                          }
+                        >
+                          {insightNodes[insight.id]}
+                        </EditableTile>
                       );
                     }
                     return (
@@ -697,28 +743,30 @@ export function ProjectsBoard({
           }
 
           return (
-            <div key={section.id} className="contents">
-              <EditableBlock
-                id={section.id}
-                label={PROJECT_SECTION_LABELS[section.id]}
-                hidden={hidden}
-                dragging={isDragSource}
-                entering={isEntering}
-                onPointerDown={onHandlePointerDown}
-                onToggleHidden={() =>
-                  persist({
-                    ...layout,
-                    sections: toggleLayoutItem(layout.sections, section.id, !hidden),
-                  })
-                }
-              >
-                {body}
-              </EditableBlock>
-              {!isDragSource && sectionInsertAt === visualIndex + 1 ? <DropInsertBar /> : null}
-            </div>
+            <EditableBlock
+              key={section.id}
+              id={section.id}
+              label={PROJECT_SECTION_LABELS[section.id]}
+              hidden={hidden}
+              dragging={isDragSource}
+              entering={isEntering}
+              onPointerDown={onHandlePointerDown}
+              onToggleHidden={() =>
+                persist({
+                  ...layout,
+                  sections: toggleLayoutItem(layout.sections, section.id, !hidden),
+                })
+              }
+            >
+              {body}
+            </EditableBlock>
           );
         })}
       </div>
+
+      {drag && dropIndicator && dropIndicator.kind === drag.kind ? (
+        <DropGuideOverlay indicator={dropIndicator} />
+      ) : null}
 
       {!canWrite ? (
         <p className="text-sm text-muted">Viewers and members can read projects. Owners and admins create them.</p>

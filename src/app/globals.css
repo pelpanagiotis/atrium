@@ -612,11 +612,13 @@ body.board-dragging [data-drag-inert] {
   }
 }
 
-.board-drop-bar {
+.board-drop-bar,
+.board-drop-bar-vertical {
   animation: board-drop-bar-in 140ms ease-out both;
 }
 
-.board-drop-bar > div:nth-child(1) {
+.board-drop-bar > div:nth-child(1),
+.board-drop-bar-vertical > div:nth-child(1) {
   background: color-mix(in srgb, var(--foreground) 78%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
 }
@@ -624,7 +626,8 @@ body.board-dragging [data-drag-inert] {
 @media (prefers-reduced-motion: reduce) {
   .board-card-enter,
   .board-drop-placeholder,
-  .board-drop-bar {
+  .board-drop-bar,
+  .board-drop-bar-vertical {
     animation: none;
   }
 
