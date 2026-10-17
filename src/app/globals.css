@@ -3,7 +3,8 @@
 /* Match app theme (class on <html>), not OS prefers-color-scheme */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
+:root,
+html[data-palette="grove"] {
   --background: #f4efe6;
   --foreground: #1c1915;
   --card: #fffdf8;
@@ -25,7 +26,8 @@
   --scrollbar-thumb-hover: color-mix(in srgb, var(--foreground) 35%, var(--muted));
 }
 
-.dark {
+.dark,
+html.dark[data-palette="grove"] {
   --background: #141210;
   --foreground: #f6f1e8;
   --card: #1e1b17;
@@ -44,6 +46,150 @@
   --scrollbar-track: color-mix(in srgb, var(--border) 70%, transparent);
   --scrollbar-thumb: color-mix(in srgb, var(--muted) 45%, transparent);
   --scrollbar-thumb-hover: color-mix(in srgb, var(--foreground) 40%, var(--muted));
+}
+
+html[data-palette="harbor"] {
+  --background: #eef3f4;
+  --foreground: #142022;
+  --card: #f7fbfb;
+  --muted: #5d6d70;
+  --muted-foreground: #5d6d70;
+  --border: #d2dee0;
+  --primary: #0f6e6a;
+  --primary-foreground: #f3fffe;
+  --secondary: #e2ecec;
+  --secondary-foreground: #142022;
+  --accent: #e2ecec;
+  --destructive: #9f2d2d;
+  --ring: #0f6e6a;
+  --sidebar: #142022;
+  --sidebar-foreground: #eef6f6;
+}
+
+html.dark[data-palette="harbor"] {
+  --background: #10181a;
+  --foreground: #e8f1f2;
+  --card: #172225;
+  --muted: #9bb0b4;
+  --muted-foreground: #9bb0b4;
+  --border: #2b3b3e;
+  --primary: #5fd0c7;
+  --primary-foreground: #0c2423;
+  --secondary: #1d2c2f;
+  --secondary-foreground: #e8f1f2;
+  --accent: #1d2c2f;
+  --destructive: #f0a0a0;
+  --ring: #5fd0c7;
+  --sidebar: #0c1315;
+  --sidebar-foreground: #e8f1f2;
+}
+
+html[data-palette="ember"] {
+  --background: #f3eee8;
+  --foreground: #251c18;
+  --card: #fcf8f3;
+  --muted: #71645b;
+  --muted-foreground: #71645b;
+  --border: #e2d5c8;
+  --primary: #b4532a;
+  --primary-foreground: #fff8f3;
+  --secondary: #ebe1d6;
+  --secondary-foreground: #251c18;
+  --accent: #ebe1d6;
+  --destructive: #9f2d2d;
+  --ring: #b4532a;
+  --sidebar: #251c18;
+  --sidebar-foreground: #f7efe7;
+}
+
+html.dark[data-palette="ember"] {
+  --background: #16110f;
+  --foreground: #f5ebe3;
+  --card: #211a16;
+  --muted: #b5a49a;
+  --muted-foreground: #b5a49a;
+  --border: #3b3029;
+  --primary: #e08a5a;
+  --primary-foreground: #2a140b;
+  --secondary: #2b221d;
+  --secondary-foreground: #f5ebe3;
+  --accent: #2b221d;
+  --destructive: #f0a0a0;
+  --ring: #e08a5a;
+  --sidebar: #110d0b;
+  --sidebar-foreground: #f5ebe3;
+}
+
+html[data-palette="slate"] {
+  --background: #f0f2f5;
+  --foreground: #1b2030;
+  --card: #fbfcfe;
+  --muted: #646b7a;
+  --muted-foreground: #646b7a;
+  --border: #d7dce6;
+  --primary: #3b5bdb;
+  --primary-foreground: #f5f7ff;
+  --secondary: #e6eaf2;
+  --secondary-foreground: #1b2030;
+  --accent: #e6eaf2;
+  --destructive: #9f2d2d;
+  --ring: #3b5bdb;
+  --sidebar: #1b2030;
+  --sidebar-foreground: #eef1f8;
+}
+
+html.dark[data-palette="slate"] {
+  --background: #12151c;
+  --foreground: #e8ebf2;
+  --card: #1a1f2a;
+  --muted: #a0a8b8;
+  --muted-foreground: #a0a8b8;
+  --border: #2d3444;
+  --primary: #8aa2ff;
+  --primary-foreground: #121933;
+  --secondary: #242a38;
+  --secondary-foreground: #e8ebf2;
+  --accent: #242a38;
+  --destructive: #f0a0a0;
+  --ring: #8aa2ff;
+  --sidebar: #0e1118;
+  --sidebar-foreground: #e8ebf2;
+}
+
+html[data-palette="dusk"] {
+  --background: #f3eef2;
+  --foreground: #221820;
+  --card: #fbf7fa;
+  --muted: #6d5f69;
+  --muted-foreground: #6d5f69;
+  --border: #e1d4dc;
+  --primary: #7a3e6b;
+  --primary-foreground: #fff6fb;
+  --secondary: #ebe1e7;
+  --secondary-foreground: #221820;
+  --accent: #ebe1e7;
+  --destructive: #9f2d2d;
+  --ring: #7a3e6b;
+  --sidebar: #221820;
+  --sidebar-foreground: #f6eef3;
+}
+
+html.dark[data-palette="dusk"] {
+  --background: #151117;
+  --foreground: #f2e8ef;
+  --card: #1f1820;
+  --muted: #b3a2ad;
+  --muted-foreground: #b3a2ad;
+  --border: #382f37;
+  --primary: #d29bc3;
+  --primary-foreground: #2a1424;
+  --secondary: #2a2229;
+  --secondary-foreground: #f2e8ef;
+  --accent: #2a2229;
+  --destructive: #f0a0a0;
+  --ring: #d29bc3;
+  --sidebar: #100d11;
+  --sidebar-foreground: #f2e8ef;
 }
 
 @theme inline {

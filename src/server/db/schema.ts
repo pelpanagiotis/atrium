@@ -308,6 +308,10 @@ export const userPreferences = pgTable("user_preferences", {
   userId: text("user_id").primaryKey(),
   timezone: text("timezone").notNull().default("UTC"),
   theme: text("theme").$type<"light" | "dark">().notNull().default("light"),
+  palette: text("palette")
+    .$type<"grove" | "harbor" | "ember" | "slate" | "dusk">()
+    .notNull()
+    .default("grove"),
   notifySyncErrors: boolean("notify_sync_errors").notNull().default(true),
   notifyAssignments: boolean("notify_assignments").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

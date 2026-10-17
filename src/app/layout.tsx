@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import { cookies } from "next/headers";
+import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import "./globals.css";
 
 const outfit = Outfit({ variable: "--font-outfit", subsets: ["latin"] });
@@ -12,10 +13,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const theme = (await cookies()).get("atrium_theme")?.value;
+  const cookieStore = await cookies();
+  const theme = parseThemeMode(cookieStore.get("atrium_theme")?.value);
+  const palette = parseColorPalette(cookieStore.get("atrium_palette")?.value);
   return (
     <html
       lang="en"
+      data-palette={palette}
       className={`${outfit.variable} ${fraunces.variable} h-full overflow-hidden antialiased${theme === "dark" ? " dark" : ""}`}
       suppressHydrationWarning
     >

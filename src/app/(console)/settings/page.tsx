@@ -8,6 +8,7 @@ import { PasswordForm } from "@/components/password-form";
 import { ThemeSettings } from "@/components/theme-settings";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
+import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import { getSessionUser } from "@/server/auth/session";
 import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
@@ -27,7 +28,8 @@ async function SettingsContent() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const cookieStore = await cookies();
-  const theme = cookieStore.get("atrium_theme")?.value === "dark" ? "dark" : "light";
+  const theme = parseThemeMode(cookieStore.get("atrium_theme")?.value);
+  const palette = parseColorPalette(cookieStore.get("atrium_palette")?.value);
   const prefs = await withUser(user.id, (tx) => tx.execute<{
     timezone: string;
     theme: string;
@@ -36,34 +38,37 @@ async function SettingsContent() {
   }>(sql`select * from user_preferences where user_id = current_setting('app.current_user_id', true)`));
   const pref = prefs[0];
   return (
-    <div className="space-y-8">
+    <div className="w-full space-y-8">
       <div>
         <h1 className="text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted">Profile, appearance, and account preferences.</p>
       </div>
-      <ThemeSettings theme={theme} />
-      <form id="profile" action={settingsAction} className="max-w-xl space-y-3 rounded-lg border bg-card p-4 scroll-mt-24">
-        <h2 className="text-xl">Profile</h2>
-        <input type="hidden" name="theme" value={theme} />
-        <div>
-          <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" defaultValue={user.name} className="mt-1" />
-        </div>
-        <div>
-          <Label htmlFor="timezone">Timezone</Label>
-          <Input id="timezone" name="timezone" defaultValue={pref?.timezone ?? "UTC"} className="mt-1" />
-        </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
-          Show sync errors on the home page
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="notifyAssignments" defaultChecked={pref?.notify_assignments ?? true} />
-          Highlight tasks assigned to me
-        </label>
-        <Button type="submit">Save settings</Button>
-      </form>
-      <PasswordForm action={passwordAction} />
+      <ThemeSettings theme={theme} palette={palette} />
+      <div className="grid w-full gap-6 xl:grid-cols-2">
+        <form id="profile" action={settingsAction} className="space-y-3 rounded-lg border bg-card p-4 scroll-mt-24 md:p-5">
+          <h2 className="text-xl">Profile</h2>
+          <input type="hidden" name="theme" value={theme} />
+          <input type="hidden" name="palette" value={palette} />
+          <div>
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" name="name" defaultValue={user.name} className="mt-1" />
+          </div>
+          <div>
+            <Label htmlFor="timezone">Timezone</Label>
+            <Input id="timezone" name="timezone" defaultValue={pref?.timezone ?? "UTC"} className="mt-1" />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
+            Show sync errors on the home page
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="notifyAssignments" defaultChecked={pref?.notify_assignments ?? true} />
+            Highlight tasks assigned to me
+          </label>
+          <Button type="submit">Save settings</Button>
+        </form>
+        <PasswordForm action={passwordAction} className="w-full max-w-none" />
+      </div>
       <p className="text-sm text-muted">Signed in as {user.email}</p>
     </div>
   );

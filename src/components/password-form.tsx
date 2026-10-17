@@ -4,11 +4,18 @@ import { useActionState } from "react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
+import { cn } from "@/lib/utils";
 
-export function PasswordForm({ action }: { action: (state: ActionState, formData: FormData) => Promise<ActionState> }) {
+export function PasswordForm({
+  action,
+  className,
+}: {
+  action: (state: ActionState, formData: FormData) => Promise<ActionState>;
+  className?: string;
+}) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
   return (
-    <form action={formAction} className="max-w-xl space-y-3 rounded-lg border bg-card p-4">
+    <form action={formAction} className={cn("max-w-xl space-y-3 rounded-lg border bg-card p-4 md:p-5", className)}>
       <h2 className="text-xl">Password</h2>
       <div>
         <Label htmlFor="currentPassword">Current password</Label>

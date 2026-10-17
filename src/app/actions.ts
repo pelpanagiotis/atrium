@@ -28,6 +28,7 @@ import { writeAudit } from "@/server/audit";
 import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
+import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 
 export type ActionState = { error?: string; notice?: string; token?: string; version?: number };
 
@@ -415,21 +416,26 @@ export async function settingsAction(formData: FormData): Promise<void> {
   if (name.length >= 2) {
     await auth.api.updateUser({ body: { name }, headers: await headers() });
   }
-  const theme = String(formData.get("theme") ?? "light");
-  (await cookies()).set("atrium_theme", theme === "dark" ? "dark" : "light", { path: "/", sameSite: "lax" });
+  const theme = parseThemeMode(String(formData.get("theme") ?? "light"));
+  const palette = parseColorPalette(String(formData.get("palette") ?? "grove"));
+  const jar = await cookies();
+  jar.set("atrium_theme", theme, { path: "/", sameSite: "lax" });
+  jar.set("atrium_palette", palette, { path: "/", sameSite: "lax" });
   await withUser(user, async (tx) => {
     await tx.execute(sql`
-      insert into user_preferences (user_id, timezone, theme, notify_sync_errors, notify_assignments)
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments)
       values (
         current_setting('app.current_user_id', true),
         ${String(formData.get("timezone") ?? "UTC")},
-        ${String(formData.get("theme") ?? "light")},
+        ${theme},
+        ${palette},
         ${formData.get("notifySync") === "on"},
         ${formData.get("notifyAssignments") === "on"}
       )
       on conflict (user_id) do update set
         timezone = excluded.timezone,
         theme = excluded.theme,
+        palette = excluded.palette,
         notify_sync_errors = excluded.notify_sync_errors,
         notify_assignments = excluded.notify_assignments,
         updated_at = now()
@@ -440,20 +446,43 @@ export async function settingsAction(formData: FormData): Promise<void> {
 
 export async function themeAction(formData: FormData): Promise<void> {
   const user = await userId();
-  const theme = String(formData.get("theme") ?? "light") === "dark" ? "dark" : "light";
+  const theme = parseThemeMode(String(formData.get("theme") ?? "light"));
   (await cookies()).set("atrium_theme", theme, { path: "/", sameSite: "lax" });
   await withUser(user, async (tx) => {
     await tx.execute(sql`
-      insert into user_preferences (user_id, timezone, theme, notify_sync_errors, notify_assignments)
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments)
       values (
         current_setting('app.current_user_id', true),
         'UTC',
         ${theme},
+        'grove',
         true,
         true
       )
       on conflict (user_id) do update set
         theme = excluded.theme,
+        updated_at = now()
+    `);
+  });
+}
+
+export async function paletteAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const palette = parseColorPalette(String(formData.get("palette") ?? "grove"));
+  (await cookies()).set("atrium_palette", palette, { path: "/", sameSite: "lax" });
+  await withUser(user, async (tx) => {
+    await tx.execute(sql`
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments)
+      values (
+        current_setting('app.current_user_id', true),
+        'UTC',
+        'light',
+        ${palette},
+        true,
+        true
+      )
+      on conflict (user_id) do update set
+        palette = excluded.palette,
         updated_at = now()
     `);
   });
