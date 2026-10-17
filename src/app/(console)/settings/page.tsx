@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { passwordAction, settingsAction } from "@/app/actions";
 import { PasswordForm } from "@/components/password-form";
+import { ThemeSettings } from "@/components/theme-settings";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
-import { MenuSelect } from "@/components/ui/menu-select";
 import { getSessionUser } from "@/server/auth/session";
 import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
@@ -25,6 +26,8 @@ async function SettingsContent() {
   await connection();
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("atrium_theme")?.value === "dark" ? "dark" : "light";
   const prefs = await withUser(user.id, (tx) => tx.execute<{
     timezone: string;
     theme: string;
@@ -34,8 +37,14 @@ async function SettingsContent() {
   const pref = prefs[0];
   return (
     <div className="space-y-8">
-      <h1 className="text-4xl">Settings</h1>
+      <div>
+        <h1 className="text-4xl">Settings</h1>
+        <p className="mt-1 text-sm text-muted">Profile, appearance, and account preferences.</p>
+      </div>
+      <ThemeSettings theme={theme} />
       <form id="profile" action={settingsAction} className="max-w-xl space-y-3 rounded-lg border bg-card p-4 scroll-mt-24">
+        <h2 className="text-xl">Profile</h2>
+        <input type="hidden" name="theme" value={theme} />
         <div>
           <Label htmlFor="name">Name</Label>
           <Input id="name" name="name" defaultValue={user.name} className="mt-1" />
@@ -43,20 +52,6 @@ async function SettingsContent() {
         <div>
           <Label htmlFor="timezone">Timezone</Label>
           <Input id="timezone" name="timezone" defaultValue={pref?.timezone ?? "UTC"} className="mt-1" />
-        </div>
-        <div>
-          <Label htmlFor="theme">Theme</Label>
-          <MenuSelect
-            id="theme"
-            name="theme"
-            defaultValue={pref?.theme ?? "light"}
-            className="mt-1"
-            aria-label="Theme"
-            options={[
-              { value: "light", label: "Light" },
-              { value: "dark", label: "Dark" },
-            ]}
-          />
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
