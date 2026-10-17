@@ -9,13 +9,13 @@ export default function Page() {
       <div className="landing-gradient" aria-hidden="true" />
       <Suspense
         fallback={
-          <main className="relative z-10 mx-auto flex h-full min-h-0 max-w-3xl flex-col justify-center overflow-y-auto px-6 py-16">
+          <main className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-3xl flex-1 flex-col justify-center overflow-y-auto px-6 py-16">
             <LandingCopy />
           </main>
         }
       >
         <PageMotion>
-          <main className="relative z-10 mx-auto flex h-full min-h-0 max-w-3xl flex-col justify-center overflow-y-auto px-6 py-16">
+          <main className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-3xl flex-1 flex-col justify-center overflow-y-auto px-6 py-16">
             <LandingCopy />
           </main>
         </PageMotion>

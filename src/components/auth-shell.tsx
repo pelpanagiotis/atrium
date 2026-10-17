@@ -22,8 +22,8 @@ export function AuthShell({
           </main>
         }
       >
-        <PageMotion className="min-h-0">
-          <main className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-5xl grid-cols-1 items-center gap-10 overflow-y-auto px-6 py-12 md:grid-cols-2 md:gap-16 md:py-16">
+        <PageMotion>
+          <main className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-5xl flex-1 grid-cols-1 items-center gap-10 overflow-y-auto px-6 py-12 md:grid-cols-2 md:gap-16 md:py-16">
             <header className="max-w-md md:pr-4" data-reveal style={{ "--reveal-delay": "0ms" } as CSSProperties}>
               <AuthCopy title={title} description={description} />
             </header>

@@ -281,9 +281,18 @@ html {
 .landing-shell {
   position: relative;
   isolation: isolate;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  min-height: 0;
+  min-height: 100%;
+  min-height: 100dvh;
   overflow: hidden;
+}
+
+.landing-shell > .page-motion {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .landing-gradient {
