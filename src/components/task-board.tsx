@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ExternalLink } from "lucide-react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { updateTaskAction } from "@/app/actions";
@@ -190,6 +190,19 @@ export function TaskBoard({
     setDropIndicator(null);
   }
 
+  // Safety net: if the drag source is collapsed/reordered, still clear preview on end.
+  useEffect(() => {
+    if (!drag) return;
+    function onDragEnd() {
+      clearDrag();
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+    window.addEventListener("dragend", onDragEnd, true);
+    return () => window.removeEventListener("dragend", onDragEnd, true);
+  }, [drag]);
+
   function applyDropOrder(taskId: string, column: BoardStatus, index: number) {
     setColumnOrders((current) => {
       const next: Partial<Record<BoardStatus, string[]>> = { ...current };
@@ -282,7 +295,7 @@ export function TaskBoard({
           );
           const isOver = dropIndicator?.column === column && drag !== null;
           const insertAt = isOver ? dropIndicator.index : -1;
-          const listTasks = columnTasks.filter((task) => task.id !== drag?.taskId);
+          const visualCount = columnTasks.filter((task) => task.id !== drag?.taskId).length;
 
           function updateColumnIndicator(event: DragEvent<HTMLElement>) {
             event.preventDefault();
@@ -319,7 +332,7 @@ export function TaskBoard({
                 const list = event.currentTarget.querySelector<HTMLElement>("[data-column-list]");
                 const index = list
                   ? insertIndexFromPointer(list, event.clientY, drag?.taskId ?? null)
-                  : listTasks.length;
+                  : visualCount;
                 clearDrag();
                 if (!raw) return;
                 try {
@@ -345,12 +358,16 @@ export function TaskBoard({
                 )}
               >
                 {insertAt === 0 ? <DropInsertBar /> : null}
-                {listTasks.length === 0 && !isOver ? (
+                {visualCount === 0 && !isOver ? (
                   <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-border/80 text-xs text-muted">
                     No tasks
                   </div>
                 ) : null}
-                {listTasks.map((task, index) => {
+                {columnTasks.map((task, index) => {
+                  const isDragSource = drag?.taskId === task.id;
+                  const visualIndex = columnTasks
+                    .slice(0, index)
+                    .filter((item) => item.id !== drag?.taskId).length;
                   const isEntering = Boolean(enteringIds[task.id]);
                   const isSaving = Boolean(savingIds[task.id]);
                   return (
@@ -360,6 +377,7 @@ export function TaskBoard({
                         data-task-id={task.id}
                         draggable={!isSaving}
                         aria-busy={isSaving}
+                        aria-hidden={isDragSource || undefined}
                         onDragStart={(event) => {
                           if (isSaving || savingIdsRef.current[task.id]) {
                             event.preventDefault();
@@ -392,7 +410,7 @@ export function TaskBoard({
                             x: event.clientX,
                             y: event.clientY,
                           });
-                          setDropIndicator({ column, index });
+                          setDropIndicator({ column, index: visualIndex });
                         }}
                         onDrag={(event) => updateDragPosition(event)}
                         onDragEnd={() => {
@@ -409,6 +427,7 @@ export function TaskBoard({
                             : "cursor-grab hover:bg-accent/40 active:cursor-grabbing",
                           isEntering && "board-card-enter",
                           isSaving && "board-card-saving",
+                          isDragSource && "board-card-drag-source",
                         )}
                       >
                         <SourceLinkButton task={task} />
@@ -416,7 +435,7 @@ export function TaskBoard({
                           href={`/tasks/${task.id}`}
                           className={cn("block p-3", isSaving && "pointer-events-none")}
                           draggable={false}
-                          tabIndex={isSaving ? -1 : undefined}
+                          tabIndex={isSaving || isDragSource ? -1 : undefined}
                           onClick={(event) => {
                             if (suppressClickRef.current || isSaving) {
                               event.preventDefault();
@@ -445,7 +464,7 @@ export function TaskBoard({
                           </div>
                         ) : null}
                       </article>
-                      {insertAt === index + 1 ? <DropInsertBar /> : null}
+                      {!isDragSource && insertAt === visualIndex + 1 ? <DropInsertBar /> : null}
                     </div>
                   );
                 })}

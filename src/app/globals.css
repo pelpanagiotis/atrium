@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Match app theme (class on <html>), not OS prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f4efe6;
   --foreground: #1c1915;
@@ -416,6 +419,17 @@ html {
     0 2px 0 color-mix(in srgb, var(--border) 80%, transparent);
 }
 
+/* Keep the drag source mounted (for dragend) but out of the layout flow */
+.board-card-drag-source {
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .board-drop-placeholder {
   animation: board-card-enter 180ms ease-out both;
 }
@@ -452,6 +466,10 @@ html {
   }
 
   .board-card {
+    transition: none;
+  }
+
+  .board-card-drag-source {
     transition: none;
   }
 }
