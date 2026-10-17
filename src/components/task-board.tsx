@@ -121,16 +121,22 @@ export function TaskBoard({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, BoardStatus>>({});
+  const [versionOverrides, setVersionOverrides] = useState<Record<string, number>>({});
+  const [savingIds, setSavingIds] = useState<Record<string, true>>({});
   const [drag, setDrag] = useState<DragState | null>(null);
   const [overColumn, setOverColumn] = useState<BoardStatus | null>(null);
   const [enteringIds, setEnteringIds] = useState<Record<string, true>>({});
   const suppressClickRef = useRef(false);
   const emptyDragImageRef = useRef<HTMLCanvasElement | null>(null);
+  const savingIdsRef = useRef<Record<string, true>>({});
 
   const visibleTasks = tasks.map((task) => {
-    const override = statusOverrides[task.id];
-    if (!override || override === task.status) return task;
-    return { ...task, status: override };
+    const status = statusOverrides[task.id];
+    const version = versionOverrides[task.id];
+    let next = task;
+    if (status && status !== task.status) next = { ...next, status };
+    if (version !== undefined && version > task.version) next = { ...next, version };
+    return next;
   });
 
   const draggedTask = drag ? visibleTasks.find((task) => task.id === drag.taskId) ?? null : null;
@@ -155,7 +161,10 @@ export function TaskBoard({
 
   async function moveTask(task: BoardTask, nextStatus: BoardStatus) {
     if (task.status === nextStatus) return;
+    if (savingIdsRef.current[task.id]) return;
+    savingIdsRef.current = { ...savingIdsRef.current, [task.id]: true };
     setError(null);
+    setSavingIds((current) => ({ ...current, [task.id]: true }));
     setStatusOverrides((current) => ({ ...current, [task.id]: nextStatus }));
     setEnteringIds((current) => ({ ...current, [task.id]: true }));
     window.setTimeout(() => {
@@ -176,9 +185,11 @@ export function TaskBoard({
     data.set("silent", "1");
     try {
       await updateTaskAction(data);
+      setVersionOverrides((current) => ({ ...current, [task.id]: task.version + 1 }));
       router.refresh();
     } catch (reason: unknown) {
       if (isRedirectError(reason)) {
+        setVersionOverrides((current) => ({ ...current, [task.id]: task.version + 1 }));
         router.refresh();
         return;
       }
@@ -188,6 +199,11 @@ export function TaskBoard({
         return next;
       });
       setError(reason instanceof Error ? reason.message : "Could not move the task");
+    } finally {
+      const nextSaving = { ...savingIdsRef.current };
+      delete nextSaving[task.id];
+      savingIdsRef.current = nextSaving;
+      setSavingIds(nextSaving);
     }
   }
 
@@ -254,11 +270,17 @@ export function TaskBoard({
                 {columnTasks.map((task) => {
                   const isDragging = drag?.taskId === task.id;
                   const isEntering = Boolean(enteringIds[task.id]);
+                  const isSaving = Boolean(savingIds[task.id]);
                   return (
                     <article
                       key={task.id}
-                      draggable
+                      draggable={!isSaving}
+                      aria-busy={isSaving}
                       onDragStart={(event) => {
+                        if (isSaving || savingIdsRef.current[task.id]) {
+                          event.preventDefault();
+                          return;
+                        }
                         suppressClickRef.current = true;
                         const rect = event.currentTarget.getBoundingClientRect();
                         event.dataTransfer.effectAllowed = "move";
@@ -296,19 +318,24 @@ export function TaskBoard({
                         }, 0);
                       }}
                       className={cn(
-                        "board-card group relative cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
-                        "transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out hover:bg-accent/40",
+                        "board-card group relative rounded-md border bg-background text-sm",
+                        "transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out",
+                        isSaving
+                          ? "cursor-wait"
+                          : "cursor-grab hover:bg-accent/40 active:cursor-grabbing",
                         isDragging && "board-card-dragging opacity-35",
                         isEntering && "board-card-enter",
+                        isSaving && "board-card-saving",
                       )}
                     >
                       <SourceLinkButton task={task} />
                       <Link
                         href={`/tasks/${task.id}`}
-                        className="block p-3"
+                        className={cn("block p-3", isSaving && "pointer-events-none")}
                         draggable={false}
+                        tabIndex={isSaving ? -1 : undefined}
                         onClick={(event) => {
-                          if (suppressClickRef.current) {
+                          if (suppressClickRef.current || isSaving) {
                             event.preventDefault();
                             event.stopPropagation();
                           }
@@ -324,6 +351,16 @@ export function TaskBoard({
                           status={task.status}
                         />
                       </div>
+                      {isSaving ? (
+                        <div
+                          className="absolute inset-0 z-20 flex items-center justify-center rounded-[inherit] bg-background/65 backdrop-blur-[1px]"
+                          aria-hidden="true"
+                        >
+                          <span className="rounded-md border border-border bg-card px-2 py-1 text-xs text-muted">
+                            Saving…
+                          </span>
+                        </div>
+                      ) : null}
                     </article>
                   );
                 })}
