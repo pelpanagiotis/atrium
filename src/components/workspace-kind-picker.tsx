@@ -29,7 +29,7 @@ export function WorkspaceKindPicker({
   id,
   name = "kind",
   defaultValue = "work",
-  label = "Type",
+  label = "Context",
 }: {
   id: string;
   name?: string;

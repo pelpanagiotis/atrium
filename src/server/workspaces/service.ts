@@ -112,6 +112,26 @@ export async function updateWorkspace(
   });
 }
 
+export async function updateWorkspaceKind(
+  userId: string,
+  workspaceId: string,
+  kind: "personal" | "work",
+): Promise<void> {
+  if (kind !== "personal" && kind !== "work") {
+    throw new Error("Workspace context must be personal or work");
+  }
+  await withUser(userId, async (tx) => {
+    await requireAction(tx, workspaceId, "workspace.update");
+    const updated = await tx.execute(sql`
+      update workspaces
+      set kind = ${kind}, updated_at = now()
+      where id = ${workspaceId}::uuid
+      returning id
+    `);
+    if (!updated[0]) throw new Error("Workspace not found");
+  });
+}
+
 export async function listMembers(userId: string, workspaceId: string) {
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");

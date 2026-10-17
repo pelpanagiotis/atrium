@@ -45,7 +45,9 @@ export function EditWorkspaceDialog({
       <DialogContent className="w-[min(100%-2rem,32rem)]">
         <DialogHeader>
           <DialogTitle>Edit workspace</DialogTitle>
-          <DialogDescription>Update the name, type, and icon for {workspace.name}.</DialogDescription>
+          <DialogDescription>
+            Update the name, context (personal or work), and icon for {workspace.name}.
+          </DialogDescription>
         </DialogHeader>
         <form action={updateWorkspaceAction} className="space-y-4" id={formId}>
           <input type="hidden" name="workspaceId" value={workspace.id} />
@@ -55,8 +57,10 @@ export function EditWorkspaceDialog({
               <Input id={`${formId}-name`} name="name" defaultValue={workspace.name} required />
             </div>
             <WorkspaceKindPicker
+              key={workspace.kind}
               id={`${formId}-kind`}
               defaultValue={workspace.kind}
+              label="Context"
             />
           </div>
           <WorkspaceIconPicker defaultValue={workspace.icon} id={`${formId}-icon`} />

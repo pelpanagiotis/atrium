@@ -8,7 +8,16 @@ import { z } from "zod";
 import { auth } from "@/server/auth/auth";
 import { getSessionUser } from "@/server/auth/session";
 import { allowRequest } from "@/server/rate-limit";
-import { ensurePersonalWorkspace, createWorkspace, inviteMember, acceptInvitation, setMemberRole, removeMember, updateWorkspace } from "@/server/workspaces/service";
+import {
+  ensurePersonalWorkspace,
+  createWorkspace,
+  inviteMember,
+  acceptInvitation,
+  setMemberRole,
+  removeMember,
+  updateWorkspace,
+  updateWorkspaceKind,
+} from "@/server/workspaces/service";
 import { archiveProject, createMilestone, createNativeProject, updateProject } from "@/server/projects/service";
 import { addTaskComment } from "@/server/tasks/comments";
 import { bulkUpdateTasks, createTask, updateTask } from "@/server/tasks/service";
@@ -136,6 +145,16 @@ export async function updateWorkspaceAction(formData: FormData): Promise<void> {
     icon: String(formData.get("icon") ?? ""),
   });
   redirect("/workspaces");
+}
+
+export async function updateWorkspaceKindAction(formData: FormData): Promise<void> {
+  await updateWorkspaceKind(
+    await userId(),
+    String(formData.get("workspaceId")),
+    String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
+  );
+  revalidatePath("/workspaces");
+  revalidatePath("/", "layout");
 }
 
 export async function inviteAction(_state: ActionState, formData: FormData): Promise<ActionState> {

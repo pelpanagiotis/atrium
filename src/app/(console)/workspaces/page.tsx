@@ -6,6 +6,7 @@ import { inviteAction, removeMemberAction, roleAction } from "@/app/actions";
 import { CreateWorkspaceForm } from "@/components/create-workspace-form";
 import { EditWorkspaceDialog } from "@/components/edit-workspace-dialog";
 import { InviteForm } from "@/components/invite-form";
+import { WorkspaceContextControl } from "@/components/workspace-context-control";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
 import { MenuSelect } from "@/components/ui/menu-select";
@@ -36,7 +37,9 @@ async function WorkspacesContent() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-4xl">Workspaces</h1>
-          <p className="mt-1 text-sm text-muted">Personal and work contexts are isolated. A person only sees a workspace they belong to.</p>
+          <p className="mt-1 text-sm text-muted">
+            Personal and work contexts are isolated. Change a workspace context anytime from its card or the edit dialog.
+          </p>
         </div>
         <CreateWorkspaceForm />
       </div>
@@ -48,7 +51,11 @@ async function WorkspacesContent() {
               <div className="flex items-start gap-3">
                 <WorkspaceIconBadge icon={workspace.icon} kind={workspace.kind} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted">{workspace.kind}</p>
+                  <WorkspaceContextControl
+                    workspaceId={workspace.id}
+                    kind={workspace.kind}
+                    canEdit={canEdit}
+                  />
                   <p className="text-lg font-medium">{workspace.name}</p>
                   <p className="text-sm text-muted">Your role: {workspace.role}</p>
                 </div>
