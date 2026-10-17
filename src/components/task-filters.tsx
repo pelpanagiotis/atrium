@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { Check, ChevronDown, CircleDashed, FolderKanban, Layers, Search } from "lucide-react";
+import { Check, ChevronDown, CircleDashed, Layers, Search } from "lucide-react";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import {
@@ -34,6 +34,16 @@ type PickerOption = {
   icon: ReactNode;
 };
 
+export function parseFilterList(raw?: string | null): string[] {
+  if (!raw?.trim()) return [];
+  return [...new Set(raw.split(",").map((part) => part.trim()).filter(Boolean))];
+}
+
+export function serializeFilterList(values: string[]): string | undefined {
+  const unique = [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+  return unique.length > 0 ? unique.join(",") : undefined;
+}
+
 export function buildTasksHref(values: FilterValues): string {
   const params = new URLSearchParams();
   if (values.view) params.set("view", values.view);
@@ -49,7 +59,6 @@ export function buildTasksHref(values: FilterValues): string {
 }
 
 const STATUS_OPTIONS: PickerOption[] = [
-  { value: "", label: "Any status", icon: <Layers className="size-4 text-muted" aria-hidden="true" /> },
   { value: "open", label: "Open", icon: <StatusIcon status="open" /> },
   { value: "in_progress", label: "In progress", icon: <StatusIcon status="in_progress" /> },
   { value: "blocked", label: "Blocked", icon: <StatusIcon status="blocked" /> },
@@ -58,7 +67,6 @@ const STATUS_OPTIONS: PickerOption[] = [
 ];
 
 const PRIORITY_OPTIONS: PickerOption[] = [
-  { value: "", label: "Any priority", icon: <Layers className="size-4 text-muted" aria-hidden="true" /> },
   { value: "attention", label: "Needs attention", icon: <PriorityIcon priority="attention" /> },
   { value: "urgent", label: "Urgent", icon: <PriorityIcon priority="urgent" /> },
   { value: "high", label: "High", icon: <PriorityIcon priority="high" /> },
@@ -67,7 +75,6 @@ const PRIORITY_OPTIONS: PickerOption[] = [
 ];
 
 const SOURCE_OPTIONS: PickerOption[] = [
-  { value: "", label: "Any source", icon: <Layers className="size-4 text-muted" aria-hidden="true" /> },
   { value: "atrium", label: "Atrium", icon: <ProviderIcon provider="native" /> },
   { value: "linear", label: providerLabel("linear"), icon: <ProviderIcon provider="linear" /> },
   { value: "jira", label: providerLabel("jira"), icon: <ProviderIcon provider="jira" /> },
@@ -76,19 +83,42 @@ const SOURCE_OPTIONS: PickerOption[] = [
   { value: "gitea", label: providerLabel("gitea"), icon: <ProviderIcon provider="gitea" /> },
 ];
 
-function FilterPicker({
+function MultiFilterPicker({
   label,
-  value,
+  emptyLabel,
+  values,
   options,
   onChange,
+  noun,
 }: {
   label: string;
-  value: string;
+  emptyLabel: string;
+  values: string[];
   options: PickerOption[];
-  onChange: (value: string) => void;
+  onChange: (values: string[]) => void;
+  noun: string;
 }) {
-  const selected = options.find((option) => option.value === value) ?? options[0]!;
   const menu = useHoverMenu();
+  const selected = options.filter((option) => values.includes(option.value));
+  const summary =
+    selected.length === 0
+      ? emptyLabel
+      : selected.length === 1
+        ? selected[0]!.label
+        : `${selected.length} ${noun}`;
+
+  function toggle(value: string) {
+    if (!value) {
+      onChange([]);
+      return;
+    }
+    if (values.includes(value)) {
+      onChange(values.filter((item) => item !== value));
+      return;
+    }
+    onChange([...values, value]);
+  }
+
   return (
     <DropdownMenu open={menu.open} onOpenChange={menu.onOpenChange} modal={false}>
       <DropdownMenuTrigger
@@ -100,8 +130,27 @@ function FilterPicker({
         )}
         {...menu.triggerProps}
       >
-        <span className="inline-flex shrink-0 items-center justify-center">{selected.icon}</span>
-        <span className="min-w-0 flex-1 truncate">{selected.label}</span>
+        <span className="inline-flex min-w-0 flex-1 items-center gap-2">
+          {selected.length === 0 ? (
+            <Layers className="size-4 shrink-0 text-muted" aria-hidden="true" />
+          ) : (
+            <span className="inline-flex items-center" aria-hidden="true">
+              {selected.map((option, index) => (
+                <span
+                  key={option.value}
+                  className={cn(
+                    "inline-flex size-6 items-center justify-center rounded-full bg-card ring-2 ring-card",
+                    index > 0 && "-ml-1.5",
+                  )}
+                  style={{ zIndex: selected.length - index }}
+                >
+                  {option.icon}
+                </span>
+              ))}
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate">{summary}</span>
+        </span>
         <ChevronDown className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -111,12 +160,29 @@ function FilterPicker({
       >
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault();
+            onChange([]);
+          }}
+          className={cn(selected.length === 0 && "bg-accent")}
+        >
+          <span className="inline-flex size-5 shrink-0 items-center justify-center">
+            <Layers className="size-4 text-muted" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1 truncate">{emptyLabel}</span>
+          {selected.length === 0 ? <Check className="size-3.5 shrink-0 text-foreground" aria-hidden="true" /> : null}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         {options.map((option) => {
-          const active = option.value === value;
+          const active = values.includes(option.value);
           return (
             <DropdownMenuItem
-              key={option.value || "any"}
-              onSelect={() => onChange(option.value)}
+              key={option.value}
+              onSelect={(event) => {
+                event.preventDefault();
+                toggle(option.value);
+              }}
               className={cn(active && "bg-accent")}
             >
               <span className="inline-flex size-5 shrink-0 items-center justify-center">{option.icon}</span>
@@ -246,28 +312,25 @@ export function TaskFilters({
   pending?: boolean;
   onNavigate: (href: string) => void;
 }) {
-  const status = values.status ?? "";
-  const priority = values.priority ?? "";
-  const project = values.project ?? "";
-  const source = values.source ?? "";
+  const statuses = parseFilterList(values.status);
+  const priorities = parseFilterList(values.priority);
+  const selectedProjects = parseFilterList(values.project);
+  const sources = parseFilterList(values.source);
 
-  const projectOptions: PickerOption[] = [
-    { value: "", label: "Any project", icon: <FolderKanban className="size-4 text-muted" aria-hidden="true" /> },
-    ...projects.map((item) => ({
-      value: item.id,
-      label: item.name,
-      icon: <CircleDashed className="size-4 text-teal-600" aria-hidden="true" />,
-    })),
-  ];
+  const projectOptions: PickerOption[] = projects.map((item) => ({
+    value: item.id,
+    label: item.name,
+    icon: <CircleDashed className="size-4 text-teal-600" aria-hidden="true" />,
+  }));
 
   function navigate(next: Partial<FilterValues>) {
     onNavigate(
       buildTasksHref({
         ...values,
-        status,
-        priority,
-        project,
-        source,
+        status: serializeFilterList(statuses),
+        priority: serializeFilterList(priorities),
+        project: serializeFilterList(selectedProjects),
+        source: serializeFilterList(sources),
         ...next,
       }),
     );
@@ -284,10 +347,38 @@ export function TaskFilters({
         onNavigate={onNavigate}
         className="sm:col-span-2 lg:col-span-1"
       />
-      <FilterPicker label="Status" value={status} options={STATUS_OPTIONS} onChange={(value) => navigate({ status: value })} />
-      <FilterPicker label="Priority" value={priority} options={PRIORITY_OPTIONS} onChange={(value) => navigate({ priority: value })} />
-      <FilterPicker label="Project" value={project} options={projectOptions} onChange={(value) => navigate({ project: value })} />
-      <FilterPicker label="Source" value={source} options={SOURCE_OPTIONS} onChange={(value) => navigate({ source: value })} />
+      <MultiFilterPicker
+        label="Status"
+        emptyLabel="Any status"
+        noun="statuses"
+        values={statuses}
+        options={STATUS_OPTIONS}
+        onChange={(next) => navigate({ status: serializeFilterList(next) })}
+      />
+      <MultiFilterPicker
+        label="Priority"
+        emptyLabel="Any priority"
+        noun="priorities"
+        values={priorities}
+        options={PRIORITY_OPTIONS}
+        onChange={(next) => navigate({ priority: serializeFilterList(next) })}
+      />
+      <MultiFilterPicker
+        label="Project"
+        emptyLabel="Any project"
+        noun="projects"
+        values={selectedProjects}
+        options={projectOptions}
+        onChange={(next) => navigate({ project: serializeFilterList(next) })}
+      />
+      <MultiFilterPicker
+        label="Source"
+        emptyLabel="Any source"
+        noun="sources"
+        values={sources}
+        options={SOURCE_OPTIONS}
+        onChange={(next) => navigate({ source: serializeFilterList(next) })}
+      />
     </div>
   );
 }

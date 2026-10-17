@@ -3,9 +3,17 @@ import { sql } from "drizzle-orm";
 import { writeAudit } from "../audit";
 import { requireAction } from "../authz/membership";
 import { withUser, type Tx } from "../db/client";
+import { textArray } from "../db/sql";
 import { getAdapter } from "../integrations/registry";
 import type { ProviderId, TaskPriority, TaskStatus } from "../integrations/types";
 import type { CanonicalField } from "../sync/fingerprint";
+
+const TASK_PROVIDER_SOURCES = new Set(["linear", "jira", "github", "gitlab", "gitea", "fake"]);
+
+function parseFilterList(raw?: string | null): string[] {
+  if (!raw?.trim()) return [];
+  return [...new Set(raw.split(",").map((part) => part.trim()).filter(Boolean))];
+}
 
 export type TaskRecord = {
   id: string;
@@ -209,18 +217,26 @@ export async function listTasks(
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     const query = filter.query?.trim() ?? "";
-    const status = filter.status?.trim() ?? "";
-    const priority = filter.priority?.trim() ?? "";
     const assignee = filter.assignee?.trim() ?? "";
-    const projectId = filter.projectId?.trim() || null;
     const dueBefore = filter.dueBefore?.trim() || null;
     const dueAfter = filter.dueAfter?.trim() || null;
-    const source = filter.source?.trim() ?? "";
-    const atriumOnly = source === "atrium" || source === "native";
-    const providerSource =
-      source === "linear" || source === "jira" || source === "github" || source === "gitlab" || source === "gitea" || source === "fake"
-        ? source
-        : "";
+    const statuses = parseFilterList(filter.status);
+    const priorities = [
+      ...new Set(
+        parseFilterList(filter.priority).flatMap((priority) =>
+          priority === "attention" ? (["urgent", "high"] as const) : [priority],
+        ),
+      ),
+    ];
+    // Prefer explicit multi project list; keep single projectId for callers that still pass it alone.
+    const projectIds = parseFilterList(filter.projectId);
+    const sources = parseFilterList(filter.source);
+    const wantAtrium = sources.some((source) => source === "atrium" || source === "native");
+    const providerSources = sources.filter((source) => TASK_PROVIDER_SOURCES.has(source));
+    const statusFilter = textArray(statuses);
+    const priorityFilter = textArray(priorities);
+    const projectFilter = textArray(projectIds);
+    const providerFilter = textArray(providerSources);
     return tx.execute<TaskRecord>(sql`
       select t.id, t.workspace_id, t.project_id,
              coalesce(nullif(btrim(p.nickname), ''), p.name) as project_name,
@@ -233,21 +249,31 @@ export async function listTasks(
       left join "user" u on u.id = t.assignee_user_id
       where t.workspace_id = ${workspaceId}::uuid
         and (${filter.includeDeleted ?? false} or t.deleted_at is null)
-        and (${projectId}::uuid is null or t.project_id = ${projectId}::uuid)
-        and (${status} = '' or t.status = ${status})
         and (
-          ${priority} = ''
-          or (${priority} = 'attention' and t.priority in ('urgent', 'high'))
-          or t.priority = ${priority}
+          cardinality(${projectFilter}) = 0
+          or t.project_id = any(${projectFilter}::uuid[])
+        )
+        and (
+          cardinality(${statusFilter}) = 0
+          or t.status = any(${statusFilter})
+        )
+        and (
+          cardinality(${priorityFilter}) = 0
+          or t.priority = any(${priorityFilter})
         )
         and (${assignee} = '' or t.assignee_user_id = ${assignee})
         and (${query} = '' or t.title ilike ${"%" + query + "%"} or t.description ilike ${"%" + query + "%"})
         and (${dueBefore}::timestamptz is null or t.due_at <= ${dueBefore}::timestamptz)
         and (${dueAfter}::timestamptz is null or t.due_at >= ${dueAfter}::timestamptz)
         and (
-          ${source} = ''
-          or (${atriumOnly ? "atrium" : ""} = 'atrium' and t.provider is null)
-          or (${providerSource} <> '' and t.provider = ${providerSource})
+          ${sources.length === 0}
+          or (
+            (${wantAtrium} and t.provider is null)
+            or (
+              cardinality(${providerFilter}) > 0
+              and t.provider = any(${providerFilter})
+            )
+          )
         )
       order by
         case t.priority when 'urgent' then 0 when 'high' then 1 when 'medium' then 2 when 'low' then 3 else 4 end,
