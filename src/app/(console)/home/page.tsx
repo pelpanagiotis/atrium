@@ -67,7 +67,7 @@ async function HomeContent({
             <h1 className="text-4xl">{current.name}</h1>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Workspace dashboard — open counts jump into filtered task lists, calendar, projects, and sync.
+            Workspace dashboard — open counts jump into filtered task lists, schedule, projects, and sync.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -83,7 +83,7 @@ async function HomeContent({
                 label: "Board",
                 icon: "Columns3",
               },
-              { href: "/calendar", label: "Calendar", icon: "CalendarDays" },
+              { href: "/schedule", label: "Schedule", icon: "CalendarRange" },
               { href: projectsHref, label: "Projects", icon: "FolderKanban" },
               { href: "/integrations", label: "Integrations", icon: "Plug" },
               { href: "/sync", label: "Sync", icon: "RefreshCw" },
@@ -158,8 +158,8 @@ async function HomeContent({
         <Panel
           title="Due this week"
           href={dueSoonHref}
-          secondaryHref="/calendar"
-          secondaryLabel="Calendar"
+          secondaryHref="/schedule"
+          secondaryLabel="Schedule"
           empty="No deadlines in the next seven days."
           count={feed.stats.dueSoon}
         >

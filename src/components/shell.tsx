@@ -60,7 +60,7 @@ export function Shell({
               ["Home", "/home"],
               ["Projects", "/projects"],
               ["Tasks", "/tasks"],
-              ["Calendar", "/calendar"],
+              ["Schedule", "/schedule"],
               ["Chats", "/chats"],
             ].map(([label, href]) => (
               <Link key={href} href={href}>{label}</Link>

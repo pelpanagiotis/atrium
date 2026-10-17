@@ -16,7 +16,7 @@ export function AuthShell({
       <div className="landing-gradient" aria-hidden="true" />
       <Suspense
         fallback={
-          <main className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-5xl grid-cols-1 items-center gap-10 overflow-y-auto px-6 py-12 md:grid-cols-2 md:gap-16 md:py-16">
+          <main className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-5xl flex-1 grid-cols-1 items-center gap-10 overflow-y-auto px-6 py-12 md:grid-cols-2 md:gap-16 md:py-16">
             <AuthCopy title={title} description={description} />
             <div className="w-full max-w-md md:justify-self-end">{children}</div>
           </main>

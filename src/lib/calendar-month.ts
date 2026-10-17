@@ -14,6 +14,20 @@ export function parseMonthKey(monthKey: string): { year: number; monthIndex: num
   return { year: year!, monthIndex: (month ?? 1) - 1 };
 }
 
-export function calendarMonthHref(monthKey: string, currentKey: string): string {
-  return monthKey === currentKey ? "/calendar" : `/calendar?month=${monthKey}`;
+export type CalendarView = "month" | "timeline";
+
+export function parseCalendarView(value: string | undefined | null): CalendarView {
+  return value === "timeline" ? "timeline" : "month";
+}
+
+export function calendarMonthHref(
+  monthKey: string,
+  currentKey: string,
+  view: CalendarView = "month",
+): string {
+  const params = new URLSearchParams();
+  if (monthKey !== currentKey) params.set("month", monthKey);
+  if (view === "timeline") params.set("view", "timeline");
+  const query = params.toString();
+  return query ? `/schedule?${query}` : "/schedule";
 }

@@ -240,13 +240,14 @@ export async function calendarTasks(userId: string, workspaceId: string, start: 
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
     return tx.execute(sql`
-      select t.id, t.title, t.due_at, t.status, t.priority, t.provider, p.name as project_name
+      select t.id, t.title, t.due_at, t.created_at, t.status, t.priority, t.provider,
+             p.id as project_id, p.name as project_name, p.nickname as project_nickname
       from tasks t join projects p on p.id = t.project_id
       where t.workspace_id = ${workspaceId}::uuid
         and t.deleted_at is null
         and t.due_at >= ${new Date(start).toISOString()}
         and t.due_at < ${new Date(end).toISOString()}
-      order by t.due_at
+      order by p.name, t.due_at
     `);
   });
 }

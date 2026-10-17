@@ -115,7 +115,7 @@ const tones: Record<string, string> = {
   github: "bg-white text-[#24292f] ring-1 ring-black/15 dark:bg-[#24292f] dark:text-white dark:ring-white/15",
   gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
   gitea: "bg-[#609926]/15 text-[#609926] ring-1 ring-[#609926]/35",
-  slack: "bg-[#E01E5A]/10 text-[#E01E5A] ring-1 ring-[#E01E5A]/30",
+  slack: "bg-white ring-1 ring-black/10 dark:bg-white/10 dark:ring-white/15",
   fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-400/30",
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-100 dark:ring-emerald-400/30",
 };
@@ -151,9 +151,9 @@ export const providerAccents: Record<
     ink: "text-[#609926] dark:text-[#9ccc5a]",
   },
   slack: {
-    bar: "bg-[#E01E5A]",
-    wash: "bg-[#E01E5A]/10 dark:bg-[#E01E5A]/18",
-    ink: "text-[#E01E5A] dark:text-[#f0719a]",
+    bar: "bg-[#4A154B]",
+    wash: "bg-[#4A154B]/10 dark:bg-[#4A154B]/25",
+    ink: "text-[#4A154B] dark:text-[#d2a8d8]",
   },
   fake: {
     bar: "bg-amber-600",

@@ -11,6 +11,7 @@ import {
   parseMonthKey,
   shiftMonthKey,
   toMonthKey,
+  type CalendarView,
 } from "@/lib/calendar-month";
 import { cn } from "@/lib/utils";
 
@@ -47,9 +48,11 @@ const MONTH_SHORT = [
 export function CalendarMonthNav({
   monthKey,
   label,
+  view = "month",
 }: {
   monthKey: string;
   label: string;
+  view?: CalendarView;
 }) {
   const router = useRouter();
   const menu = useHoverMenu();
@@ -61,7 +64,7 @@ export function CalendarMonthNav({
 
   function goTo(nextKey: string) {
     menu.onOpenChange(false);
-    router.push(calendarMonthHref(nextKey, todayKey));
+    router.push(calendarMonthHref(nextKey, todayKey, view));
   }
 
   function openPicker(open: boolean) {

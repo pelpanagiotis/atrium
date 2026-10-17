@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  CalendarDays,
+  CalendarRange,
   ChevronDown,
   Columns3,
   FolderKanban,
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const ICONS = {
   ListTodo,
   Columns3,
-  CalendarDays,
+  CalendarRange,
   FolderKanban,
   Plug,
   RefreshCw,

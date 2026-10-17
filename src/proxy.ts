@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const protectedPath = ["/home", "/projects", "/tasks", "/calendar", "/integrations", "/sync", "/workspaces", "/settings", "/audit"].some(
+  const protectedPath = ["/home", "/projects", "/tasks", "/calendar", "/schedule", "/integrations", "/sync", "/workspaces", "/settings", "/audit"].some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
   if (!protectedPath) return NextResponse.next();
@@ -16,5 +16,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/home/:path*", "/projects/:path*", "/tasks/:path*", "/calendar/:path*", "/integrations/:path*", "/sync/:path*", "/workspaces/:path*", "/settings/:path*", "/audit/:path*", "/home", "/projects", "/tasks", "/calendar", "/integrations", "/sync", "/workspaces", "/settings", "/audit"],
+  matcher: ["/home/:path*", "/projects/:path*", "/tasks/:path*", "/calendar/:path*", "/schedule/:path*", "/integrations/:path*", "/sync/:path*", "/workspaces/:path*", "/settings/:path*", "/audit/:path*", "/home", "/projects", "/tasks", "/calendar", "/schedule", "/integrations", "/sync", "/workspaces", "/settings", "/audit"],
 };

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import {
   Building2,
-  CalendarDays,
+  CalendarRange,
   Check,
   FolderKanban,
   GripVertical,
@@ -30,7 +30,7 @@ const LINKS: Array<{ label: string; href: string; icon: LucideIcon }> = [
   { label: "Home", href: "/home", icon: Home },
   { label: "Projects", href: "/projects", icon: FolderKanban },
   { label: "Tasks", href: "/tasks", icon: ListTodo },
-  { label: "Calendar", href: "/calendar", icon: CalendarDays },
+  { label: "Schedule", href: "/schedule", icon: CalendarRange },
   { label: "Chats", href: "/chats", icon: MessagesSquare },
   { label: "Integrations", href: "/integrations", icon: Plug },
   { label: "Sync", href: "/sync", icon: RefreshCw },
@@ -55,7 +55,11 @@ export function parseSidebarOrder(raw?: string | null): string[] {
   if (!value.trim()) return [...DEFAULT_ORDER];
   const parsed = value
     .split(",")
-    .map((part) => part.trim())
+    .map((part) => {
+      const href = part.trim();
+      // Migrate former Calendar nav entries to Schedule.
+      return href === "/calendar" ? "/schedule" : href;
+    })
     .filter((href) => known.has(href));
   const unique = [...new Set(parsed)];
   return unique.length > 0 ? unique : [...DEFAULT_ORDER];
