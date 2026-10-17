@@ -464,6 +464,7 @@ export async function themeAction(formData: FormData): Promise<void> {
         updated_at = now()
     `);
   });
+  revalidatePath("/", "layout");
 }
 
 export async function paletteAction(formData: FormData): Promise<void> {
@@ -486,6 +487,7 @@ export async function paletteAction(formData: FormData): Promise<void> {
         updated_at = now()
     `);
   });
+  revalidatePath("/", "layout");
 }
 
 export async function passwordAction(_state: ActionState, formData: FormData): Promise<ActionState> {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Check, Moon, Sun } from "lucide-react";
 import { paletteAction, themeAction } from "@/app/actions";
+import { applyDocumentTheme } from "@/lib/apply-theme";
 import { COLOR_PALETTES, type ColorPaletteId, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +32,19 @@ export function ThemeSettings({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [mode, setMode] = useState(theme);
+  const [activePalette, setActivePalette] = useState(palette);
+
+  useEffect(() => {
+    setMode(theme);
+    setActivePalette(palette);
+    applyDocumentTheme(theme, palette);
+  }, [theme, palette]);
 
   function setTheme(next: ThemeMode) {
-    if (next === theme || pending) return;
+    if (next === mode || pending) return;
+    setMode(next);
+    applyDocumentTheme(next, activePalette);
     const formData = new FormData();
     formData.set("theme", next);
     startTransition(async () => {
@@ -43,7 +54,9 @@ export function ThemeSettings({
   }
 
   function setPalette(next: ColorPaletteId) {
-    if (next === palette || pending) return;
+    if (next === activePalette || pending) return;
+    setActivePalette(next);
+    applyDocumentTheme(mode, next);
     const formData = new FormData();
     formData.set("palette", next);
     startTransition(async () => {
@@ -63,7 +76,7 @@ export function ThemeSettings({
         <h3 className="text-sm font-medium">Color palette</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5" role="radiogroup" aria-label="Color palette">
           {COLOR_PALETTES.map((option) => {
-            const active = palette === option.id;
+            const active = activePalette === option.id;
             return (
               <button
                 key={option.id}
@@ -106,8 +119,8 @@ export function ThemeSettings({
         <div className="mt-3 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Color mode">
           {MODE_OPTIONS.map((option) => {
             const Icon = option.icon;
-            const active = theme === option.value;
-            const swatch = COLOR_PALETTES.find((item) => item.id === palette)?.swatches;
+            const active = mode === option.value;
+            const swatch = COLOR_PALETTES.find((item) => item.id === activePalette)?.swatches;
             return (
               <button
                 key={option.value}

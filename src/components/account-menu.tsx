@@ -13,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { applyDocumentTheme } from "@/lib/apply-theme";
+import { parseColorPalette, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export function AccountMenu({
@@ -20,13 +22,15 @@ export function AccountMenu({
   theme,
 }: {
   user: { name: string; email: string };
-  theme: "light" | "dark";
+  theme: ThemeMode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function setTheme(next: "light" | "dark") {
+  function setTheme(next: ThemeMode) {
     if (next === theme || pending) return;
+    const palette = parseColorPalette(document.documentElement.dataset.palette);
+    applyDocumentTheme(next, palette);
     const formData = new FormData();
     formData.set("theme", next);
     startTransition(async () => {

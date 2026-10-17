@@ -3,7 +3,15 @@
 /* Match app theme (class on <html>), not OS prefers-color-scheme */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root,
+:root {
+  --scrollbar-size: 8px;
+  --scrollbar-track: color-mix(in srgb, var(--border) 55%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--muted) 55%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--foreground) 35%, var(--muted));
+}
+
+/* Default palette when data-palette is missing (first paint / SSR). */
+:root:not([data-palette]),
 html[data-palette="grove"] {
   --background: #f4efe6;
   --foreground: #1c1915;
@@ -20,13 +28,9 @@ html[data-palette="grove"] {
   --ring: #1f6b4a;
   --sidebar: #1c1915;
   --sidebar-foreground: #f6f1e8;
-  --scrollbar-size: 8px;
-  --scrollbar-track: color-mix(in srgb, var(--border) 55%, transparent);
-  --scrollbar-thumb: color-mix(in srgb, var(--muted) 55%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--foreground) 35%, var(--muted));
 }
 
-.dark,
+html.dark:not([data-palette]),
 html.dark[data-palette="grove"] {
   --background: #141210;
   --foreground: #f6f1e8;
