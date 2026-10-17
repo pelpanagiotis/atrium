@@ -463,7 +463,7 @@ export function ProjectsBoard({
 
       <div
         data-layout-list={editing ? "section" : undefined}
-        className={cn(editing && "flex flex-col gap-8")}
+        className="flex flex-col gap-8"
       >
         {editing && sectionInsertAt === 0 ? <DropInsertBar /> : null}
         {visibleSections.map((section, sectionIndex) => {
