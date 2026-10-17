@@ -32,36 +32,37 @@ export function ThemeSettings({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [mode, setMode] = useState(theme);
-  const [activePalette, setActivePalette] = useState(palette);
+  const [draft, setDraft] = useState<{ theme: ThemeMode; palette: ColorPaletteId } | null>(null);
+  const mode = draft?.theme ?? theme;
+  const activePalette = draft?.palette ?? palette;
 
   useEffect(() => {
-    setMode(theme);
-    setActivePalette(palette);
     applyDocumentTheme(theme, palette);
   }, [theme, palette]);
 
   function setTheme(next: ThemeMode) {
     if (next === mode || pending) return;
-    setMode(next);
+    setDraft({ theme: next, palette: activePalette });
     applyDocumentTheme(next, activePalette);
     const formData = new FormData();
     formData.set("theme", next);
     startTransition(async () => {
       await themeAction(formData);
       router.refresh();
+      setDraft(null);
     });
   }
 
   function setPalette(next: ColorPaletteId) {
     if (next === activePalette || pending) return;
-    setActivePalette(next);
+    setDraft({ theme: mode, palette: next });
     applyDocumentTheme(mode, next);
     const formData = new FormData();
     formData.set("palette", next);
     startTransition(async () => {
       await paletteAction(formData);
       router.refresh();
+      setDraft(null);
     });
   }
 
