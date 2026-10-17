@@ -41,22 +41,57 @@ function collectBlocks(root: HTMLElement): HTMLElement[] {
   return direct;
 }
 
+const ROW_TOLERANCE_PX = 16;
+const ROW_STAGGER_MS = 90;
+
+function isWholeView(block: HTMLElement) {
+  return (
+    block.hasAttribute("data-reveal-whole") ||
+    Boolean(block.querySelector(":scope .grid-cols-7"))
+  );
+}
+
+function groupByLayoutRow(items: HTMLElement[]): HTMLElement[][] {
+  const rows: { top: number; items: HTMLElement[] }[] = [];
+  const sorted = [...items].sort((a, b) => {
+    const aBox = a.getBoundingClientRect();
+    const bBox = b.getBoundingClientRect();
+    const dy = aBox.top - bBox.top;
+    if (Math.abs(dy) > ROW_TOLERANCE_PX) return dy;
+    return aBox.left - bBox.left;
+  });
+
+  for (const item of sorted) {
+    const top = item.getBoundingClientRect().top;
+    const row = rows.find((candidate) => Math.abs(candidate.top - top) <= ROW_TOLERANCE_PX);
+    if (row) row.items.push(item);
+    else rows.push({ top, items: [item] });
+  }
+
+  return rows.map((row) => row.items);
+}
+
 function markChildItems(block: HTMLElement, parentDelayMs = 0): number {
+  if (isWholeView(block)) return 0;
+
   const items = Array.from(block.querySelectorAll(CHILD_ITEM_SELECTOR)).filter(
     (el): el is HTMLElement =>
       el instanceof HTMLElement &&
       !el.hasAttribute("data-reveal") &&
       !el.hasAttribute("data-reveal-child") &&
-      !el.closest("[data-no-reveal], .board-card, .board-drag-preview, .board-drop-bar"),
+      !el.closest("[data-no-reveal], [data-reveal-whole], .grid-cols-7, .board-card, .board-drag-preview, .board-drop-bar"),
   );
-  const marked = items.slice(0, 24);
-  marked.forEach((item, index) => {
-    item.setAttribute("data-reveal-child", "");
-    // Each tile slides in after the previous — ~75ms apart
-    const delay = parentDelayMs + Math.min(index, 18) * 75;
-    item.style.setProperty("--reveal-delay", `${delay}ms`);
+  const rows = groupByLayoutRow(items).slice(0, 8);
+  let marked = 0;
+  rows.forEach((row, rowIndex) => {
+    const delay = parentDelayMs + rowIndex * ROW_STAGGER_MS;
+    for (const item of row.slice(0, 12)) {
+      item.setAttribute("data-reveal-child", "");
+      item.style.setProperty("--reveal-delay", `${delay}ms`);
+      marked += 1;
+    }
   });
-  return marked.length;
+  return marked;
 }
 
 function reveal(el: HTMLElement) {
@@ -81,12 +116,27 @@ function prepareAndObserve(root: HTMLElement) {
 
   let tileCursor = 0;
   blocks.forEach((block, index) => {
-    const sectionDelay = Math.min(index, 12) * 90;
-    const tileCount = markChildItems(block, Math.max(sectionDelay, tileCursor));
+    const sectionDelay = Math.max(Math.min(index, 12) * 100, tileCursor);
+
+    if (isWholeView(block)) {
+      block.setAttribute("data-reveal", "");
+      if (!block.style.getPropertyValue("--reveal-delay")) {
+        block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
+      }
+      tileCursor = sectionDelay + ROW_STAGGER_MS;
+      return;
+    }
+
+    const tileCount = markChildItems(block, sectionDelay);
 
     if (tileCount >= 2) {
-      // Animate tiles individually; keep the wrapper visible so stagger reads clearly
-      tileCursor = Math.max(sectionDelay, tileCursor) + tileCount * 75 + 40;
+      // Rows share a delay; advance past the last row in this block.
+      const rowCount = new Set(
+        Array.from(block.querySelectorAll<HTMLElement>("[data-reveal-child]")).map((el) =>
+          el.style.getPropertyValue("--reveal-delay"),
+        ),
+      ).size;
+      tileCursor = sectionDelay + Math.max(rowCount, 1) * ROW_STAGGER_MS;
       return;
     }
 
@@ -96,9 +146,7 @@ function prepareAndObserve(root: HTMLElement) {
     if (!block.style.getPropertyValue("--reveal-delay")) {
       block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
     }
-    if (tileCount === 1) {
-      tileCursor = sectionDelay + 75 + 40;
-    }
+    tileCursor = sectionDelay + ROW_STAGGER_MS;
   });
 
   root.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el, index) => {

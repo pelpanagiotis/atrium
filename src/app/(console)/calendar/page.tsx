@@ -74,7 +74,7 @@ async function CalendarContent({ searchParams }: { searchParams: Promise<{ month
         </p>
       ) : null}
 
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-lg border bg-card" data-reveal-whole="">
         <div className="grid grid-cols-7 border-b text-center text-xs font-medium text-muted">
           {weekdayLabels.map((day) => (
             <div key={day} className="px-2 py-2">
