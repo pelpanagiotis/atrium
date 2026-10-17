@@ -5,14 +5,11 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Archive, CircleDot, Layers } from "lucide-react";
 import { createProjectAction } from "@/app/actions";
+import { ProjectCard } from "@/components/project-card";
 import { ProjectForm } from "@/components/project-form";
-import { ProjectNicknameDialog } from "@/components/project-nickname-dialog";
-import { OpenInProviderButton, providerLabel } from "@/components/provider-icon";
-import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { listProjects } from "@/server/projects/service";
-import { projectDisplayName } from "@/lib/project-display";
 import { cn } from "@/lib/utils";
 
 export const instant = false;
@@ -84,37 +81,9 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
         </div>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
-          {projects.map((project) => {
-            const title = projectDisplayName(project);
-            const showOriginal = Boolean(project.nickname?.trim()) && project.nickname?.trim() !== project.name;
-            return (
-              <li key={project.id} className="rounded-lg border bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`/projects/${project.id}`} className="text-lg font-medium">
-                      {title}
-                    </Link>
-                    {showOriginal ? <p className="mt-0.5 truncate text-xs text-muted">{project.name}</p> : null}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    {canWrite ? <ProjectNicknameDialog workspaceId={current.id} project={project} /> : null}
-                    <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>{project.ownership_mode}</Badge>
-                  </div>
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm text-muted">{project.description || "No description yet."}</p>
-                {project.provider ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-muted">
-                      {providerLabel(project.provider)} · {project.provider_project_name}
-                    </p>
-                    {project.provider_project_url ? (
-                      <OpenInProviderButton provider={project.provider} href={project.provider_project_url} />
-                    ) : null}
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
+          {projects.map((project) => (
+            <ProjectCard key={project.id} workspaceId={current.id} project={project} canWrite={canWrite} />
+          ))}
         </ul>
       )}
       {!canWrite ? (
