@@ -32,6 +32,10 @@ The app role can set the user id itself. That is the trusted application boundar
 
 Inbound webhooks are verified against the raw body, stored, and acknowledged only after that insert. A duplicate delivery id does not create another job. Outbound edits are outbox rows in the same transaction as the local change. Failures retry with exponential backoff and jitter, then land in a dead-letter state an admin can retry. Reconciliation walks provider pages from a stored cursor. Echoes are detected from recent outbound fingerprints, not from a global last-write-wins rule.
 
+## UI controls
+
+User-facing forms use shared components in `src/components/ui/` (`Checkbox`, `Radio`, `Input`, `Textarea`, `MenuSelect`, `Button`). Do not add bare HTML checkboxes, radios, or `<select>` elements in product screens. Hidden inputs are allowed for form payloads. Agent-facing guidance lives in `AGENTS.md`.
+
 ## Trust limits
 
 - A member who can open a SQL session as `atrium_app` can set `app.current_user_id` to their own id, and also to another id. Give that role only to the application.

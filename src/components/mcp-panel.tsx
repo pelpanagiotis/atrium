@@ -5,7 +5,9 @@ import { Bot, Copy, Check, KeyRound, Trash2 } from "lucide-react";
 import { createMcpTokenAction, revokeMcpTokenAction, type ActionState } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input, Label } from "@/components/ui/field";
+import { MenuSelect } from "@/components/ui/menu-select";
 
 type WorkspaceOption = { id: string; name: string };
 type TokenRow = {
@@ -146,46 +148,47 @@ export function McpPanel({
           </div>
           <div>
             <Label htmlFor="mcp-workspace">Workspace lock</Label>
-            <select
+            <MenuSelect
               id="mcp-workspace"
               name="workspaceId"
               defaultValue={currentWorkspaceId}
-              className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="">Any workspace I can access</option>
-              {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
+              className="mt-1"
+              options={[
+                { value: "", label: "Any workspace I can access" },
+                ...workspaces.map((workspace) => ({
+                  value: workspace.id,
+                  label: workspace.name,
+                })),
+              ]}
+            />
           </div>
           <fieldset className="md:col-span-2">
             <legend className="text-sm font-medium">Scopes</legend>
             <div className="mt-2 flex flex-wrap gap-4 text-sm">
-              <label className="inline-flex items-center gap-2">
-                <input type="checkbox" name="scope_read" defaultChecked className="size-4 accent-primary" />
+              <label className="inline-flex items-center gap-2.5">
+                <Checkbox name="scope_read" defaultChecked />
                 Read projects and tasks
               </label>
-              <label className="inline-flex items-center gap-2">
-                <input type="checkbox" name="scope_write" defaultChecked className="size-4 accent-primary" />
+              <label className="inline-flex items-center gap-2.5">
+                <Checkbox name="scope_write" defaultChecked />
                 Create and update work
               </label>
             </div>
           </fieldset>
           <div>
             <Label htmlFor="mcp-expiry">Expires</Label>
-            <select
+            <MenuSelect
               id="mcp-expiry"
               name="expiresInDays"
               defaultValue="365"
-              className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="">Never</option>
-              <option value="30">30 days</option>
-              <option value="90">90 days</option>
-              <option value="365">1 year</option>
-            </select>
+              className="mt-1"
+              options={[
+                { value: "", label: "Never" },
+                { value: "30", label: "30 days" },
+                { value: "90", label: "90 days" },
+                { value: "365", label: "1 year" },
+              ]}
+            />
           </div>
         </div>
         <Button type="submit" className="mt-4" disabled={creating}>

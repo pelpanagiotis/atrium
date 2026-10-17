@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import type { ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { MenuSelect } from "@/components/ui/menu-select";
+import { Radio } from "@/components/ui/radio";
 import { cn } from "@/lib/utils";
 
 type RemoteProject = {
@@ -152,9 +153,8 @@ export function LinkProjectForm({
             const checked = selected?.providerId === project.providerId;
             return (
               <li key={project.providerId} className="flex items-center justify-between gap-3 px-3 py-3 text-sm">
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+                  <Radio
                     name="providerProjectId"
                     value={project.providerId}
                     required

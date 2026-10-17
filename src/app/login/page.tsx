@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { loginAction, type ActionState } from "@/app/actions";
 import { AuthShell } from "@/components/auth-shell";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input, Label } from "@/components/ui/field";
 
 export default function LoginPage() {
@@ -23,13 +24,8 @@ export default function LoginPage() {
           <Label htmlFor="password">Password</Label>
           <Input id="password" name="password" type="password" autoComplete="current-password" required className="mt-1" />
         </div>
-        <label className="flex items-start gap-2 text-sm leading-snug">
-          <input
-            type="checkbox"
-            name="rememberMe"
-            defaultChecked
-            className="mt-0.5 size-4 shrink-0 rounded border border-border bg-card accent-primary"
-          />
+        <label className="flex items-start gap-2.5 text-sm leading-snug">
+          <Checkbox name="rememberMe" defaultChecked className="mt-0.5" />
           <span>
             Keep me signed in on this browser
             <span className="mt-0.5 block text-xs text-muted">Caches your session here for two weeks. Uncheck for a session that ends when you close the browser.</span>

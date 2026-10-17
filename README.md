@@ -59,6 +59,10 @@ Reading today's messages uses Slack's free plan (90-day history). No Slack paid 
 pnpm oauth:redirects   # print callback URLs for your BETTER_AUTH_URL
 ```
 
+## UI controls
+
+Product forms use the shared controls in `src/components/ui/` — `Checkbox`, `Radio`, `Input`, `Textarea`, `MenuSelect`, and `Button` — not bare HTML checkboxes, radios, or `<select>` elements. See `AGENTS.md` and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Checks
 
 ```bash

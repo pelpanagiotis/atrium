@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Check, Moon, Sun } from "lucide-react";
 import { motionAction, paletteAction, themeAction } from "@/app/actions";
+import { Checkbox } from "@/components/ui/checkbox";
 import { applyDocumentMotion, applyDocumentTheme } from "@/lib/apply-theme";
 import { COLOR_PALETTES, type ColorPaletteId, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -188,12 +189,12 @@ export function ThemeSettings({
       <div className="mt-6">
         <h3 className="text-sm font-medium">Motion</h3>
         <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-4">
-          <input
-            type="checkbox"
-            className="mt-1"
+          <Checkbox
+            className="mt-0.5"
             checked={!motionOn}
             disabled={pending}
-            onChange={(event) => setMotion(!event.target.checked)}
+            onCheckedChange={(value) => setMotion(value !== true)}
+            aria-label="Disable animations"
           />
           <span className="min-w-0">
             <span className="block font-medium">Disable animations</span>

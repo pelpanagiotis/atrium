@@ -7,6 +7,7 @@ import { passwordAction, settingsAction } from "@/app/actions";
 import { PasswordForm } from "@/components/password-form";
 import { ThemeSettings } from "@/components/theme-settings";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input, Label } from "@/components/ui/field";
 import { parseMotionEnabled } from "@/lib/apply-theme";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
@@ -62,12 +63,12 @@ async function SettingsContent() {
             <Label htmlFor="timezone">Timezone</Label>
             <Input id="timezone" name="timezone" defaultValue={pref?.timezone ?? "UTC"} className="mt-1" />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
+          <label className="flex items-center gap-2.5 text-sm">
+            <Checkbox name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
             Show sync errors on the home page
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="notifyAssignments" defaultChecked={pref?.notify_assignments ?? true} />
+          <label className="flex items-center gap-2.5 text-sm">
+            <Checkbox name="notifyAssignments" defaultChecked={pref?.notify_assignments ?? true} />
             Highlight tasks assigned to me
           </label>
           <Button type="submit">Save settings</Button>
