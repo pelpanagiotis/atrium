@@ -296,8 +296,8 @@ export function TaskBoard({
                         }, 0);
                       }}
                       className={cn(
-                        "board-card relative cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
-                        "transition-[opacity,transform,box-shadow] duration-200 ease-out",
+                        "board-card group relative cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
+                        "transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out hover:bg-accent/40",
                         isDragging && "board-card-dragging opacity-35",
                         isEntering && "board-card-enter",
                       )}
@@ -305,7 +305,7 @@ export function TaskBoard({
                       <SourceLinkButton task={task} />
                       <Link
                         href={`/tasks/${task.id}`}
-                        className="block p-3 transition-colors hover:bg-accent/40"
+                        className="block p-3"
                         draggable={false}
                         onClick={(event) => {
                           if (suppressClickRef.current) {
@@ -316,7 +316,7 @@ export function TaskBoard({
                       >
                         <TaskCardBody task={task} reserveSourceSlot />
                       </Link>
-                      <div className="px-3 pb-3">
+                      <div className="px-3 pb-3 md:hidden">
                         <MobileStatusForm
                           workspaceId={workspaceId}
                           taskId={task.id}
