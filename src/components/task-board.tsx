@@ -1,19 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { updateTaskAction } from "@/app/actions";
 import { ProviderIcon } from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 import { MenuSelect } from "@/components/ui/menu-select";
+import { cn } from "@/lib/utils";
 
 const COLUMNS = ["open", "in_progress", "blocked", "done", "cancelled"] as const;
+type BoardStatus = (typeof COLUMNS)[number];
 
 const STATUS_OPTIONS = COLUMNS.map((status) => ({
   value: status,
   label: status.replace("_", " "),
 }));
+
+type BoardTask = {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  version: number;
+  provider: string | null;
+  project_name: string;
+  external_url: string | null;
+};
+
+type DragState = {
+  taskId: string;
+  width: number;
+  height: number;
+  offsetX: number;
+  offsetY: number;
+  x: number;
+  y: number;
+};
 
 function MobileStatusForm({
   workspaceId,
@@ -45,92 +68,259 @@ function MobileStatusForm({
   );
 }
 
+function TaskCardBody({ task }: { task: BoardTask }) {
+  return (
+    <>
+      <p className="font-medium">{task.title}</p>
+      <p className="text-xs text-muted">{task.project_name}</p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        <Badge tone={task.priority}>
+          <PriorityIcon priority={task.priority} className="size-3.5" />
+          {task.priority}
+        </Badge>
+        <ProviderIcon provider={task.provider} />
+      </div>
+    </>
+  );
+}
+
 export function TaskBoard({
   workspaceId,
   tasks,
 }: {
   workspaceId: string;
-  tasks: Array<{
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    version: number;
-    provider: string | null;
-    project_name: string;
-    external_url: string | null;
-  }>;
+  tasks: BoardTask[];
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, BoardStatus>>({});
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [overColumn, setOverColumn] = useState<BoardStatus | null>(null);
+  const [enteringIds, setEnteringIds] = useState<Record<string, true>>({});
+  const suppressClickRef = useRef(false);
+  const emptyDragImageRef = useRef<HTMLCanvasElement | null>(null);
+
+  const visibleTasks = tasks.map((task) => {
+    const override = statusOverrides[task.id];
+    if (!override || override === task.status) return task;
+    return { ...task, status: override };
+  });
+
+  const draggedTask = drag ? visibleTasks.find((task) => task.id === drag.taskId) ?? null : null;
+
+  function clearDrag() {
+    setDrag(null);
+    setOverColumn(null);
+  }
+
+  function updateDragPosition(event: DragEvent) {
+    if (event.clientX === 0 && event.clientY === 0) return;
+    setDrag((current) =>
+      current
+        ? {
+            ...current,
+            x: event.clientX,
+            y: event.clientY,
+          }
+        : null,
+    );
+  }
+
+  async function moveTask(task: BoardTask, nextStatus: BoardStatus) {
+    if (task.status === nextStatus) return;
+    setError(null);
+    setStatusOverrides((current) => ({ ...current, [task.id]: nextStatus }));
+    setEnteringIds((current) => ({ ...current, [task.id]: true }));
+    window.setTimeout(() => {
+      setEnteringIds((current) => {
+        if (!current[task.id]) return current;
+        const next = { ...current };
+        delete next[task.id];
+        return next;
+      });
+    }, 280);
+
+    const data = new FormData();
+    data.set("workspaceId", workspaceId);
+    data.set("taskId", task.id);
+    data.set("version", String(task.version));
+    data.set("status", nextStatus);
+    data.set("returnTo", "/tasks?view=board");
+    try {
+      await updateTaskAction(data);
+    } catch (reason: unknown) {
+      setStatusOverrides((current) => {
+        const next = { ...current };
+        delete next[task.id];
+        return next;
+      });
+      setError(reason instanceof Error ? reason.message : "Could not move the task");
+    }
+  }
+
   return (
     <div>
       {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
       <div className="flex gap-3 overflow-x-auto pb-2">
-        {COLUMNS.map((column) => (
-          <section
-            key={column}
-            className="min-w-64 flex-1 rounded-lg border bg-card p-3"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              const raw = event.dataTransfer.getData("text/plain");
-              const payload = JSON.parse(raw) as { id: string; version: number };
-              const data = new FormData();
-              data.set("workspaceId", workspaceId);
-              data.set("taskId", payload.id);
-              data.set("version", String(payload.version));
-              data.set("status", column);
-              data.set("returnTo", "/tasks?view=board");
-              updateTaskAction(data).catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "Could not move the task");
-              });
-            }}
-          >
-            <h2 className="flex items-center gap-1.5 text-sm font-medium capitalize">
-              <StatusIcon status={column} className="size-3.5" />
-              {column.replace("_", " ")}
-            </h2>
-            <div className="mt-3 space-y-2">
-              {tasks.filter((task) => task.status === column).map((task) => (
-                <article
-                  key={task.id}
-                  draggable
-                  onDragStart={(event) => event.dataTransfer.setData("text/plain", JSON.stringify({ id: task.id, version: task.version }))}
-                  className="cursor-grab rounded-md border bg-background text-sm"
-                >
-                  <Link href={`/tasks/${task.id}`} className="block p-3 transition-colors hover:bg-accent/40">
-                    <p className="font-medium">{task.title}</p>
-                    <p className="text-xs text-muted">{task.project_name}</p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <Badge tone={task.priority}>
-                        <PriorityIcon priority={task.priority} className="size-3.5" />
-                        {task.priority}
-                      </Badge>
-                      <ProviderIcon provider={task.provider} />
-                    </div>
-                  </Link>
-                  {task.external_url ? (
-                    <a
-                      className="mx-3 mb-2 inline-block text-xs underline"
-                      href={task.external_url}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      Source
-                    </a>
-                  ) : null}
-                  <div className="px-3 pb-3">
-                    <MobileStatusForm
-                      workspaceId={workspaceId}
-                      taskId={task.id}
-                      version={task.version}
-                      status={task.status}
-                    />
+        {COLUMNS.map((column) => {
+          const columnTasks = visibleTasks.filter((task) => task.status === column);
+          const isOver = overColumn === column && drag !== null;
+          return (
+            <section
+              key={column}
+              className={cn(
+                "board-column min-w-64 flex-1 rounded-lg border bg-card p-3 transition-[background-color,border-color,box-shadow] duration-200",
+                isOver && "border-foreground/30 bg-accent/40 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_12%,transparent)]",
+              )}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setOverColumn(column);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setOverColumn(column);
+                updateDragPosition(event);
+              }}
+              onDragLeave={(event) => {
+                const related = event.relatedTarget as Node | null;
+                if (related && event.currentTarget.contains(related)) return;
+                setOverColumn((current) => (current === column ? null : current));
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const raw = event.dataTransfer.getData("application/x-atrium-task") || event.dataTransfer.getData("text/plain");
+                clearDrag();
+                if (!raw) return;
+                try {
+                  const payload = JSON.parse(raw) as { id: string; version: number };
+                  const task = visibleTasks.find((item) => item.id === payload.id);
+                  if (!task) return;
+                  void moveTask(task, column);
+                } catch {
+                  setError("Could not move the task");
+                }
+              }}
+            >
+              <h2 className="flex items-center gap-1.5 text-sm font-medium capitalize">
+                <StatusIcon status={column} className="size-3.5" />
+                {column.replace("_", " ")}
+                <span className="ml-auto text-xs font-normal text-muted">{columnTasks.length}</span>
+              </h2>
+              <div
+                className={cn(
+                  "mt-3 min-h-24 space-y-2 rounded-md transition-colors duration-200",
+                  isOver && "bg-accent/30",
+                )}
+              >
+                {isOver && columnTasks.length === 0 ? (
+                  <div className="board-drop-placeholder flex h-20 items-center justify-center rounded-md border border-dashed border-foreground/25 text-xs text-muted">
+                    Drop here
                   </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        ))}
+                ) : null}
+                {columnTasks.map((task) => {
+                  const isDragging = drag?.taskId === task.id;
+                  const isEntering = Boolean(enteringIds[task.id]);
+                  return (
+                    <article
+                      key={task.id}
+                      draggable
+                      onDragStart={(event) => {
+                        suppressClickRef.current = true;
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData(
+                          "application/x-atrium-task",
+                          JSON.stringify({ id: task.id, version: task.version }),
+                        );
+                        event.dataTransfer.setData(
+                          "text/plain",
+                          JSON.stringify({ id: task.id, version: task.version }),
+                        );
+                        if (!emptyDragImageRef.current) {
+                          const canvas = document.createElement("canvas");
+                          canvas.width = 1;
+                          canvas.height = 1;
+                          emptyDragImageRef.current = canvas;
+                        }
+                        event.dataTransfer.setDragImage(emptyDragImageRef.current, 0, 0);
+                        setDrag({
+                          taskId: task.id,
+                          width: rect.width,
+                          height: rect.height,
+                          offsetX: event.clientX - rect.left,
+                          offsetY: event.clientY - rect.top,
+                          x: event.clientX,
+                          y: event.clientY,
+                        });
+                        setOverColumn(column);
+                      }}
+                      onDrag={(event) => updateDragPosition(event)}
+                      onDragEnd={() => {
+                        clearDrag();
+                        window.setTimeout(() => {
+                          suppressClickRef.current = false;
+                        }, 0);
+                      }}
+                      className={cn(
+                        "board-card cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
+                        "transition-[opacity,transform,box-shadow] duration-200 ease-out",
+                        isDragging && "board-card-dragging opacity-35",
+                        isEntering && "board-card-enter",
+                      )}
+                    >
+                      <Link
+                        href={`/tasks/${task.id}`}
+                        className="block p-3 transition-colors hover:bg-accent/40"
+                        draggable={false}
+                        onClick={(event) => {
+                          if (suppressClickRef.current) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }
+                        }}
+                      >
+                        <TaskCardBody task={task} />
+                      </Link>
+                      {task.external_url ? (
+                        <a
+                          className="mx-3 mb-2 inline-block text-xs underline"
+                          href={task.external_url}
+                          draggable={false}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          Source
+                        </a>
+                      ) : null}
+                      <div className="px-3 pb-3">
+                        <MobileStatusForm
+                          workspaceId={workspaceId}
+                          taskId={task.id}
+                          version={task.version}
+                          status={task.status}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
+
+      {drag && draggedTask ? (
+        <div
+          aria-hidden="true"
+          className="board-drag-preview pointer-events-none fixed z-[80] rounded-md border bg-background p-3 text-sm shadow-xl"
+          style={{
+            width: drag.width,
+            left: drag.x - drag.offsetX,
+            top: drag.y - drag.offsetY,
+          }}
+        >
+          <TaskCardBody task={draggedTask} />
+        </div>
+      ) : null}
     </div>
   );
 }
