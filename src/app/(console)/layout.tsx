@@ -34,6 +34,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
       current={current}
       theme={theme}
       sidebarCollapsed={sidebarCollapsed}
+      sidebarOrder={cookieStore.get("atrium_sidebar_order")?.value}
     >
       {children}
     </Shell>

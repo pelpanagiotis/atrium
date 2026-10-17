@@ -13,6 +13,7 @@ export function Shell({
   current,
   theme,
   sidebarCollapsed = false,
+  sidebarOrder,
   children,
 }: {
   user: SessionUser;
@@ -20,6 +21,7 @@ export function Shell({
   current: WorkspaceSummary;
   theme: "light" | "dark";
   sidebarCollapsed?: boolean;
+  sidebarOrder?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -28,6 +30,7 @@ export function Shell({
         userName={user.name}
         current={{ kind: current.kind, icon: current.icon }}
         initialCollapsed={sidebarCollapsed}
+        initialOrder={sidebarOrder}
       />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
