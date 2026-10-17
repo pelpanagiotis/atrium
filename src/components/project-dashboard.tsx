@@ -81,23 +81,33 @@ export function ProjectStatCard({
   label,
   value,
   hint,
+  inert = false,
 }: {
   href: string;
   label: string;
   value: number | string;
   hint: string;
+  /** When true, render as a static tile (e.g. customize mode). */
+  inert?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-lg border bg-card p-4 transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
+  const className =
+    "group rounded-lg border bg-card p-4 transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  const body = (
+    <>
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className="mt-2 text-3xl font-medium tabular-nums">{value}</p>
       <p className="mt-1 flex items-center gap-1 text-xs text-muted transition group-hover:text-foreground">
         {hint}
         <ArrowRight className="size-3 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
       </p>
+    </>
+  );
+  if (inert) {
+    return <div className={className}>{body}</div>;
+  }
+  return (
+    <Link href={href} className={className}>
+      {body}
     </Link>
   );
 }

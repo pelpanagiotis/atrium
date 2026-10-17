@@ -1,13 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useRef,
-  useState,
-  useTransition,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Eye, EyeOff, GripVertical, LayoutDashboard, RotateCcw } from "lucide-react";
 import { projectsLayoutAction, type ActionState } from "@/app/actions";
 import { ProjectCard } from "@/components/project-card";
@@ -72,6 +66,7 @@ export function ProjectsBoard({
   scopeLabel,
   canWrite,
   createAction,
+  statusNav,
   portfolio,
   taskStats,
   busiest,
@@ -83,6 +78,7 @@ export function ProjectsBoard({
   scopeLabel: string;
   canWrite: boolean;
   createAction: CreateProjectAction;
+  statusNav: ReactNode;
   portfolio: {
     active: number;
     archived: number;
@@ -162,30 +158,30 @@ export function ProjectsBoard({
   const hiddenSections = layout.sections.filter((item) => item.hidden);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">
-          {editing
-            ? "Drag sections and tiles to reorder. Hide anything you do not need."
-            : "Customize the board layout to match how you scan projects."}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-8" data-no-reveal="">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-4xl">Projects</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {statusNav}
           {editing ? (
             <>
-              <Button type="button" variant="outline" size="sm" onClick={resetLayout} disabled={pending}>
+              <Button type="button" variant="outline" onClick={resetLayout} disabled={pending}>
                 <RotateCcw className="size-3.5" aria-hidden="true" />
                 Reset
               </Button>
-              <Button type="button" size="sm" onClick={() => setEditing(false)} disabled={pending}>
+              <Button type="button" onClick={() => setEditing(false)} disabled={pending}>
                 Done
               </Button>
             </>
           ) : (
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Button type="button" variant="outline" onClick={() => setEditing(true)}>
               <LayoutDashboard className="size-3.5" aria-hidden="true" />
               Customize
             </Button>
           )}
+          {canWrite ? <ProjectForm workspaceId={workspaceId} action={createAction} /> : null}
         </div>
       </div>
 
@@ -275,6 +271,15 @@ export function ProjectsBoard({
                   {visibleStats.map((stat) => {
                     const meta = statsCatalog[stat.id];
                     const tileHidden = Boolean(stat.hidden);
+                    const card = (
+                      <ProjectStatCard
+                        href={meta.href}
+                        label={PROJECT_STAT_LABELS[stat.id]}
+                        value={meta.value}
+                        hint={meta.hint}
+                        inert={editing}
+                      />
+                    );
                     if (editing) {
                       return (
                         <EditableTile
@@ -292,26 +297,11 @@ export function ProjectsBoard({
                             })
                           }
                         >
-                          <div className={cn(tileHidden && "opacity-50")}>
-                            <ProjectStatCard
-                              href={meta.href}
-                              label={PROJECT_STAT_LABELS[stat.id]}
-                              value={meta.value}
-                              hint={meta.hint}
-                            />
-                          </div>
+                          {card}
                         </EditableTile>
                       );
                     }
-                    return (
-                      <ProjectStatCard
-                        key={stat.id}
-                        href={meta.href}
-                        label={PROJECT_STAT_LABELS[stat.id]}
-                        value={meta.value}
-                        hint={meta.hint}
-                      />
-                    );
+                    return <div key={stat.id}>{card}</div>;
                   })}
                 </section>
               )}
@@ -345,6 +335,9 @@ export function ProjectsBoard({
                         <Link
                           href={`/projects/${project.id}`}
                           className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2.5 text-sm transition hover:border-foreground/20 hover:bg-accent/40"
+                          tabIndex={editing ? -1 : undefined}
+                          aria-disabled={editing || undefined}
+                          onClick={editing ? (event) => event.preventDefault() : undefined}
                         >
                           <div className="min-w-0">
                             <p className="truncate font-medium">{projectDisplayName(project)}</p>
@@ -389,7 +382,7 @@ export function ProjectsBoard({
                 className={cn(
                   "grid gap-4",
                   shown.filter((item) => !item.hidden).length > 1
-                    ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"
+                    ? "lg:grid-cols-2"
                     : "lg:grid-cols-1",
                   hidden && editing && "opacity-50",
                 )}
@@ -413,7 +406,7 @@ export function ProjectsBoard({
                           })
                         }
                       >
-                        <div className={cn(tileHidden && "opacity-50")}>{insightNodes[insight.id]}</div>
+                        {insightNodes[insight.id]}
                       </EditableTile>
                     );
                   }
@@ -424,7 +417,6 @@ export function ProjectsBoard({
           );
         }
 
-        // portfolio
         return (
           <EditableBlock
             key={section.id}
@@ -528,8 +520,8 @@ function EditableBlock({
   return (
     <div
       className={cn(
-        "rounded-xl border border-dashed p-2 transition",
-        dragging ? "border-primary bg-accent/40" : "border-border/80",
+        "rounded-xl border border-dashed p-3 transition",
+        dragging ? "border-primary bg-accent/30" : "border-border/80",
         hidden && "opacity-60",
       )}
       onDragOver={(event) => {
@@ -540,7 +532,7 @@ function EditableBlock({
         onDrop();
       }}
     >
-      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"
           draggable
@@ -584,19 +576,11 @@ function EditableTile({
   onToggleHidden: () => void;
   children: ReactNode;
 }) {
-  const handleRef = useRef<HTMLButtonElement>(null);
-
-  function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
-    // Keep HTML5 drag for tiles; pointer down is only for accessibility focus.
-    handleRef.current?.focus();
-    void event;
-  }
-
   return (
     <div
       className={cn(
-        "relative rounded-lg transition",
-        dragging && "ring-2 ring-primary",
+        "flex flex-col gap-1.5 rounded-lg transition",
+        dragging && "ring-2 ring-primary ring-offset-2 ring-offset-background",
         hidden && "opacity-50",
       )}
       onDragOver={(event) => event.preventDefault()}
@@ -606,34 +590,32 @@ function EditableTile({
         onDrop();
       }}
     >
-      <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2 px-0.5">
         <button
-          ref={handleRef}
           type="button"
           draggable
-          onPointerDown={onPointerDown}
           onDragStart={(event) => {
             event.stopPropagation();
             onDragStart();
           }}
           onDragEnd={onDragEnd}
-          className="inline-flex size-7 cursor-grab items-center justify-center rounded-md border bg-card/95 text-muted shadow-sm active:cursor-grabbing"
+          className="inline-flex cursor-grab items-center gap-1 text-[11px] font-medium text-muted active:cursor-grabbing"
           aria-label={`Drag ${label}`}
-          title={`Drag ${label}`}
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
+          {label}
         </button>
         <button
           type="button"
           onClick={onToggleHidden}
-          className="inline-flex size-7 items-center justify-center rounded-md border bg-card/95 text-muted shadow-sm"
+          className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted"
           aria-label={hidden ? `Show ${label}` : `Hide ${label}`}
           title={hidden ? `Show ${label}` : `Hide ${label}`}
         >
           {hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </button>
       </div>
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

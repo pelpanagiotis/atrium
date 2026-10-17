@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Archive, CircleDot, Layers } from "lucide-react";
 import { createProjectAction } from "@/app/actions";
-import { ProjectForm } from "@/components/project-form";
 import { ProjectsBoard } from "@/components/projects-board";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
@@ -59,56 +58,49 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
       ? parseProjectsLayout(prefRows[0].projects_layout)
       : DEFAULT_PROJECTS_LAYOUT);
 
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-4xl">Projects</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Project status">
-            {(
-              [
-                { href: "/projects", value: "active", label: "Active", icon: CircleDot },
-                { href: "/projects?status=archived", value: "archived", label: "Archived", icon: Archive },
-                { href: "/projects?status=all", value: "all", label: "All", icon: Layers },
-              ] as const
-            ).map(({ href, value, label, icon: Icon }) => {
-              const active = status === value;
-              return (
-                <Link
-                  key={value}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 transition",
-                    active
-                      ? "bg-foreground text-background"
-                      : "text-muted hover:bg-accent hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-3.5" aria-hidden="true" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-          {canWrite ? <ProjectForm workspaceId={current.id} action={createProjectAction} /> : null}
-        </div>
-      </div>
+  const statusNav = (
+    <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Project status">
+      {(
+        [
+          { href: "/projects", value: "active", label: "Active", icon: CircleDot },
+          { href: "/projects?status=archived", value: "archived", label: "Archived", icon: Archive },
+          { href: "/projects?status=all", value: "all", label: "All", icon: Layers },
+        ] as const
+      ).map(({ href, value, label, icon: Icon }) => {
+        const active = status === value;
+        return (
+          <Link
+            key={value}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 transition",
+              active
+                ? "bg-foreground text-background"
+                : "text-muted hover:bg-accent hover:text-foreground",
+            )}
+          >
+            <Icon className="size-3.5" aria-hidden="true" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 
-      <ProjectsBoard
-        initialLayout={layout}
-        workspaceId={current.id}
-        workspaceName={current.name}
-        scopeLabel={scopeLabel}
-        canWrite={canWrite}
-        createAction={createProjectAction}
-        portfolio={analytics.portfolio}
-        taskStats={analytics.tasks}
-        busiest={analytics.busiest}
-        projects={projects}
-      />
-    </div>
+  return (
+    <ProjectsBoard
+      initialLayout={layout}
+      workspaceId={current.id}
+      workspaceName={current.name}
+      scopeLabel={scopeLabel}
+      canWrite={canWrite}
+      createAction={createProjectAction}
+      statusNav={statusNav}
+      portfolio={analytics.portfolio}
+      taskStats={analytics.tasks}
+      busiest={analytics.busiest}
+      projects={projects}
+    />
   );
 }
