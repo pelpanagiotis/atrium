@@ -224,21 +224,20 @@ export function TaskBoard({
   }
 
   function columnAtPoint(x: number, y: number): BoardStatus | null {
-    const hits = document.elementsFromPoint(x, y);
-    for (const hit of hits) {
-      if (!(hit instanceof Element)) continue;
-      const section = hit.closest<HTMLElement>("[data-board-column]");
-      const status = section?.dataset.boardColumn;
-      if (status && COLUMNS.includes(status as BoardStatus)) return status as BoardStatus;
-    }
-    for (const section of document.querySelectorAll<HTMLElement>("[data-board-column]")) {
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-board-column]")];
+    let nearest: { status: BoardStatus; distance: number } | null = null;
+    for (const section of sections) {
+      const status = section.dataset.boardColumn;
+      if (!status || !COLUMNS.includes(status as BoardStatus)) continue;
       const rect = section.getBoundingClientRect();
-      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-        const status = section.dataset.boardColumn;
-        if (status && COLUMNS.includes(status as BoardStatus)) return status as BoardStatus;
-      }
+      const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      if (inside) return status as BoardStatus;
+      const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+      const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+      const distance = Math.hypot(dx, dy);
+      if (!nearest || distance < nearest.distance) nearest = { status: status as BoardStatus, distance };
     }
-    return null;
+    return nearest && nearest.distance <= 28 ? nearest.status : null;
   }
 
   function applyDropOrder(taskId: string, column: BoardStatus, index: number) {
@@ -316,6 +315,11 @@ export function TaskBoard({
       window.removeEventListener("pointercancel", finish);
       if (dragSessionRef.current !== session) return;
       const wasActive = session.active;
+      if (wasActive) {
+        const x = endEvent.clientX || pointerRef.current.x;
+        const y = endEvent.clientY || pointerRef.current.y;
+        updateIndicatorFromPoint(x, y, task.id);
+      }
       const indicator = dropIndicatorRef.current;
       clearDrag();
       window.setTimeout(() => {
@@ -382,9 +386,9 @@ export function TaskBoard({
   }
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="flex min-h-0 flex-1 items-stretch gap-3 overflow-x-auto pb-2">
         {COLUMNS.map((column) => {
           const columnTasks = orderColumnTasks(
             visibleTasks.filter((task) => task.status === column),
@@ -399,7 +403,7 @@ export function TaskBoard({
               key={column}
               data-board-column={column}
               className={cn(
-                "board-column min-w-64 flex-1 rounded-lg border bg-card p-3 transition-[background-color,border-color,box-shadow] duration-200",
+                "board-column flex min-h-full min-w-64 flex-1 flex-col rounded-lg border bg-card p-3 transition-[background-color,border-color,box-shadow] duration-200",
                 isOver && "border-foreground/30 bg-accent/40 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_12%,transparent)]",
               )}
             >
@@ -411,7 +415,7 @@ export function TaskBoard({
               <div
                 data-column-list={column}
                 className={cn(
-                  "mt-3 flex min-h-24 flex-col rounded-md transition-colors duration-200",
+                  "mt-3 flex min-h-24 flex-1 flex-col rounded-md transition-colors duration-200",
                   isOver && "bg-accent/30",
                 )}
               >
