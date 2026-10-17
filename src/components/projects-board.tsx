@@ -178,7 +178,7 @@ export function ProjectsBoard({
       {editing ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
           <div
-            className="pointer-events-auto flex items-center gap-2 rounded-xl border bg-card/95 p-1.5 shadow-lg backdrop-blur-md"
+            className="float-bar-rise pointer-events-auto flex items-center gap-2 rounded-xl border bg-card/95 p-1.5 shadow-lg backdrop-blur-md"
             role="toolbar"
             aria-label="Customize board"
           >

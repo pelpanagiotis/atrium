@@ -669,6 +669,21 @@ body.board-dragging [data-drag-inert] {
   }
 }
 
+@keyframes float-bar-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.float-bar-rise {
+  animation: float-bar-rise 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .page-motion {
   animation: page-shell-in 240ms ease-out both;
 }
@@ -716,7 +731,8 @@ body.board-dragging [data-drag-inert] {
 @media (prefers-reduced-motion: reduce) {
   .page-motion,
   .shell-chrome-in,
-  .shell-sidebar-in {
+  .shell-sidebar-in,
+  .float-bar-rise {
     animation: none;
   }
 
@@ -735,7 +751,8 @@ body.board-dragging [data-drag-inert] {
 /* Settings toggle: disable entrance motion without changing OS preferences */
 html[data-motion="off"] .page-motion,
 html[data-motion="off"] .shell-chrome-in,
-html[data-motion="off"] .shell-sidebar-in {
+html[data-motion="off"] .shell-sidebar-in,
+html[data-motion="off"] .float-bar-rise {
   animation: none;
 }
 
