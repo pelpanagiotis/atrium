@@ -663,6 +663,12 @@ body.board-dragging [data-drag-inert] {
   animation: page-shell-in 240ms ease-out both;
 }
 
+/* Keep the incoming page invisible until entrance markers exist.
+   Otherwise the items paint at full opacity, then jump into the animation. */
+.page-motion:not([data-motion-ready]) > :not([data-no-reveal]) {
+  opacity: 0;
+}
+
 [data-reveal]:not([data-revealed]),
 [data-reveal-child]:not([data-revealed]) {
   opacity: 0;
@@ -698,6 +704,7 @@ body.board-dragging [data-drag-inert] {
     animation: none;
   }
 
+  .page-motion:not([data-motion-ready]) > :not([data-no-reveal]),
   [data-reveal]:not([data-revealed]),
   [data-reveal-child]:not([data-revealed]),
   [data-reveal][data-revealed],

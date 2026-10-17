@@ -95,12 +95,7 @@ function markChildItems(block: HTMLElement, parentDelayMs = 0): number {
 }
 
 function reveal(el: HTMLElement) {
-  // Retrigger CSS animation if this node was revealed before (e.g. soft remount)
-  if (el.hasAttribute("data-revealed")) {
-    el.removeAttribute("data-revealed");
-    // Force reflow so the next attribute set restarts the animation
-    void el.offsetWidth;
-  }
+  if (el.hasAttribute("data-revealed")) return;
   el.setAttribute("data-revealed", "");
 }
 
@@ -159,6 +154,7 @@ function prepareAndObserve(root: HTMLElement) {
     root.querySelectorAll<HTMLElement>("[data-reveal], [data-reveal-child]").forEach((el) => {
       el.setAttribute("data-revealed", "");
     });
+    root.setAttribute("data-motion-ready", "");
     return () => {};
   }
 
@@ -200,6 +196,10 @@ function prepareAndObserve(root: HTMLElement) {
     }
   }
 
+  // Release the pre-paint hold in the same turn the markers are applied,
+  // so the first painted frame is already the animation's start state.
+  root.setAttribute("data-motion-ready", "");
+
   return () => {
     io.disconnect();
   };
@@ -222,27 +222,17 @@ export function PageMotion({
     if (!root) return;
 
     let cleanup = prepareAndObserve(root);
-    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const rerun = () => {
+    // Suspense swaps the loader for page content after the first effect.
+    // Prepare in this callback (before paint) so items never appear, then animate.
+    const swapObserver = new MutationObserver(() => {
+      root.removeAttribute("data-motion-ready");
       cleanup();
       cleanup = prepareAndObserve(root);
-    };
-
-    // Page bodies resolve inside nested Suspense after the first paint —
-    // re-run when PageMotion's direct child swaps (loader → content).
-    const swapObserver = new MutationObserver(() => {
-      window.clearTimeout(timer);
-      timer = setTimeout(rerun, 16);
     });
     swapObserver.observe(root, { childList: true, subtree: false });
 
-    // Backup pass after Suspense typically settles.
-    const settled = window.setTimeout(rerun, 80);
-
     return () => {
-      window.clearTimeout(timer);
-      window.clearTimeout(settled);
       swapObserver.disconnect();
       cleanup();
     };
