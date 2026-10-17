@@ -152,6 +152,13 @@ export function AppSidebar({
     writeOrderCookie(order);
   }, [order]);
 
+  function placePreview() {
+    const node = previewRef.current;
+    if (!node) return;
+    const { x, y, offsetY } = pointerRef.current;
+    node.style.transform = `translate3d(${x}px, ${y - offsetY}px, 0)`;
+  }
+
   useLayoutEffect(() => {
     if (!preview) return;
     placePreview();
@@ -175,13 +182,6 @@ export function AppSidebar({
     setPreview(null);
     if (restoreCollapsedRef.current) setCollapsed(true);
     restoreCollapsedRef.current = null;
-  }
-
-  function placePreview() {
-    const node = previewRef.current;
-    if (!node) return;
-    const { x, y, offsetY } = pointerRef.current;
-    node.style.transform = `translate3d(${x}px, ${y - offsetY}px, 0)`;
   }
 
   function onRowPointerDown(event: ReactPointerEvent<HTMLButtonElement>, href: string) {
