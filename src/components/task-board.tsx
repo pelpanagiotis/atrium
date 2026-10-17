@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, type DragEvent } from "react";
 import { ExternalLink } from "lucide-react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { updateTaskAction } from "@/app/actions";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
@@ -116,6 +118,7 @@ export function TaskBoard({
   workspaceId: string;
   tasks: BoardTask[];
 }) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, BoardStatus>>({});
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -170,9 +173,15 @@ export function TaskBoard({
     data.set("version", String(task.version));
     data.set("status", nextStatus);
     data.set("returnTo", "/tasks?view=board");
+    data.set("silent", "1");
     try {
       await updateTaskAction(data);
+      router.refresh();
     } catch (reason: unknown) {
+      if (isRedirectError(reason)) {
+        router.refresh();
+        return;
+      }
       setStatusOverrides((current) => {
         const next = { ...current };
         delete next[task.id];

@@ -243,6 +243,11 @@ export async function updateTaskAction(formData: FormData): Promise<void> {
     assigneeUserId: formData.has("assigneeUserId") ? String(formData.get("assigneeUserId") ?? "") || null : undefined,
   });
   const returnTo = String(formData.get("returnTo") ?? "/tasks");
+  if (String(formData.get("silent") ?? "") === "1") {
+    revalidatePath("/tasks");
+    revalidatePath(returnTo);
+    return;
+  }
   redirect(returnTo);
 }
 
