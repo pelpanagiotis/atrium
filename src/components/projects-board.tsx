@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { Eye, EyeOff, GripVertical, LayoutDashboard, RotateCcw } from "lucide-react";
 import { projectsLayoutAction, type ActionState } from "@/app/actions";
 import { ProjectCard } from "@/components/project-card";
@@ -59,6 +67,57 @@ type StatValue = {
   hint: string;
 };
 
+type LayoutKind = "section" | "stat" | "insight";
+
+type DragState = {
+  kind: LayoutKind;
+  id: string;
+  label: string;
+  width: number;
+};
+
+type DropIndicator = {
+  kind: LayoutKind;
+  index: number;
+};
+
+function DropInsertBar({ span = false }: { span?: boolean }) {
+  return (
+    <div
+      className={cn("board-drop-bar pointer-events-none relative z-10 h-0", span && "col-span-full")}
+      aria-hidden="true"
+    >
+      <div className="absolute inset-x-1 top-0 h-0.5 -translate-y-1/2 rounded-full bg-foreground/80" />
+      <div className="absolute left-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+      <div className="absolute right-0 top-0 size-2 -translate-y-1/2 rounded-full bg-foreground" />
+    </div>
+  );
+}
+
+function insertIndexFromPointer(list: HTMLElement, clientX: number, clientY: number, draggedId: string | null) {
+  const cards = [...list.querySelectorAll<HTMLElement>("[data-layout-item]")].filter(
+    (card) =>
+      card.closest("[data-layout-list]") === list &&
+      card.dataset.layoutId !== draggedId &&
+      !card.classList.contains("board-card-drag-source"),
+  );
+  cards.sort((a, b) => {
+    const aBox = a.getBoundingClientRect();
+    const bBox = b.getBoundingClientRect();
+    const dy = aBox.top - bBox.top;
+    if (Math.abs(dy) > 12) return dy;
+    return aBox.left - bBox.left;
+  });
+  for (let index = 0; index < cards.length; index += 1) {
+    const rect = cards[index]!.getBoundingClientRect();
+    const before =
+      clientY < rect.top + rect.height / 2 ||
+      (Math.abs(clientY - (rect.top + rect.height / 2)) <= 12 && clientX < rect.left + rect.width / 2);
+    if (before) return index;
+  }
+  return cards.length;
+}
+
 export function ProjectsBoard({
   initialLayout,
   workspaceId,
@@ -93,7 +152,14 @@ export function ProjectsBoard({
   const [editing, setEditing] = useState(false);
   const [layout, setLayout] = useState(initialLayout);
   const [pending, startTransition] = useTransition();
-  const [drag, setDrag] = useState<{ kind: "section" | "stat" | "insight"; id: string } | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
+  const [enteringIds, setEnteringIds] = useState<Record<string, true>>({});
+  const dropIndicatorRef = useRef<DropIndicator | null>(null);
+  const dragSessionRef = useRef<{ pointerId: number; active: boolean } | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const pointerRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
+  const frameRef = useRef(0);
 
   const statsCatalog: Record<ProjectStatId, StatValue> = {
     active: { href: "/projects", value: portfolio.active, hint: "Currently in the workspace" },
@@ -110,6 +176,79 @@ export function ProjectsBoard({
     doneWeek: { href: "/tasks?status=done", value: taskStats.doneWeek, hint: "Closed in the last seven days" },
   };
 
+  function placePreview() {
+    const node = previewRef.current;
+    if (!node) return;
+    const { x, y, offsetX, offsetY } = pointerRef.current;
+    node.style.transform = `translate3d(${x - offsetX}px, ${y - offsetY}px, 0) rotate(2deg) scale(1.03)`;
+  }
+
+  function setBoardDragging(active: boolean) {
+    document.body.classList.toggle("board-dragging", active);
+    if (active) window.dispatchEvent(new Event("atrium-board-drag-start"));
+  }
+
+  function clearDrag() {
+    dragSessionRef.current = null;
+    dropIndicatorRef.current = null;
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = 0;
+    }
+    setBoardDragging(false);
+    setDrag(null);
+    setDropIndicator(null);
+  }
+
+  useEffect(() => () => document.body.classList.remove("board-dragging"), []);
+
+  useLayoutEffect(() => {
+    if (!drag) return;
+    placePreview();
+  }, [drag]);
+
+  function showDropIndicator(next: DropIndicator | null) {
+    const current = dropIndicatorRef.current;
+    if (current === next) return;
+    if (current && next && current.kind === next.kind && current.index === next.index) return;
+    dropIndicatorRef.current = next;
+    setDropIndicator(next);
+  }
+
+  function updateIndicatorFromPoint(clientX: number, clientY: number, kind: LayoutKind, draggedId: string) {
+    const list = document.querySelector<HTMLElement>(`[data-layout-list="${kind}"]`);
+    if (!list) {
+      showDropIndicator(null);
+      return;
+    }
+    const rect = list.getBoundingClientRect();
+    const near =
+      clientX >= rect.left - 24 &&
+      clientX <= rect.right + 24 &&
+      clientY >= rect.top - 24 &&
+      clientY <= rect.bottom + 24;
+    if (!near) {
+      showDropIndicator(null);
+      return;
+    }
+    showDropIndicator({
+      kind,
+      index: insertIndexFromPointer(list, clientX, clientY, draggedId),
+    });
+  }
+
+  function markEntering(id: string) {
+    setEnteringIds((current) => ({ ...current, [id]: true }));
+    window.setTimeout(() => {
+      setEnteringIds((current) => {
+        if (!current[id]) return current;
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+    }, 280);
+  }
+
   function persist(next: ProjectsLayout) {
     setLayout(next);
     startTransition(async () => {
@@ -121,28 +260,93 @@ export function ProjectsBoard({
     persist(structuredClone(DEFAULT_PROJECTS_LAYOUT));
   }
 
-  function onDropSection(targetId: ProjectSectionId) {
-    if (!drag || drag.kind !== "section") return;
-    const toIndex = layout.sections.findIndex((item) => item.id === targetId);
-    if (toIndex < 0) return;
-    persist({ ...layout, sections: moveLayoutItem(layout.sections, drag.id as ProjectSectionId, toIndex) });
-    setDrag(null);
+  function commitMove(kind: LayoutKind, id: string, index: number) {
+    if (kind === "section") {
+      persist({
+        ...layout,
+        sections: moveLayoutItem(layout.sections, id as ProjectSectionId, index),
+      });
+    } else if (kind === "stat") {
+      persist({
+        ...layout,
+        stats: moveLayoutItem(layout.stats, id as ProjectStatId, index),
+      });
+    } else {
+      persist({
+        ...layout,
+        insights: moveLayoutItem(layout.insights, id as ProjectInsightId, index),
+      });
+    }
+    markEntering(id);
   }
 
-  function onDropStat(targetId: ProjectStatId) {
-    if (!drag || drag.kind !== "stat") return;
-    const toIndex = layout.stats.findIndex((item) => item.id === targetId);
-    if (toIndex < 0) return;
-    persist({ ...layout, stats: moveLayoutItem(layout.stats, drag.id as ProjectStatId, toIndex) });
-    setDrag(null);
-  }
+  function onHandlePointerDown(
+    event: ReactPointerEvent<HTMLElement>,
+    item: { kind: LayoutKind; id: string; label: string },
+  ) {
+    if (!editing || event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-no-drag]")) return;
 
-  function onDropInsight(targetId: ProjectInsightId) {
-    if (!drag || drag.kind !== "insight") return;
-    const toIndex = layout.insights.findIndex((item) => item.id === targetId);
-    if (toIndex < 0) return;
-    persist({ ...layout, insights: moveLayoutItem(layout.insights, drag.id as ProjectInsightId, toIndex) });
-    setDrag(null);
+    const host = event.currentTarget.closest<HTMLElement>("[data-layout-item]");
+    if (!host) return;
+    const rect = host.getBoundingClientRect();
+    const pointerId = event.pointerId;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const width = rect.width;
+    const session = { pointerId, active: false };
+    dragSessionRef.current = session;
+    pointerRef.current = { x: event.clientX, y: event.clientY, offsetX, offsetY };
+
+    event.preventDefault();
+
+    function onMove(moveEvent: PointerEvent) {
+      if (moveEvent.pointerId !== pointerId || dragSessionRef.current !== session) return;
+      pointerRef.current.x = moveEvent.clientX;
+      pointerRef.current.y = moveEvent.clientY;
+      if (!session.active) {
+        const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+        if (distance < 5) return;
+        session.active = true;
+        setBoardDragging(true);
+        setDrag({ kind: item.kind, id: item.id, label: item.label, width });
+      }
+      if (frameRef.current) return;
+      frameRef.current = window.requestAnimationFrame(() => {
+        frameRef.current = 0;
+        if (dragSessionRef.current !== session) return;
+        placePreview();
+        updateIndicatorFromPoint(pointerRef.current.x, pointerRef.current.y, item.kind, item.id);
+      });
+    }
+
+    function finish(endEvent: PointerEvent) {
+      if (endEvent.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      if (dragSessionRef.current !== session) return;
+      const wasActive = session.active;
+      if (wasActive) {
+        updateIndicatorFromPoint(
+          endEvent.clientX || pointerRef.current.x,
+          endEvent.clientY || pointerRef.current.y,
+          item.kind,
+          item.id,
+        );
+      }
+      const indicator = dropIndicatorRef.current;
+      clearDrag();
+      if (!wasActive || !indicator || indicator.kind !== item.kind) return;
+      commitMove(item.kind, item.id, indicator.index);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
   }
 
   const visibleSections = editing
@@ -157,9 +361,16 @@ export function ProjectsBoard({
   const hiddenInsights = layout.insights.filter((item) => item.hidden);
   const hiddenSections = layout.sections.filter((item) => item.hidden);
 
+  const sectionInsertAt =
+    dropIndicator?.kind === "section" && drag?.kind === "section" ? dropIndicator.index : null;
+  const statInsertAt =
+    dropIndicator?.kind === "stat" && drag?.kind === "stat" ? dropIndicator.index : null;
+  const insightInsertAt =
+    dropIndicator?.kind === "insight" && drag?.kind === "insight" ? dropIndicator.index : null;
+
   return (
     <div className={cn("space-y-8", editing && "pb-24")} data-no-reveal="">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3" data-drag-inert="">
         <div>
           <h1 className="text-4xl">Projects</h1>
         </div>
@@ -181,6 +392,7 @@ export function ProjectsBoard({
             className="float-bar-rise pointer-events-auto flex items-center gap-2 rounded-xl border bg-card/95 p-1.5 shadow-lg backdrop-blur-md"
             role="toolbar"
             aria-label="Customize board"
+            data-drag-inert=""
           >
             <Button type="button" variant="outline" onClick={resetLayout} disabled={pending}>
               <RotateCcw className="size-3.5" aria-hidden="true" />
@@ -194,7 +406,7 @@ export function ProjectsBoard({
       ) : null}
 
       {editing && (hiddenSections.length > 0 || hiddenStats.length > 0 || hiddenInsights.length > 0) ? (
-        <div className="rounded-lg border border-dashed bg-card/60 p-3">
+        <div className="rounded-lg border border-dashed bg-card/60 p-3" data-drag-inert="">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Hidden</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {hiddenSections.map((item) => (
@@ -249,36 +461,41 @@ export function ProjectsBoard({
         </div>
       ) : null}
 
-      {visibleSections.map((section) => {
-        const hidden = Boolean(section.hidden);
-        if (section.id === "stats") {
-          return (
-            <EditableBlock
-              key={section.id}
-              editing={editing}
-              hidden={hidden}
-              label={PROJECT_SECTION_LABELS.stats}
-              dragging={drag?.kind === "section" && drag.id === section.id}
-              onDragStart={() => setDrag({ kind: "section", id: section.id })}
-              onDragEnd={() => setDrag(null)}
-              onDrop={() => onDropSection(section.id)}
-              onToggleHidden={() =>
-                persist({
-                  ...layout,
-                  sections: toggleLayoutItem(layout.sections, section.id, !hidden),
-                })
-              }
-            >
-              {visibleStats.length === 0 && !editing ? null : (
+      <div
+        data-layout-list={editing ? "section" : undefined}
+        className={cn(editing && "flex flex-col gap-8")}
+      >
+        {editing && sectionInsertAt === 0 ? <DropInsertBar /> : null}
+        {visibleSections.map((section, sectionIndex) => {
+          const hidden = Boolean(section.hidden);
+          const isDragSource = drag?.kind === "section" && drag.id === section.id;
+          const visualIndex = visibleSections
+            .slice(0, sectionIndex)
+            .filter((item) => !(drag?.kind === "section" && drag.id === item.id)).length;
+          const isEntering = Boolean(enteringIds[section.id]);
+
+          let body: ReactNode = null;
+
+          if (section.id === "stats") {
+            body =
+              visibleStats.length === 0 && !editing ? null : (
                 <section
+                  data-layout-list={editing ? "stat" : undefined}
                   className={cn(
                     "grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4",
                     hidden && editing && "opacity-50",
+                    drag?.kind === "stat" && "rounded-md bg-accent/20",
                   )}
                 >
-                  {visibleStats.map((stat) => {
+                  {editing && statInsertAt === 0 ? <DropInsertBar span /> : null}
+                  {visibleStats.map((stat, statIndex) => {
                     const meta = statsCatalog[stat.id];
                     const tileHidden = Boolean(stat.hidden);
+                    const tileDragging = drag?.kind === "stat" && drag.id === stat.id;
+                    const tileEntering = Boolean(enteringIds[stat.id]);
+                    const tileVisualIndex = visibleStats
+                      .slice(0, statIndex)
+                      .filter((item) => !(drag?.kind === "stat" && drag.id === item.id)).length;
                     const card = (
                       <ProjectStatCard
                         href={meta.href}
@@ -290,209 +507,218 @@ export function ProjectsBoard({
                     );
                     if (editing) {
                       return (
-                        <EditableTile
-                          key={stat.id}
-                          label={PROJECT_STAT_LABELS[stat.id]}
-                          hidden={tileHidden}
-                          dragging={drag?.kind === "stat" && drag.id === stat.id}
-                          onDragStart={() => setDrag({ kind: "stat", id: stat.id })}
-                          onDragEnd={() => setDrag(null)}
-                          onDrop={() => onDropStat(stat.id)}
-                          onToggleHidden={() =>
-                            persist({
-                              ...layout,
-                              stats: toggleLayoutItem(layout.stats, stat.id, !tileHidden),
-                            })
-                          }
-                        >
-                          {card}
-                        </EditableTile>
+                        <div key={stat.id} className="contents">
+                          <EditableTile
+                            id={stat.id}
+                            kind="stat"
+                            label={PROJECT_STAT_LABELS[stat.id]}
+                            hidden={tileHidden}
+                            dragging={tileDragging}
+                            entering={tileEntering}
+                            onPointerDown={onHandlePointerDown}
+                            onToggleHidden={() =>
+                              persist({
+                                ...layout,
+                                stats: toggleLayoutItem(layout.stats, stat.id, !tileHidden),
+                              })
+                            }
+                          >
+                            {card}
+                          </EditableTile>
+                          {!tileDragging && statInsertAt === tileVisualIndex + 1 ? (
+                            <DropInsertBar span />
+                          ) : null}
+                        </div>
                       );
                     }
                     return (
-                      <div key={stat.id} className="min-h-0 h-full">
+                      <div key={stat.id} className="h-full min-h-0">
                         {card}
                       </div>
                     );
                   })}
                 </section>
-              )}
-            </EditableBlock>
-          );
-        }
-
-        if (section.id === "insights") {
-          const insightNodes: Record<ProjectInsightId, ReactNode> = {
-            statusMix: (
-              <ProjectStatusBreakdown
-                stats={taskStats}
-                caption={`${taskStats.total} tasks across ${scopeLabel}`}
-              />
-            ),
-            busiest: (
-              <section className="flex h-full min-h-[13.5rem] flex-col rounded-lg border bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl">Busiest projects</h2>
-                    <p className="text-xs text-muted">Most open work in this view</p>
+              );
+          } else if (section.id === "insights") {
+            const insightNodes: Record<ProjectInsightId, ReactNode> = {
+              statusMix: (
+                <ProjectStatusBreakdown
+                  stats={taskStats}
+                  caption={`${taskStats.total} tasks across ${scopeLabel}`}
+                />
+              ),
+              busiest: (
+                <section className="flex h-full min-h-[13.5rem] flex-col rounded-lg border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl">Busiest projects</h2>
+                      <p className="text-xs text-muted">Most open work in this view</p>
+                    </div>
+                    <p className="text-sm tabular-nums text-muted">{taskStats.completion}% done</p>
                   </div>
-                  <p className="text-sm tabular-nums text-muted">{taskStats.completion}% done</p>
+                  {busiest.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted">No open work in {scopeLabel}.</p>
+                  ) : (
+                    <ul className="mt-3 flex-1 space-y-2">
+                      {busiest.map((project) => (
+                        <li key={project.id}>
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2.5 text-sm transition hover:border-foreground/20 hover:bg-accent/40"
+                            tabIndex={editing ? -1 : undefined}
+                            aria-disabled={editing || undefined}
+                            onClick={editing ? (event) => event.preventDefault() : undefined}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{projectDisplayName(project)}</p>
+                              <p className="text-xs text-muted">
+                                {project.open_count} open · {project.attention_count} attention ·{" "}
+                                {project.total_count} total
+                              </p>
+                            </div>
+                            <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>
+                              {project.ownership_mode}
+                            </Badge>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              ),
+            };
+
+            const shown = visibleInsights.filter((item) => editing || !item.hidden);
+            if (shown.length === 0 && !editing) {
+              body = null;
+            } else {
+              body = (
+                <section
+                  data-layout-list={editing ? "insight" : undefined}
+                  className={cn(
+                    "grid gap-4",
+                    shown.filter((item) => !item.hidden).length > 1
+                      ? "lg:grid-cols-2"
+                      : "lg:grid-cols-1",
+                    hidden && editing && "opacity-50",
+                    drag?.kind === "insight" && "rounded-md bg-accent/20",
+                  )}
+                >
+                  {editing && insightInsertAt === 0 ? <DropInsertBar span /> : null}
+                  {shown.map((insight, insightIndex) => {
+                    const tileHidden = Boolean(insight.hidden);
+                    const tileDragging = drag?.kind === "insight" && drag.id === insight.id;
+                    const tileEntering = Boolean(enteringIds[insight.id]);
+                    const tileVisualIndex = shown
+                      .slice(0, insightIndex)
+                      .filter((item) => !(drag?.kind === "insight" && drag.id === item.id)).length;
+                    if (editing) {
+                      return (
+                        <div key={insight.id} className="contents">
+                          <EditableTile
+                            id={insight.id}
+                            kind="insight"
+                            label={PROJECT_INSIGHT_LABELS[insight.id]}
+                            hidden={tileHidden}
+                            dragging={tileDragging}
+                            entering={tileEntering}
+                            onPointerDown={onHandlePointerDown}
+                            onToggleHidden={() =>
+                              persist({
+                                ...layout,
+                                insights: toggleLayoutItem(layout.insights, insight.id, !tileHidden),
+                              })
+                            }
+                          >
+                            {insightNodes[insight.id]}
+                          </EditableTile>
+                          {!tileDragging && insightInsertAt === tileVisualIndex + 1 ? (
+                            <DropInsertBar span />
+                          ) : null}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={insight.id} className="h-full min-h-0">
+                        {insightNodes[insight.id]}
+                      </div>
+                    );
+                  })}
+                </section>
+              );
+            }
+          } else {
+            body = (
+              <section
+                className={cn("mb-10 space-y-4 pb-6", hidden && editing && "opacity-50")}
+                aria-labelledby="project-portfolio-heading"
+              >
+                <div className="border-b border-border/80 pb-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">Portfolio</p>
+                  <h2 id="project-portfolio-heading" className="mt-1 text-2xl">
+                    Project list
+                  </h2>
+                  <p className="mt-1 text-sm text-muted">
+                    {projects.length === 0
+                      ? `No ${scopeLabel} yet.`
+                      : `${projects.length} ${scopeLabel} in ${workspaceName}.`}
+                  </p>
                 </div>
-                {busiest.length === 0 ? (
-                  <p className="mt-3 text-sm text-muted">No open work in {scopeLabel}.</p>
+                {projects.length === 0 ? (
+                  <div className="rounded-xl border border-dashed bg-card p-8">
+                    <h3 className="text-2xl">No projects in this view</h3>
+                    <p className="mt-2 text-sm text-muted">
+                      Create a native project, or connect a provider and link one of its projects.
+                    </p>
+                    {canWrite ? (
+                      <div className="mt-4">
+                        <ProjectForm workspaceId={workspaceId} action={createAction} />
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
-                  <ul className="mt-3 flex-1 space-y-2">
-                    {busiest.map((project) => (
-                      <li key={project.id}>
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background px-3 py-2.5 text-sm transition hover:border-foreground/20 hover:bg-accent/40"
-                          tabIndex={editing ? -1 : undefined}
-                          aria-disabled={editing || undefined}
-                          onClick={editing ? (event) => event.preventDefault() : undefined}
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{projectDisplayName(project)}</p>
-                            <p className="text-xs text-muted">
-                              {project.open_count} open · {project.attention_count} attention ·{" "}
-                              {project.total_count} total
-                            </p>
-                          </div>
-                          <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>
-                            {project.ownership_mode}
-                          </Badge>
-                        </Link>
-                      </li>
+                  <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {projects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        workspaceId={workspaceId}
+                        project={project}
+                        canWrite={canWrite}
+                      />
                     ))}
                   </ul>
                 )}
               </section>
-            ),
-          };
+            );
+          }
 
-          const shown = visibleInsights.filter((item) => editing || !item.hidden);
-          if (shown.length === 0 && !editing) return null;
+          if (!editing) {
+            return <div key={section.id}>{body}</div>;
+          }
 
           return (
-            <EditableBlock
-              key={section.id}
-              editing={editing}
-              hidden={hidden}
-              label={PROJECT_SECTION_LABELS.insights}
-              dragging={drag?.kind === "section" && drag.id === section.id}
-              onDragStart={() => setDrag({ kind: "section", id: section.id })}
-              onDragEnd={() => setDrag(null)}
-              onDrop={() => onDropSection(section.id)}
-              onToggleHidden={() =>
-                persist({
-                  ...layout,
-                  sections: toggleLayoutItem(layout.sections, section.id, !hidden),
-                })
-              }
-            >
-              <section
-                className={cn(
-                  "grid gap-4",
-                  shown.filter((item) => !item.hidden).length > 1
-                    ? "lg:grid-cols-2"
-                    : "lg:grid-cols-1",
-                  hidden && editing && "opacity-50",
-                )}
+            <div key={section.id} className="contents">
+              <EditableBlock
+                id={section.id}
+                label={PROJECT_SECTION_LABELS[section.id]}
+                hidden={hidden}
+                dragging={isDragSource}
+                entering={isEntering}
+                onPointerDown={onHandlePointerDown}
+                onToggleHidden={() =>
+                  persist({
+                    ...layout,
+                    sections: toggleLayoutItem(layout.sections, section.id, !hidden),
+                  })
+                }
               >
-                {shown.map((insight) => {
-                  const tileHidden = Boolean(insight.hidden);
-                  if (editing) {
-                    return (
-                      <EditableTile
-                        key={insight.id}
-                        label={PROJECT_INSIGHT_LABELS[insight.id]}
-                        hidden={tileHidden}
-                        dragging={drag?.kind === "insight" && drag.id === insight.id}
-                        onDragStart={() => setDrag({ kind: "insight", id: insight.id })}
-                        onDragEnd={() => setDrag(null)}
-                        onDrop={() => onDropInsight(insight.id)}
-                        onToggleHidden={() =>
-                          persist({
-                            ...layout,
-                            insights: toggleLayoutItem(layout.insights, insight.id, !tileHidden),
-                          })
-                        }
-                      >
-                        {insightNodes[insight.id]}
-                      </EditableTile>
-                    );
-                  }
-                  return (
-                    <div key={insight.id} className="h-full min-h-0">
-                      {insightNodes[insight.id]}
-                    </div>
-                  );
-                })}
-              </section>
-            </EditableBlock>
+                {body}
+              </EditableBlock>
+              {!isDragSource && sectionInsertAt === visualIndex + 1 ? <DropInsertBar /> : null}
+            </div>
           );
-        }
-
-        return (
-          <EditableBlock
-            key={section.id}
-            editing={editing}
-            hidden={hidden}
-            label={PROJECT_SECTION_LABELS.portfolio}
-            dragging={drag?.kind === "section" && drag.id === section.id}
-            onDragStart={() => setDrag({ kind: "section", id: section.id })}
-            onDragEnd={() => setDrag(null)}
-            onDrop={() => onDropSection(section.id)}
-            onToggleHidden={() =>
-              persist({
-                ...layout,
-                sections: toggleLayoutItem(layout.sections, section.id, !hidden),
-              })
-            }
-          >
-            <section
-              className={cn("mb-10 space-y-4 pb-6", hidden && editing && "opacity-50")}
-              aria-labelledby="project-portfolio-heading"
-            >
-              <div className="border-b border-border/80 pb-3">
-                <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">Portfolio</p>
-                <h2 id="project-portfolio-heading" className="mt-1 text-2xl">
-                  Project list
-                </h2>
-                <p className="mt-1 text-sm text-muted">
-                  {projects.length === 0
-                    ? `No ${scopeLabel} yet.`
-                    : `${projects.length} ${scopeLabel} in ${workspaceName}.`}
-                </p>
-              </div>
-              {projects.length === 0 ? (
-                <div className="rounded-xl border border-dashed bg-card p-8">
-                  <h3 className="text-2xl">No projects in this view</h3>
-                  <p className="mt-2 text-sm text-muted">
-                    Create a native project, or connect a provider and link one of its projects.
-                  </p>
-                  {canWrite ? (
-                    <div className="mt-4">
-                      <ProjectForm workspaceId={workspaceId} action={createAction} />
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {projects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      workspaceId={workspaceId}
-                      project={project}
-                      canWrite={canWrite}
-                    />
-                  ))}
-                </ul>
-              )}
-            </section>
-          </EditableBlock>
-        );
-      })}
+        })}
+      </div>
 
       {!canWrite ? (
         <p className="text-sm text-muted">Viewers and members can read projects. Owners and admins create them.</p>
@@ -507,53 +733,63 @@ export function ProjectsBoard({
           </Button>
         </div>
       ) : null}
+
+      {drag ? (
+        <div
+          ref={previewRef}
+          aria-hidden="true"
+          className="board-drag-preview pointer-events-none fixed top-0 left-0 z-[80] rounded-lg border bg-card px-3 py-2 text-sm shadow-xl"
+          style={{ width: drag.width }}
+        >
+          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+            <GripVertical className="size-3.5" aria-hidden="true" />
+            {drag.label}
+          </div>
+          <p className="mt-1 text-sm font-medium capitalize">{drag.kind}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function EditableBlock({
-  editing,
+  id,
   hidden,
   label,
   dragging,
-  onDragStart,
-  onDragEnd,
-  onDrop,
+  entering,
+  onPointerDown,
   onToggleHidden,
   children,
 }: {
-  editing: boolean;
+  id: ProjectSectionId;
   hidden: boolean;
   label: string;
   dragging: boolean;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDrop: () => void;
+  entering: boolean;
+  onPointerDown: (
+    event: ReactPointerEvent<HTMLElement>,
+    item: { kind: LayoutKind; id: string; label: string },
+  ) => void;
   onToggleHidden: () => void;
   children: ReactNode;
 }) {
-  if (!editing) return <>{children}</>;
   return (
     <div
+      data-layout-item=""
+      data-layout-id={id}
       className={cn(
-        "rounded-xl border border-dashed p-3 transition",
-        dragging ? "border-primary bg-accent/30" : "border-border/80",
-        hidden && "opacity-60",
+        "board-card rounded-xl border border-dashed p-3 transition-[opacity,transform,box-shadow,background-color,border-color] duration-200 ease-out",
+        dragging ? "board-card-drag-source" : "border-border/80",
+        hidden && !dragging && "opacity-60",
+        entering && "board-card-enter",
       )}
-      onDragOver={(event) => {
-        event.preventDefault();
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        onDrop();
-      }}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <button
           type="button"
-          draggable
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+          onPointerDown={(event) => onPointerDown(event, { kind: "section", id, label })}
+          onDragStart={(event) => event.preventDefault()}
           className="inline-flex cursor-grab items-center gap-1.5 text-xs font-medium text-muted active:cursor-grabbing"
         >
           <GripVertical className="size-3.5" aria-hidden="true" />
@@ -561,6 +797,7 @@ function EditableBlock({
         </button>
         <button
           type="button"
+          data-no-drag=""
           onClick={onToggleHidden}
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted transition hover:bg-accent hover:text-foreground"
         >
@@ -574,47 +811,45 @@ function EditableBlock({
 }
 
 function EditableTile({
+  id,
+  kind,
   label,
   hidden,
   dragging,
-  onDragStart,
-  onDragEnd,
-  onDrop,
+  entering,
+  onPointerDown,
   onToggleHidden,
   children,
 }: {
+  id: string;
+  kind: "stat" | "insight";
   label: string;
   hidden: boolean;
   dragging: boolean;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-  onDrop: () => void;
+  entering: boolean;
+  onPointerDown: (
+    event: ReactPointerEvent<HTMLElement>,
+    item: { kind: LayoutKind; id: string; label: string },
+  ) => void;
   onToggleHidden: () => void;
   children: ReactNode;
 }) {
   return (
     <div
+      data-layout-item=""
+      data-layout-id={id}
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-dashed bg-card/40 transition",
-        dragging && "border-primary bg-accent/30",
-        hidden && "opacity-50",
+        "board-card flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-dashed bg-card/40 transition-[opacity,transform,box-shadow,background-color,border-color] duration-200 ease-out",
+        dragging ? "board-card-drag-source" : null,
+        hidden && !dragging && "opacity-50",
+        entering && "board-card-enter",
       )}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onDrop();
-      }}
     >
       <div className="flex items-center justify-between gap-2 border-b border-dashed px-2 py-1.5">
         <button
           type="button"
-          draggable
-          onDragStart={(event) => {
-            event.stopPropagation();
-            onDragStart();
-          }}
-          onDragEnd={onDragEnd}
+          onPointerDown={(event) => onPointerDown(event, { kind, id, label })}
+          onDragStart={(event) => event.preventDefault()}
           className="inline-flex min-w-0 cursor-grab items-center gap-1 truncate text-[11px] font-medium text-muted active:cursor-grabbing"
           aria-label={`Drag ${label}`}
         >
@@ -623,6 +858,7 @@ function EditableTile({
         </button>
         <button
           type="button"
+          data-no-drag=""
           onClick={onToggleHidden}
           className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-accent hover:text-foreground"
           aria-label={hidden ? `Show ${label}` : `Hide ${label}`}
