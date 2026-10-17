@@ -13,6 +13,7 @@ export function ScreenLoader({
       role="status"
       aria-live="polite"
       aria-busy="true"
+      data-no-reveal=""
       className={cn(
         "flex min-h-dvh w-full flex-1 flex-col items-center justify-center gap-3",
         className,

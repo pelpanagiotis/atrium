@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CreateMenu } from "@/components/create-menu";
+import { PageMotion } from "@/components/page-motion";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
@@ -32,7 +34,7 @@ export function Shell({
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
       />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="shell-chrome-in flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
@@ -66,7 +68,9 @@ export function Shell({
           </nav>
         </header>
         <main className="flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-6 md:px-6">
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          <Suspense fallback={<div className="flex min-h-0 flex-1 flex-col">{children}</div>}>
+            <PageMotion>{children}</PageMotion>
+          </Suspense>
         </main>
       </div>
     </div>

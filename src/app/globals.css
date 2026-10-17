@@ -626,3 +626,84 @@ body.board-dragging [data-drag-inert] {
     transition: none;
   }
 }
+
+/* Page load + scroll/show reveals — slide left → right with stagger */
+@keyframes page-shell-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes reveal-from-left-tile {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-motion {
+  animation: page-shell-in 240ms ease-out both;
+}
+
+[data-reveal]:not([data-revealed]),
+[data-reveal-child]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+
+[data-reveal-child]:not([data-revealed]) {
+  transform: translateX(-22px);
+}
+
+[data-reveal][data-revealed] {
+  animation: reveal-from-left 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+[data-reveal-child][data-revealed] {
+  animation: reveal-from-left-tile 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.shell-chrome-in {
+  animation: page-shell-in 280ms ease-out both;
+}
+
+.shell-sidebar-in {
+  animation: reveal-from-left 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-motion,
+  .shell-chrome-in,
+  .shell-sidebar-in {
+    animation: none;
+  }
+
+  [data-reveal]:not([data-revealed]),
+  [data-reveal-child]:not([data-revealed]),
+  [data-reveal][data-revealed],
+  [data-reveal-child][data-revealed] {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}

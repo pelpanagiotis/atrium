@@ -282,7 +282,7 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
+        "shell-sidebar-in hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",
         collapsed ? "w-12 overflow-visible p-1.5" : "w-60 overflow-hidden p-4",
       )}
     >
