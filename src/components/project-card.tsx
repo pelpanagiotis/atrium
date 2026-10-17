@@ -63,7 +63,7 @@ export function ProjectCard({
                 {project.ownership_mode}
               </Badge>
             </div>
-            <p className="serif mt-2 text-2xl leading-tight transition group-hover:underline">{title}</p>
+            <p className="serif mt-2 text-2xl leading-tight">{title}</p>
             {showOriginal ? <p className="mt-1 truncate text-xs text-muted">{project.name}</p> : null}
           </div>
           <div className="flex shrink-0 items-start gap-1">
