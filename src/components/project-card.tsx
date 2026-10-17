@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { ProjectNicknameDialog } from "@/components/project-nickname-dialog";
-import { OpenInProviderButton, providerLabel } from "@/components/provider-icon";
+import {
+  OpenInProviderButton,
+  ProviderIcon,
+  providerAccents,
+  providerKey,
+  providerLabel,
+} from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
 import { projectDisplayName } from "@/lib/project-display";
+import { cn } from "@/lib/utils";
 
 type ProjectCardProject = {
   id: string;
@@ -15,6 +22,17 @@ type ProjectCardProject = {
   provider_project_url: string | null;
 };
 
+function projectMonogram(title: string): string {
+  const parts = title
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "P";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+}
+
 export function ProjectCard({
   workspaceId,
   project,
@@ -26,42 +44,78 @@ export function ProjectCard({
 }) {
   const title = projectDisplayName(project);
   const showOriginal = Boolean(project.nickname?.trim()) && project.nickname?.trim() !== project.name;
+  const key = providerKey(project.provider);
+  const accent = providerAccents[key] ?? providerAccents.native!;
+  const monogram = projectMonogram(title);
+  const sourceLabel = project.provider
+    ? `${providerLabel(project.provider)}${project.provider_project_name ? ` · ${project.provider_project_name}` : ""}`
+    : "Native in Atrium";
 
   return (
-    <li className="group relative rounded-lg border bg-card p-4 transition hover:border-foreground/20 hover:bg-accent/30">
+    <li
+      className={cn(
+        "project-tile group relative flex min-h-[13.5rem] overflow-hidden rounded-xl border bg-card",
+        "transition duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-[0_12px_28px_-18px_rgba(0,0,0,0.55)]",
+      )}
+    >
       <Link
         href={`/projects/${project.id}`}
         className="absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Open ${title} dashboard`}
       />
-      <div className="pointer-events-none relative z-10">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-lg font-medium transition group-hover:underline">{title}</p>
-            {showOriginal ? <p className="mt-0.5 truncate text-xs text-muted">{project.name}</p> : null}
+
+      <div className={cn("w-1.5 shrink-0", accent.bar)} aria-hidden="true" />
+
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <div className={cn("relative flex items-end justify-between gap-3 px-4 pb-3 pt-4", accent.wash)}>
+          <div className="pointer-events-none min-w-0">
+            <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-muted">Project</p>
+            <p
+              className={cn(
+                "serif mt-1 text-5xl leading-none tracking-tight transition duration-200 group-hover:translate-x-0.5",
+                accent.ink,
+              )}
+              aria-hidden="true"
+            >
+              {monogram}
+            </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {canWrite ? (
-              <span className="pointer-events-auto relative z-10">
-                <ProjectNicknameDialog workspaceId={workspaceId} project={project} />
-              </span>
-            ) : null}
-            <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>{project.ownership_mode}</Badge>
+          <div className="pointer-events-none mb-1 shrink-0">
+            <ProviderIcon provider={project.provider} size="md" />
           </div>
         </div>
-        <p className="mt-2 line-clamp-2 text-sm text-muted">{project.description || "No description yet."}</p>
-        {project.provider ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <p className="text-xs text-muted">
-              {providerLabel(project.provider)} · {project.provider_project_name}
-            </p>
-            {project.provider_project_url ? (
+
+        <div className="pointer-events-none flex flex-1 flex-col px-4 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-medium leading-snug transition group-hover:underline">{title}</p>
+              {showOriginal ? <p className="mt-0.5 truncate text-xs text-muted">{project.name}</p> : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {canWrite ? (
+                <span className="pointer-events-auto relative z-10">
+                  <ProjectNicknameDialog workspaceId={workspaceId} project={project} />
+                </span>
+              ) : null}
+              <Badge tone={project.ownership_mode === "native" ? "native" : "external"}>
+                {project.ownership_mode}
+              </Badge>
+            </div>
+          </div>
+
+          <p className="mt-2 line-clamp-2 text-sm text-muted">
+            {project.description || "No description yet."}
+          </p>
+
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
+            <p className="min-w-0 truncate text-xs text-muted">{sourceLabel}</p>
+            {project.provider && project.provider_project_url ? (
               <span className="pointer-events-auto relative z-10">
                 <OpenInProviderButton provider={project.provider} href={project.provider_project_url} />
               </span>
             ) : null}
           </div>
-        ) : null}
+        </div>
       </div>
     </li>
   );

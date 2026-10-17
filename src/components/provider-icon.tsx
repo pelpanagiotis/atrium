@@ -99,13 +99,65 @@ function SlackMark({ className }: { className?: string }) {
 const tones: Record<string, string> = {
   linear: "bg-[#5E6AD2]/10 text-[#5E6AD2] ring-1 ring-[#5E6AD2]/25",
   jira: "bg-[#2684FF]/10 text-[#2684FF] ring-1 ring-[#2684FF]/25",
-  github: "bg-white text-[#24292f] ring-1 ring-black/15",
+  github: "bg-white text-[#24292f] ring-1 ring-black/15 dark:bg-[#24292f] dark:text-white dark:ring-white/15",
   gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
   gitea: "bg-[#609926]/15 text-[#609926] ring-1 ring-[#609926]/35",
   slack: "bg-[#E01E5A]/10 text-[#E01E5A] ring-1 ring-[#E01E5A]/30",
-  fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200",
-  native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200",
+  fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-400/30",
+  native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-100 dark:ring-emerald-400/30",
 };
+
+/** Solid accents for project tiles / rails — keyed by provider id. */
+export const providerAccents: Record<
+  string,
+  { bar: string; wash: string; ink: string }
+> = {
+  linear: {
+    bar: "bg-[#5E6AD2]",
+    wash: "bg-[#5E6AD2]/12 dark:bg-[#5E6AD2]/20",
+    ink: "text-[#5E6AD2] dark:text-[#9aa3ef]",
+  },
+  jira: {
+    bar: "bg-[#2684FF]",
+    wash: "bg-[#2684FF]/12 dark:bg-[#2684FF]/20",
+    ink: "text-[#2684FF] dark:text-[#7eb6ff]",
+  },
+  github: {
+    bar: "bg-[#24292f] dark:bg-[#c9d1d9]",
+    wash: "bg-stone-500/10 dark:bg-white/8",
+    ink: "text-[#24292f] dark:text-[#c9d1d9]",
+  },
+  gitlab: {
+    bar: "bg-[#FC6D26]",
+    wash: "bg-[#FC6D26]/12 dark:bg-[#FC6D26]/18",
+    ink: "text-[#E24329] dark:text-[#fc9b66]",
+  },
+  gitea: {
+    bar: "bg-[#609926]",
+    wash: "bg-[#609926]/12 dark:bg-[#609926]/18",
+    ink: "text-[#609926] dark:text-[#9ccc5a]",
+  },
+  slack: {
+    bar: "bg-[#E01E5A]",
+    wash: "bg-[#E01E5A]/10 dark:bg-[#E01E5A]/18",
+    ink: "text-[#E01E5A] dark:text-[#f0719a]",
+  },
+  fake: {
+    bar: "bg-amber-600",
+    wash: "bg-amber-500/12 dark:bg-amber-500/18",
+    ink: "text-amber-800 dark:text-amber-200",
+  },
+  native: {
+    bar: "bg-emerald-600 dark:bg-emerald-400",
+    wash: "bg-emerald-500/12 dark:bg-emerald-400/15",
+    ink: "text-emerald-800 dark:text-emerald-200",
+  },
+};
+
+export function providerKey(provider: string | null | undefined): string {
+  if (provider && LABELS[provider]) return provider;
+  return "native";
+}
 
 export function providerLabel(provider: string | null | undefined): string {
   if (provider && LABELS[provider]) return LABELS[provider];
@@ -138,7 +190,7 @@ export function ProviderIcon({
   className?: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const key = provider && LABELS[provider] ? provider : "native";
+  const key = providerKey(provider);
   const label = LABELS[key] ?? "Native";
   const shell = size === "lg" ? "size-12" : size === "md" ? "size-9" : "size-6";
   const iconClass = size === "lg" ? "size-6" : size === "md" ? "size-5" : "size-3.5";

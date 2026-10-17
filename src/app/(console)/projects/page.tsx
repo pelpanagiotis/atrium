@@ -179,17 +179,20 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
         </section>
       </section>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-2xl">Project list</h2>
-          <p className="text-sm text-muted">
+      <section className="space-y-4" aria-labelledby="project-portfolio-heading">
+        <div className="border-b border-border/80 pb-3">
+          <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">Portfolio</p>
+          <h2 id="project-portfolio-heading" className="mt-1 text-2xl">
+            Project list
+          </h2>
+          <p className="mt-1 text-sm text-muted">
             {projects.length === 0
               ? `No ${scopeLabel} yet.`
               : `${projects.length} ${scopeLabel} in ${current.name}.`}
           </p>
         </div>
         {projects.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-card p-8">
+          <div className="rounded-xl border border-dashed bg-card p-8">
             <h3 className="text-2xl">No projects in this view</h3>
             <p className="mt-2 text-sm text-muted">
               Create a native project, or connect a provider and link one of its projects.
@@ -201,7 +204,7 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
             ) : null}
           </div>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {projects.map((project) => (
               <ProjectCard key={project.id} workspaceId={current.id} project={project} canWrite={canWrite} />
             ))}
