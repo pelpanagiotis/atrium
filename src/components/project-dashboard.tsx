@@ -91,12 +91,12 @@ export function ProjectStatCard({
   inert?: boolean;
 }) {
   const className =
-    "group rounded-lg border bg-card p-4 transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "group flex h-full min-h-[7.5rem] flex-col rounded-lg border bg-card p-4 transition hover:border-foreground/20 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   const body = (
     <>
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{label}</p>
       <p className="mt-2 text-3xl font-medium tabular-nums">{value}</p>
-      <p className="mt-1 flex items-center gap-1 text-xs text-muted transition group-hover:text-foreground">
+      <p className="mt-auto pt-1 flex items-center gap-1 text-xs text-muted transition group-hover:text-foreground">
         {hint}
         <ArrowRight className="size-3 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
       </p>

@@ -264,7 +264,7 @@ export function ProjectsBoard({
               {visibleStats.length === 0 && !editing ? null : (
                 <section
                   className={cn(
-                    "grid gap-3 sm:grid-cols-2 xl:grid-cols-4",
+                    "grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4",
                     hidden && editing && "opacity-50",
                   )}
                 >
@@ -301,7 +301,11 @@ export function ProjectsBoard({
                         </EditableTile>
                       );
                     }
-                    return <div key={stat.id}>{card}</div>;
+                    return (
+                      <div key={stat.id} className="min-h-0 h-full">
+                        {card}
+                      </div>
+                    );
                   })}
                 </section>
               )}
@@ -583,8 +587,8 @@ function EditableTile({
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col gap-1.5 rounded-lg transition",
-        dragging && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-dashed bg-card/40 transition",
+        dragging && "border-primary bg-accent/30",
         hidden && "opacity-50",
       )}
       onDragOver={(event) => event.preventDefault()}
@@ -594,7 +598,7 @@ function EditableTile({
         onDrop();
       }}
     >
-      <div className="flex items-center justify-between gap-2 px-0.5">
+      <div className="flex items-center justify-between gap-2 border-b border-dashed px-2 py-1.5">
         <button
           type="button"
           draggable
@@ -603,23 +607,23 @@ function EditableTile({
             onDragStart();
           }}
           onDragEnd={onDragEnd}
-          className="inline-flex cursor-grab items-center gap-1 text-[11px] font-medium text-muted active:cursor-grabbing"
+          className="inline-flex min-w-0 cursor-grab items-center gap-1 truncate text-[11px] font-medium text-muted active:cursor-grabbing"
           aria-label={`Drag ${label}`}
         >
-          <GripVertical className="size-3.5" aria-hidden="true" />
-          {label}
+          <GripVertical className="size-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{label}</span>
         </button>
         <button
           type="button"
           onClick={onToggleHidden}
-          className="inline-flex size-7 items-center justify-center rounded-md border bg-card text-muted"
+          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-accent hover:text-foreground"
           aria-label={hidden ? `Show ${label}` : `Hide ${label}`}
           title={hidden ? `Show ${label}` : `Hide ${label}`}
         >
           {hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </button>
       </div>
-      <div className="min-h-0 min-w-0 flex-1">{children}</div>
+      <div className="min-h-0 min-w-0 flex-1 p-1.5">{children}</div>
     </div>
   );
 }

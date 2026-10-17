@@ -749,3 +749,15 @@ html[data-motion="off"] [data-reveal-child][data-revealed] {
   transform: none;
   animation: none;
 }
+
+/* Opt-out regions must never keep pending/reveal transforms (ghost bars). */
+[data-no-reveal][data-reveal-pending],
+[data-no-reveal][data-reveal],
+[data-no-reveal][data-reveal-child],
+[data-no-reveal] [data-reveal-pending],
+[data-no-reveal] [data-reveal],
+[data-no-reveal] [data-reveal-child] {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+}

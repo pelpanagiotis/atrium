@@ -182,7 +182,21 @@ function suppressIncoming(nodes: Iterable<Node>) {
   }
 }
 
+function clearRevealArtifacts(scope: ParentNode) {
+  for (const el of scope.querySelectorAll<HTMLElement>(
+    "[data-reveal-pending], [data-reveal], [data-reveal-child], [data-revealed]",
+  )) {
+    if (!el.hasAttribute("data-no-reveal") && !el.closest("[data-no-reveal]")) continue;
+    el.removeAttribute("data-reveal-pending");
+    el.removeAttribute("data-reveal");
+    el.removeAttribute("data-reveal-child");
+    el.removeAttribute("data-revealed");
+    el.style.removeProperty("--reveal-delay");
+  }
+}
+
 function prepareMarkers(root: HTMLElement) {
+  clearRevealArtifacts(root);
   const blocks = collectBlocks(root);
 
   let tileCursor = 0;
@@ -366,11 +380,14 @@ export function PageMotion({
 
       // Hide newcomers immediately (mutation callback runs before paint).
       suppressIncoming(added);
+      // Strip any leaked markers inside opt-out regions before paint.
+      clearRevealArtifacts(root);
 
       if (microtaskQueued) return;
       microtaskQueued = true;
       queueMicrotask(() => {
         microtaskQueued = false;
+        clearRevealArtifacts(root);
 
         const ready = root.hasAttribute("data-motion-ready");
         // Loader uses data-no-reveal, so the shell can be "ready" before real
