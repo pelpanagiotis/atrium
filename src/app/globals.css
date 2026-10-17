@@ -411,6 +411,11 @@ html {
   animation: board-card-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+body:has(.board-drag-preview),
+body:has(.board-drag-preview) * {
+  cursor: grabbing !important;
+}
+
 .board-drag-preview {
   transform: rotate(2deg) scale(1.03);
   will-change: transform, left, top;

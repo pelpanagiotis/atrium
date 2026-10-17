@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ExternalLink } from "lucide-react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { updateTaskAction } from "@/app/actions";
@@ -140,7 +140,7 @@ function SourceLinkButton({ task }: { task: BoardTask }) {
       rel="noreferrer"
       aria-label={label}
       title={label}
-      draggable={false}
+      data-no-drag
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
       className={cn(
@@ -171,8 +171,9 @@ export function TaskBoard({
   const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
   const [enteringIds, setEnteringIds] = useState<Record<string, true>>({});
   const suppressClickRef = useRef(false);
-  const emptyDragImageRef = useRef<HTMLCanvasElement | null>(null);
   const savingIdsRef = useRef<Record<string, true>>({});
+  const dropIndicatorRef = useRef<DropIndicator | null>(null);
+  const dragSessionRef = useRef<{ pointerId: number; active: boolean } | null>(null);
 
   const visibleTasks = tasks.map((task) => {
     const status = statusOverrides[task.id];
@@ -186,22 +187,34 @@ export function TaskBoard({
   const draggedTask = drag ? visibleTasks.find((task) => task.id === drag.taskId) ?? null : null;
 
   function clearDrag() {
+    dragSessionRef.current = null;
+    dropIndicatorRef.current = null;
     setDrag(null);
     setDropIndicator(null);
   }
 
-  // Safety net: if the drag source is collapsed/reordered, still clear preview on end.
-  useEffect(() => {
-    if (!drag) return;
-    function onDragEnd() {
-      clearDrag();
-      window.setTimeout(() => {
-        suppressClickRef.current = false;
-      }, 0);
+  function showDropIndicator(next: DropIndicator | null) {
+    dropIndicatorRef.current = next;
+    setDropIndicator(next);
+  }
+
+  function columnAtPoint(x: number, y: number): BoardStatus | null {
+    const hits = document.elementsFromPoint(x, y);
+    for (const hit of hits) {
+      if (!(hit instanceof Element)) continue;
+      const section = hit.closest<HTMLElement>("[data-board-column]");
+      const status = section?.dataset.boardColumn;
+      if (status && COLUMNS.includes(status as BoardStatus)) return status as BoardStatus;
     }
-    window.addEventListener("dragend", onDragEnd, true);
-    return () => window.removeEventListener("dragend", onDragEnd, true);
-  }, [drag]);
+    for (const section of document.querySelectorAll<HTMLElement>("[data-board-column]")) {
+      const rect = section.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        const status = section.dataset.boardColumn;
+        if (status && COLUMNS.includes(status as BoardStatus)) return status as BoardStatus;
+      }
+    }
+    return null;
+  }
 
   function applyDropOrder(taskId: string, column: BoardStatus, index: number) {
     setColumnOrders((current) => {
@@ -220,17 +233,85 @@ export function TaskBoard({
     });
   }
 
-  function updateDragPosition(event: DragEvent) {
-    if (event.clientX === 0 && event.clientY === 0) return;
-    setDrag((current) =>
-      current
-        ? {
-            ...current,
-            x: event.clientX,
-            y: event.clientY,
-          }
-        : null,
-    );
+  function updateIndicatorFromPoint(clientX: number, clientY: number, taskId: string) {
+    const column = columnAtPoint(clientX, clientY);
+    if (!column) {
+      showDropIndicator(null);
+      return;
+    }
+    const list = document.querySelector<HTMLElement>(`[data-column-list="${column}"]`);
+    showDropIndicator({
+      column,
+      index: list ? insertIndexFromPointer(list, clientY, taskId) : 0,
+    });
+  }
+
+  function onCardPointerDown(event: ReactPointerEvent<HTMLElement>, task: BoardTask) {
+    if (event.button !== 0) return;
+    if (savingIdsRef.current[task.id]) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-no-drag], form, button, input, select, textarea")) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointerId = event.pointerId;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const width = rect.width;
+    const height = rect.height;
+    const session = { pointerId, active: false };
+    dragSessionRef.current = session;
+
+    function onMove(moveEvent: PointerEvent) {
+      if (moveEvent.pointerId !== pointerId || dragSessionRef.current !== session) return;
+      if (!session.active) {
+        const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+        if (distance < 5) return;
+        session.active = true;
+        suppressClickRef.current = true;
+        setDrag({
+          taskId: task.id,
+          width,
+          height,
+          offsetX,
+          offsetY,
+          x: moveEvent.clientX,
+          y: moveEvent.clientY,
+        });
+      } else {
+        setDrag((current) =>
+          current
+            ? {
+                ...current,
+                x: moveEvent.clientX,
+                y: moveEvent.clientY,
+              }
+            : null,
+        );
+      }
+      updateIndicatorFromPoint(moveEvent.clientX, moveEvent.clientY, task.id);
+    }
+
+    function finish(endEvent: PointerEvent) {
+      if (endEvent.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      if (dragSessionRef.current !== session) return;
+      const wasActive = session.active;
+      const indicator = dropIndicatorRef.current;
+      clearDrag();
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+      if (!wasActive || !indicator) return;
+      void moveTask(task, indicator.column, indicator.index);
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
   }
 
   async function moveTask(task: BoardTask, nextStatus: BoardStatus, insertIndex: number) {
@@ -297,53 +378,14 @@ export function TaskBoard({
           const insertAt = isOver ? dropIndicator.index : -1;
           const visualCount = columnTasks.filter((task) => task.id !== drag?.taskId).length;
 
-          function updateColumnIndicator(event: DragEvent<HTMLElement>) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-            updateDragPosition(event);
-            const list = event.currentTarget.querySelector<HTMLElement>("[data-column-list]");
-            if (!list) {
-              setDropIndicator({ column, index: 0 });
-              return;
-            }
-            setDropIndicator({
-              column,
-              index: insertIndexFromPointer(list, event.clientY, drag?.taskId ?? null),
-            });
-          }
-
           return (
             <section
               key={column}
+              data-board-column={column}
               className={cn(
                 "board-column min-w-64 flex-1 rounded-lg border bg-card p-3 transition-[background-color,border-color,box-shadow] duration-200",
                 isOver && "border-foreground/30 bg-accent/40 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--foreground)_12%,transparent)]",
               )}
-              onDragEnter={updateColumnIndicator}
-              onDragOver={updateColumnIndicator}
-              onDragLeave={(event) => {
-                const related = event.relatedTarget as Node | null;
-                if (related && event.currentTarget.contains(related)) return;
-                setDropIndicator((current) => (current?.column === column ? null : current));
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                const raw = event.dataTransfer.getData("application/x-atrium-task") || event.dataTransfer.getData("text/plain");
-                const list = event.currentTarget.querySelector<HTMLElement>("[data-column-list]");
-                const index = list
-                  ? insertIndexFromPointer(list, event.clientY, drag?.taskId ?? null)
-                  : visualCount;
-                clearDrag();
-                if (!raw) return;
-                try {
-                  const payload = JSON.parse(raw) as { id: string; version: number };
-                  const task = visibleTasks.find((item) => item.id === payload.id);
-                  if (!task) return;
-                  void moveTask(task, column, index);
-                } catch {
-                  setError("Could not move the task");
-                }
-              }}
             >
               <h2 className="flex items-center gap-1.5 text-sm font-medium capitalize">
                 <StatusIcon status={column} className="size-3.5" />
@@ -351,7 +393,7 @@ export function TaskBoard({
                 <span className="ml-auto text-xs font-normal text-muted">{columnTasks.length}</span>
               </h2>
               <div
-                data-column-list
+                data-column-list={column}
                 className={cn(
                   "mt-3 flex min-h-24 flex-col rounded-md transition-colors duration-200",
                   isOver && "bg-accent/30",
@@ -375,50 +417,10 @@ export function TaskBoard({
                       <article
                         data-task-card
                         data-task-id={task.id}
-                        draggable={!isSaving}
                         aria-busy={isSaving}
                         aria-hidden={isDragSource || undefined}
-                        onDragStart={(event) => {
-                          if (isSaving || savingIdsRef.current[task.id]) {
-                            event.preventDefault();
-                            return;
-                          }
-                          suppressClickRef.current = true;
-                          const rect = event.currentTarget.getBoundingClientRect();
-                          event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData(
-                            "application/x-atrium-task",
-                            JSON.stringify({ id: task.id, version: task.version }),
-                          );
-                          event.dataTransfer.setData(
-                            "text/plain",
-                            JSON.stringify({ id: task.id, version: task.version }),
-                          );
-                          if (!emptyDragImageRef.current) {
-                            const canvas = document.createElement("canvas");
-                            canvas.width = 1;
-                            canvas.height = 1;
-                            emptyDragImageRef.current = canvas;
-                          }
-                          event.dataTransfer.setDragImage(emptyDragImageRef.current, 0, 0);
-                          setDrag({
-                            taskId: task.id,
-                            width: rect.width,
-                            height: rect.height,
-                            offsetX: event.clientX - rect.left,
-                            offsetY: event.clientY - rect.top,
-                            x: event.clientX,
-                            y: event.clientY,
-                          });
-                          setDropIndicator({ column, index: visualIndex });
-                        }}
-                        onDrag={(event) => updateDragPosition(event)}
-                        onDragEnd={() => {
-                          clearDrag();
-                          window.setTimeout(() => {
-                            suppressClickRef.current = false;
-                          }, 0);
-                        }}
+                        onPointerDown={(event) => onCardPointerDown(event, task)}
+                        onDragStart={(event) => event.preventDefault()}
                         className={cn(
                           "board-card group relative my-1 rounded-md border bg-background text-sm",
                           "transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out",
@@ -435,6 +437,7 @@ export function TaskBoard({
                           href={`/tasks/${task.id}`}
                           className={cn("block p-3", isSaving && "pointer-events-none")}
                           draggable={false}
+                          onDragStart={(event) => event.preventDefault()}
                           tabIndex={isSaving || isDragSource ? -1 : undefined}
                           onClick={(event) => {
                             if (suppressClickRef.current || isSaving) {
