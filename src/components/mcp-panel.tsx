@@ -196,7 +196,7 @@ export function McpPanel({
       <div className="space-y-3">
         <h3 className="text-lg font-medium">Active tokens</h3>
         {tokens.length === 0 ? (
-          <p className="rounded-xl border border-dashed bg-card px-4 py-8 text-sm text-muted">
+          <p className="mb-6 rounded-xl border border-dashed bg-card px-4 py-8 text-sm text-muted">
             No MCP tokens yet. Create one to connect an AI client.
           </p>
         ) : (
