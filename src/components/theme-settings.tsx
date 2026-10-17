@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Check, Moon, Sun } from "lucide-react";
-import { paletteAction, themeAction } from "@/app/actions";
-import { applyDocumentTheme } from "@/lib/apply-theme";
+import { motionAction, paletteAction, themeAction } from "@/app/actions";
+import { applyDocumentMotion, applyDocumentTheme } from "@/lib/apply-theme";
 import { COLOR_PALETTES, type ColorPaletteId, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -26,19 +26,27 @@ const MODE_OPTIONS = [
 export function ThemeSettings({
   theme,
   palette,
+  animationsEnabled,
 }: {
   theme: ThemeMode;
   palette: ColorPaletteId;
+  animationsEnabled: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState<{ theme: ThemeMode; palette: ColorPaletteId } | null>(null);
+  const [motionDraft, setMotionDraft] = useState<boolean | null>(null);
   const mode = draft?.theme ?? theme;
   const activePalette = draft?.palette ?? palette;
+  const motionOn = motionDraft ?? animationsEnabled;
 
   useEffect(() => {
     applyDocumentTheme(theme, palette);
   }, [theme, palette]);
+
+  useEffect(() => {
+    applyDocumentMotion(animationsEnabled);
+  }, [animationsEnabled]);
 
   function setTheme(next: ThemeMode) {
     if (next === mode || pending) return;
@@ -66,11 +74,24 @@ export function ThemeSettings({
     });
   }
 
+  function setMotion(next: boolean) {
+    if (next === motionOn || pending) return;
+    setMotionDraft(next);
+    applyDocumentMotion(next);
+    const formData = new FormData();
+    formData.set("animationsEnabled", next ? "on" : "off");
+    startTransition(async () => {
+      await motionAction(formData);
+      router.refresh();
+      setMotionDraft(null);
+    });
+  }
+
   return (
     <section className="rounded-lg border bg-card p-4 md:p-5">
       <div>
         <h2 className="text-xl">Appearance</h2>
-        <p className="mt-1 text-sm text-muted">Pick a color palette and light or dark mode. Changes apply immediately.</p>
+        <p className="mt-1 text-sm text-muted">Pick a color palette, light or dark mode, and motion. Changes apply immediately.</p>
       </div>
 
       <div className="mt-5">
@@ -162,6 +183,25 @@ export function ThemeSettings({
             );
           })}
         </div>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-medium">Motion</h3>
+        <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-4">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={!motionOn}
+            disabled={pending}
+            onChange={(event) => setMotion(!event.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="block font-medium">Disable animations</span>
+            <span className="mt-0.5 block text-xs text-muted">
+              Skip page entrance motion and staggered reveals. Your system reduce-motion preference still applies when enabled.
+            </span>
+          </span>
+        </label>
       </div>
     </section>
   );

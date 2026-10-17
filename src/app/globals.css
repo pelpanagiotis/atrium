@@ -669,6 +669,12 @@ body.board-dragging [data-drag-inert] {
   opacity: 0;
 }
 
+/* Streaming / Suspense nodes are tagged before paint so they never flash at rest. */
+[data-reveal-pending] {
+  opacity: 0;
+  transform: translateX(-18px);
+}
+
 [data-reveal]:not([data-revealed]),
 [data-reveal-child]:not([data-revealed]) {
   opacity: 0;
@@ -705,6 +711,7 @@ body.board-dragging [data-drag-inert] {
   }
 
   .page-motion:not([data-motion-ready]) > :not([data-no-reveal]),
+  [data-reveal-pending],
   [data-reveal]:not([data-revealed]),
   [data-reveal-child]:not([data-revealed]),
   [data-reveal][data-revealed],
@@ -713,4 +720,22 @@ body.board-dragging [data-drag-inert] {
     transform: none;
     animation: none;
   }
+}
+
+/* Settings toggle: disable entrance motion without changing OS preferences */
+html[data-motion="off"] .page-motion,
+html[data-motion="off"] .shell-chrome-in,
+html[data-motion="off"] .shell-sidebar-in {
+  animation: none;
+}
+
+html[data-motion="off"] .page-motion:not([data-motion-ready]) > :not([data-no-reveal]),
+html[data-motion="off"] [data-reveal-pending],
+html[data-motion="off"] [data-reveal]:not([data-revealed]),
+html[data-motion="off"] [data-reveal-child]:not([data-revealed]),
+html[data-motion="off"] [data-reveal][data-revealed],
+html[data-motion="off"] [data-reveal-child][data-revealed] {
+  opacity: 1;
+  transform: none;
+  animation: none;
 }

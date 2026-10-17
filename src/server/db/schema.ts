@@ -314,6 +314,7 @@ export const userPreferences = pgTable("user_preferences", {
     .default("grove"),
   notifySyncErrors: boolean("notify_sync_errors").notNull().default(true),
   notifyAssignments: boolean("notify_assignments").notNull().default(true),
+  animationsEnabled: boolean("animations_enabled").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });
 

@@ -61,8 +61,12 @@ export function TasksFilterFrame({
           pending={pending}
           onNavigate={onNavigate}
         />
-        {canWrite && values.view !== "board" ? <TaskBulkActions /> : null}
       </div>
+      {canWrite && values.view !== "board" ? (
+        <div data-reveal="">
+          <TaskBulkActions />
+        </div>
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col" aria-busy={pending} data-reveal="">
         {pending ? <ResultsLoader label="Updating tasks" /> : children}
       </div>

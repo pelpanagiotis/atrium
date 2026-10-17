@@ -28,6 +28,7 @@ import { writeAudit } from "@/server/audit";
 import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
+import { parseMotionEnabled } from "@/lib/apply-theme";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import { createMcpToken, revokeMcpToken } from "@/server/mcp/tokens";
 
@@ -443,6 +444,30 @@ export async function settingsAction(formData: FormData): Promise<void> {
     `);
   });
   redirect("/settings");
+}
+
+export async function motionAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const enabled = parseMotionEnabled(String(formData.get("animationsEnabled") ?? "on"));
+  (await cookies()).set("atrium_motion", enabled ? "on" : "off", { path: "/", sameSite: "lax" });
+  await withUser(user, async (tx) => {
+    await tx.execute(sql`
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments, animations_enabled)
+      values (
+        current_setting('app.current_user_id', true),
+        'UTC',
+        'light',
+        'grove',
+        true,
+        true,
+        ${enabled}
+      )
+      on conflict (user_id) do update set
+        animations_enabled = excluded.animations_enabled,
+        updated_at = now()
+    `);
+  });
+  revalidatePath("/", "layout");
 }
 
 export async function themeAction(formData: FormData): Promise<void> {

@@ -18,7 +18,9 @@ const CHILD_ITEM_SELECTOR = [
 ].join(", ");
 
 function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (typeof window === "undefined") return false;
+  if (document.documentElement.dataset.motion === "off") return true;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 function isRevealTarget(el: Element): el is HTMLElement {
@@ -90,6 +92,7 @@ function groupByLayoutRow(items: HTMLElement[]): HTMLElement[][] {
 }
 
 function markItem(el: HTMLElement, delayMs: number) {
+  el.removeAttribute("data-reveal-pending");
   el.setAttribute("data-reveal-child", "");
   el.style.setProperty("--reveal-delay", `${delayMs}ms`);
 }
@@ -134,6 +137,7 @@ function markChildItems(block: HTMLElement, parentDelayMs = 0): number {
 
 function reveal(el: HTMLElement) {
   if (el.hasAttribute("data-revealed")) return;
+  el.removeAttribute("data-reveal-pending");
   el.setAttribute("data-revealed", "");
 }
 
@@ -143,12 +147,22 @@ function isInViewport(el: HTMLElement) {
   return rect.top < vh * 0.97 && rect.bottom > vh * 0.02;
 }
 
-function hasMotionMarkers(root: HTMLElement) {
-  return Boolean(root.querySelector("[data-reveal], [data-reveal-child]"));
+/** Hide incoming DOM before the next paint so it never flashes at rest position. */
+function suppressIncoming(nodes: Iterable<Node>) {
+  for (const node of nodes) {
+    if (!(node instanceof HTMLElement)) continue;
+    if (node.hasAttribute("data-no-reveal") || node.closest("[data-no-reveal]")) continue;
+    if (
+      !node.hasAttribute("data-reveal") &&
+      !node.hasAttribute("data-reveal-child") &&
+      !node.hasAttribute("data-revealed")
+    ) {
+      node.setAttribute("data-reveal-pending", "");
+    }
+  }
 }
 
-function prepareAndObserve(root: HTMLElement) {
-  const reduced = prefersReducedMotion();
+function prepareMarkers(root: HTMLElement) {
   const blocks = collectBlocks(root);
 
   let tileCursor = 0;
@@ -156,6 +170,7 @@ function prepareAndObserve(root: HTMLElement) {
     const sectionDelay = Math.max(Math.min(index, 12) * 100, tileCursor);
 
     if (isWholeView(block)) {
+      block.removeAttribute("data-reveal-pending");
       if (!block.hasAttribute("data-reveal")) {
         block.setAttribute("data-reveal", "");
       }
@@ -178,6 +193,7 @@ function prepareAndObserve(root: HTMLElement) {
       return;
     }
 
+    block.removeAttribute("data-reveal-pending");
     if (!block.hasAttribute("data-reveal")) {
       block.setAttribute("data-reveal", "");
     }
@@ -188,15 +204,30 @@ function prepareAndObserve(root: HTMLElement) {
   });
 
   root.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el, index) => {
+    el.removeAttribute("data-reveal-pending");
     if (!el.style.getPropertyValue("--reveal-delay")) {
       el.style.setProperty("--reveal-delay", `${Math.min(index, 12) * 90}ms`);
     }
   });
+}
 
+function collectPendingTargets(root: HTMLElement): HTMLElement[] {
+  const targets: HTMLElement[] = [];
+  for (const el of root.querySelectorAll<HTMLElement>("[data-reveal], [data-reveal-child]")) {
+    if (!el.hasAttribute("data-revealed")) targets.push(el);
+  }
+  return targets;
+}
+
+function armReveals(root: HTMLElement, targets: HTMLElement[]) {
+  const reduced = prefersReducedMotion();
   if (reduced) {
-    root.querySelectorAll<HTMLElement>("[data-reveal], [data-reveal-child]").forEach((el) => {
-      el.setAttribute("data-revealed", "");
-    });
+    root
+      .querySelectorAll<HTMLElement>("[data-reveal], [data-reveal-child], [data-reveal-pending]")
+      .forEach((el) => {
+        el.removeAttribute("data-reveal-pending");
+        el.setAttribute("data-revealed", "");
+      });
     root.setAttribute("data-motion-ready", "");
     return () => {};
   }
@@ -217,31 +248,55 @@ function prepareAndObserve(root: HTMLElement) {
     { root: null, rootMargin: "0px 0px -4% 0px", threshold: 0.06 },
   );
 
-  for (const el of root.querySelectorAll<HTMLElement>("[data-reveal]")) {
+  for (const el of targets) {
     if (el.hasAttribute("data-revealed")) continue;
+
+    if (el.hasAttribute("data-reveal-child")) {
+      const parent = el.closest<HTMLElement>("[data-reveal]");
+      // Parent already shown: still animate this late-arriving child.
+      if (parent?.hasAttribute("data-revealed")) {
+        if (isInViewport(el) || isInViewport(parent)) reveal(el);
+        else io.observe(el);
+        continue;
+      }
+      // Wait for the parent section unless this child is a top-level tile.
+      if (parent && !parent.hasAttribute("data-revealed")) continue;
+    }
+
     if (isInViewport(el)) {
       reveal(el);
-      el.querySelectorAll<HTMLElement>("[data-reveal-child]").forEach(reveal);
+      if (el.hasAttribute("data-reveal")) {
+        el.querySelectorAll<HTMLElement>("[data-reveal-child]").forEach(reveal);
+      }
     } else {
       io.observe(el);
     }
   }
 
-  for (const el of root.querySelectorAll<HTMLElement>("[data-reveal-child]")) {
-    if (el.hasAttribute("data-revealed")) continue;
-    if (el.closest("[data-reveal]")) continue;
-    if (isInViewport(el)) {
-      reveal(el);
-    } else {
-      io.observe(el);
-    }
-  }
-
+  root.querySelectorAll("[data-reveal-pending]").forEach((el) => {
+    el.removeAttribute("data-reveal-pending");
+  });
   root.setAttribute("data-motion-ready", "");
 
   return () => {
     io.disconnect();
   };
+}
+
+function prepareAndObserve(root: HTMLElement, opts?: { hold?: boolean }) {
+  if (opts?.hold !== false) {
+    // Hold the page invisible while markers are attached (initial / full swap).
+    root.removeAttribute("data-motion-ready");
+  }
+  prepareMarkers(root);
+
+  const pending = collectPendingTargets(root);
+
+  // Flush hidden styles before revealing so the first paint is the start keyframe,
+  // not the resting layout.
+  void root.offsetWidth;
+
+  return armReveals(root, pending);
 }
 
 export function PageMotion({
@@ -260,35 +315,73 @@ export function PageMotion({
     const root = ref.current;
     if (!root) return;
 
-    let cleanup = prepareAndObserve(root);
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const rerun = (hold = false) => {
-      if (hold) root.removeAttribute("data-motion-ready");
-      cleanup();
-      cleanup = prepareAndObserve(root);
+    const cleanups = new Set<() => void>();
+    const track = (fn: () => void) => {
+      cleanups.add(fn);
+      return () => {
+        cleanups.delete(fn);
+        fn();
+      };
     };
 
-    // Nested Suspense (Tasks filters/results) swaps deep in the tree.
-    const swapObserver = new MutationObserver((mutations) => {
-      const added = mutations.some((mutation) =>
-        Array.from(mutation.addedNodes).some((node) => node instanceof HTMLElement),
-      );
-      if (!added) return;
+    track(prepareAndObserve(root, { hold: true }));
+    let microtaskQueued = false;
 
-      window.clearTimeout(timer);
-      timer = setTimeout(() => {
-        const firstPass = !hasMotionMarkers(root);
-        // Only blank the page when there were no markers yet (loader → content).
-        rerun(firstPass);
-      }, 16);
+    const swapObserver = new MutationObserver((mutations) => {
+      const added: HTMLElement[] = [];
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLElement) added.push(node);
+        }
+      }
+      if (added.length === 0) return;
+
+      // Hide newcomers immediately (mutation callback runs before paint).
+      suppressIncoming(added);
+
+      if (microtaskQueued) return;
+      microtaskQueued = true;
+      queueMicrotask(() => {
+        microtaskQueued = false;
+
+        const ready = root.hasAttribute("data-motion-ready");
+        // Loader uses data-no-reveal, so the shell can be "ready" before real
+        // content exists. Treat that like an initial paint and hold visibility.
+        const hasRevealedContent = Boolean(
+          root.querySelector(
+            "[data-reveal][data-revealed], [data-reveal-child][data-revealed]",
+          ),
+        );
+
+        if (!ready || !hasRevealedContent) {
+          for (const fn of [...cleanups]) fn();
+          cleanups.clear();
+          track(prepareAndObserve(root, { hold: true }));
+          return;
+        }
+
+        // Nested swaps (filters → results): keep the shell, arm only newcomers.
+        prepareMarkers(root);
+        const pending = collectPendingTargets(root);
+        if (pending.length === 0) {
+          for (const el of added) el.removeAttribute("data-reveal-pending");
+          root.querySelectorAll("[data-reveal-pending]").forEach((el) => {
+            el.removeAttribute("data-reveal-pending");
+          });
+          return;
+        }
+
+        void root.offsetWidth;
+        track(armReveals(root, pending));
+      });
     });
     swapObserver.observe(root, { childList: true, subtree: true });
 
     return () => {
-      window.clearTimeout(timer);
+      microtaskQueued = false;
       swapObserver.disconnect();
-      cleanup();
+      for (const fn of cleanups) fn();
+      cleanups.clear();
     };
   }, [routeKey]);
 
