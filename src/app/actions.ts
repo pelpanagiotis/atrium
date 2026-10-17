@@ -29,6 +29,7 @@ import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 import { parseMotionEnabled } from "@/lib/apply-theme";
+import { parseProjectsLayout, type ProjectsLayout } from "@/lib/projects-layout";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import { createMcpToken, revokeMcpToken } from "@/server/mcp/tokens";
 
@@ -563,4 +564,29 @@ export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
   const id = await userId();
   await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
   revalidatePath("/integrations");
+}
+
+export async function projectsLayoutAction(layout: ProjectsLayout): Promise<void> {
+  const user = await userId();
+  const next = parseProjectsLayout(layout);
+  const encoded = encodeURIComponent(JSON.stringify(next));
+  (await cookies()).set("atrium_projects_layout", encoded, { path: "/", sameSite: "lax", maxAge: 31536000 });
+  await withUser(user, async (tx) => {
+    await tx.execute(sql`
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments, projects_layout)
+      values (
+        current_setting('app.current_user_id', true),
+        'UTC',
+        'light',
+        'grove',
+        true,
+        true,
+        ${JSON.stringify(next)}::jsonb
+      )
+      on conflict (user_id) do update set
+        projects_layout = excluded.projects_layout,
+        updated_at = now()
+    `);
+  });
+  revalidatePath("/projects");
 }
