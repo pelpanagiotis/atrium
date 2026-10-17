@@ -89,13 +89,15 @@ export function WorkspaceIconPicker({
 export function WorkspaceIconBadge({
   icon,
   kind,
+  contextIcon,
   className,
 }: {
   icon?: string | null;
-  kind: "personal" | "work";
+  kind: string;
+  contextIcon?: string | null;
   className?: string;
 }) {
-  const value = workspaceIconOrFallback(icon, kind);
+  const value = workspaceIconOrFallback(icon, kind, contextIcon);
   return (
     <span
       aria-hidden="true"

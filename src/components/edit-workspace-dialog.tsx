@@ -15,16 +15,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/field";
+import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
 
 export function EditWorkspaceDialog({
   workspace,
+  contexts,
 }: {
   workspace: {
     id: string;
     name: string;
-    kind: "personal" | "work";
+    kind: string;
     icon?: string | null;
   };
+  contexts: WorkspaceContextDef[];
 }) {
   const [open, setOpen] = useState(false);
   const formId = `edit-workspace-${workspace.id}`;
@@ -46,7 +49,7 @@ export function EditWorkspaceDialog({
         <DialogHeader>
           <DialogTitle>Edit workspace</DialogTitle>
           <DialogDescription>
-            Update the name, context (personal or work), and icon for {workspace.name}.
+            Update the name, context, and icon for {workspace.name}.
           </DialogDescription>
         </DialogHeader>
         <form action={updateWorkspaceAction} className="space-y-4" id={formId}>
@@ -57,8 +60,9 @@ export function EditWorkspaceDialog({
               <Input id={`${formId}-name`} name="name" defaultValue={workspace.name} required />
             </div>
             <WorkspaceKindPicker
-              key={workspace.kind}
+              key={`${workspace.id}-${workspace.kind}`}
               id={`${formId}-kind`}
+              contexts={contexts}
               defaultValue={workspace.kind}
               label="Context"
             />

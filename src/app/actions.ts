@@ -11,6 +11,8 @@ import { allowRequest } from "@/server/rate-limit";
 import {
   ensurePersonalWorkspace,
   createWorkspace,
+  createWorkspaceContext,
+  deleteWorkspaceContext,
   inviteMember,
   acceptInvitation,
   setMemberRole,
@@ -127,7 +129,7 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
   try {
     const id = await createWorkspace(await userId(), {
       name: String(formData.get("name") ?? ""),
-      kind: String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
+      kind: String(formData.get("kind") ?? "work"),
       icon: String(formData.get("icon") ?? ""),
     });
     (await cookies()).set("atrium_workspace", id, { httpOnly: true, sameSite: "lax", path: "/" });
@@ -141,7 +143,7 @@ export async function createWorkspaceAction(_state: ActionState, formData: FormD
 export async function updateWorkspaceAction(formData: FormData): Promise<void> {
   await updateWorkspace(await userId(), String(formData.get("workspaceId")), {
     name: String(formData.get("name") ?? ""),
-    kind: String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
+    kind: String(formData.get("kind") ?? "work"),
     icon: String(formData.get("icon") ?? ""),
   });
   redirect("/workspaces");
@@ -151,8 +153,31 @@ export async function updateWorkspaceKindAction(formData: FormData): Promise<voi
   await updateWorkspaceKind(
     await userId(),
     String(formData.get("workspaceId")),
-    String(formData.get("kind") ?? "work") === "personal" ? "personal" : "work",
+    String(formData.get("kind") ?? "work"),
   );
+  revalidatePath("/workspaces");
+  revalidatePath("/", "layout");
+}
+
+export async function createWorkspaceContextAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    await createWorkspaceContext(await userId(), {
+      label: String(formData.get("label") ?? ""),
+      icon: String(formData.get("icon") ?? ""),
+    });
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not create the context" };
+  }
+  revalidatePath("/workspaces");
+  revalidatePath("/", "layout");
+  return { notice: "Context added" };
+}
+
+export async function deleteWorkspaceContextAction(formData: FormData): Promise<void> {
+  await deleteWorkspaceContext(await userId(), String(formData.get("contextId")));
   revalidatePath("/workspaces");
   revalidatePath("/", "layout");
 }

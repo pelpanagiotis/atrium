@@ -2,51 +2,51 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Briefcase, Home } from "lucide-react";
 import { updateWorkspaceKindAction } from "@/app/actions";
+import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
+import { contextLabel } from "@/lib/workspace-contexts";
 import { MenuSelect } from "@/components/ui/menu-select";
-
-const OPTIONS = [
-  {
-    value: "personal",
-    label: "Personal",
-    description: "Private notes and solo work",
-    icon: <Home className="size-3.5" aria-hidden="true" />,
-  },
-  {
-    value: "work",
-    label: "Work",
-    description: "Shared team projects and sync",
-    icon: <Briefcase className="size-3.5" aria-hidden="true" />,
-  },
-];
 
 export function WorkspaceContextControl({
   workspaceId,
   kind,
+  contexts,
   canEdit,
 }: {
   workspaceId: string;
-  kind: "personal" | "work";
+  kind: string;
+  contexts: WorkspaceContextDef[];
   canEdit: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const label = contextLabel(contexts, kind);
 
   if (!canEdit) {
-    return <p className="text-xs uppercase tracking-[0.16em] text-muted">{kind}</p>;
+    return <p className="text-xs uppercase tracking-[0.16em] text-muted">{label}</p>;
   }
+
+  const options = contexts.map((context) => ({
+    value: context.slug,
+    label: context.label,
+    description: context.slug,
+    icon: (
+      <span aria-hidden="true" className="text-sm leading-none">
+        {context.icon ?? "🗂️"}
+      </span>
+    ),
+  }));
 
   return (
     <MenuSelect
       value={kind}
-      options={OPTIONS}
+      options={options}
       aria-label="Workspace context"
       disabled={pending}
       className="w-auto"
       triggerClassName="h-7 gap-1.5 rounded-md border-transparent bg-transparent px-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted hover:border-border hover:bg-accent hover:text-foreground"
       onValueChange={(next) => {
-        if (next === kind || (next !== "personal" && next !== "work")) return;
+        if (next === kind) return;
         startTransition(async () => {
           const formData = new FormData();
           formData.set("workspaceId", workspaceId);

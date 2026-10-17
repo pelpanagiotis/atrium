@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
+import {
+  DEFAULT_WORKSPACE_CONTEXTS,
+  isValidContextSlug,
+  slugifyContextLabel,
+  type WorkspaceContextDef,
+} from "@/lib/workspace-contexts";
 import { normalizeWorkspaceIcon } from "@/lib/workspace-icons";
 import { sha256, randomToken } from "../crypto/secrets";
 import { withUser, type Tx } from "../db/client";
@@ -10,7 +16,7 @@ export type WorkspaceSummary = {
   id: string;
   name: string;
   slug: string;
-  kind: "personal" | "work";
+  kind: string;
   icon: string | null;
   role: WorkspaceRole;
 };
@@ -24,13 +30,173 @@ function slugify(name: string): string {
   return `${base || "workspace"}-${randomUUID().slice(0, 8)}`;
 }
 
+async function ensureDefaultContexts(tx: Tx): Promise<void> {
+  for (const context of DEFAULT_WORKSPACE_CONTEXTS) {
+    await tx.execute(sql`
+      insert into workspace_contexts (user_id, slug, label, icon, position)
+      values (
+        current_setting('app.current_user_id', true),
+        ${context.slug},
+        ${context.label},
+        ${context.icon},
+        ${context.position}
+      )
+      on conflict (user_id, slug) do nothing
+    `);
+  }
+}
+
+async function requireKnownContext(tx: Tx, kind: string): Promise<string> {
+  const slug = kind.trim().toLowerCase();
+  if (!isValidContextSlug(slug)) {
+    throw new Error("Choose a valid workspace context");
+  }
+  await ensureDefaultContexts(tx);
+  const found = await tx.execute<{ slug: string }>(sql`
+    select slug from workspace_contexts
+    where user_id = current_setting('app.current_user_id', true)
+      and slug = ${slug}
+    limit 1
+  `);
+  if (!found[0]) throw new Error("Unknown workspace context");
+  return slug;
+}
+
+export async function listWorkspaceContexts(userId: string): Promise<WorkspaceContextDef[]> {
+  return withUser(userId, async (tx) => {
+    await ensureDefaultContexts(tx);
+    const rows = await tx.execute<{
+      id: string;
+      slug: string;
+      label: string;
+      icon: string | null;
+      position: number;
+    }>(sql`
+      select id, slug, label, icon, position
+      from workspace_contexts
+      where user_id = current_setting('app.current_user_id', true)
+      order by position, label
+    `);
+    return rows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      label: row.label,
+      icon: row.icon ?? null,
+      position: row.position,
+    }));
+  });
+}
+
+export async function createWorkspaceContext(
+  userId: string,
+  input: { label: string; icon?: string | null },
+): Promise<WorkspaceContextDef> {
+  const label = input.label.trim();
+  if (label.length < 1 || label.length > 40) {
+    throw new Error("Context name must be between 1 and 40 characters");
+  }
+  const slug = slugifyContextLabel(label);
+  if (!isValidContextSlug(slug)) {
+    throw new Error("Context name must include letters or numbers");
+  }
+  const icon = normalizeWorkspaceIcon(input.icon);
+  return withUser(userId, async (tx) => {
+    await ensureDefaultContexts(tx);
+    const count = await tx.execute<{ count: number }>(sql`
+      select count(*)::int as count from workspace_contexts
+      where user_id = current_setting('app.current_user_id', true)
+    `);
+    if (Number(count[0]?.count ?? 0) >= 20) {
+      throw new Error("Context limit reached (20)");
+    }
+    const maxPos = await tx.execute<{ max: number | null }>(sql`
+      select max(position)::int as max from workspace_contexts
+      where user_id = current_setting('app.current_user_id', true)
+    `);
+    const position = Number(maxPos[0]?.max ?? -1) + 1;
+    try {
+      const inserted = await tx.execute<{
+        id: string;
+        slug: string;
+        label: string;
+        icon: string | null;
+        position: number;
+      }>(sql`
+        insert into workspace_contexts (user_id, slug, label, icon, position)
+        values (
+          current_setting('app.current_user_id', true),
+          ${slug},
+          ${label},
+          ${icon},
+          ${position}
+        )
+        returning id, slug, label, icon, position
+      `);
+      const row = inserted[0];
+      if (!row) throw new Error("Context was not created");
+      return {
+        id: row.id,
+        slug: row.slug,
+        label: row.label,
+        icon: row.icon ?? null,
+        position: row.position,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (/unique|duplicate/i.test(message)) {
+        throw new Error("A context with that name already exists");
+      }
+      throw error;
+    }
+  });
+}
+
+export async function deleteWorkspaceContext(userId: string, contextId: string): Promise<void> {
+  await withUser(userId, async (tx) => {
+    const context = await tx.execute<{ id: string; slug: string }>(sql`
+      select id, slug from workspace_contexts
+      where id = ${contextId}::uuid
+        and user_id = current_setting('app.current_user_id', true)
+      limit 1
+    `);
+    const row = context[0];
+    if (!row) throw new Error("Context not found");
+
+    const remaining = await tx.execute<{ count: number }>(sql`
+      select count(*)::int as count from workspace_contexts
+      where user_id = current_setting('app.current_user_id', true)
+    `);
+    if (Number(remaining[0]?.count ?? 0) <= 1) {
+      throw new Error("Keep at least one context");
+    }
+
+    const inUse = await tx.execute<{ count: number }>(sql`
+      select count(*)::int as count
+      from workspaces w
+      join workspace_members m on m.workspace_id = w.id
+      where m.user_id = current_setting('app.current_user_id', true)
+        and w.kind = ${row.slug}
+    `);
+    if (Number(inUse[0]?.count ?? 0) > 0) {
+      throw new Error("Reassign workspaces using this context before removing it");
+    }
+
+    await tx.execute(sql`
+      delete from workspace_contexts
+      where id = ${row.id}::uuid
+        and user_id = current_setting('app.current_user_id', true)
+    `);
+  });
+}
+
 export async function listWorkspaces(userId: string): Promise<WorkspaceSummary[]> {
   return withUser(userId, async (tx) => {
+    await ensureDefaultContexts(tx);
     const result = await tx.execute<{
       id: string;
       name: string;
       slug: string;
-      kind: "personal" | "work";
+      kind: string;
       icon: string | null;
       role: WorkspaceRole;
     }>(sql`
@@ -48,6 +214,7 @@ export async function ensurePersonalWorkspace(userId: string, name: string): Pro
   const label = `${name.trim() || "Personal"}'s workspace`;
   await withUser(userId, async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId})::bigint)`);
+    await ensureDefaultContexts(tx);
     const existing = await tx.execute<{ id: string }>(sql`
       select workspace_id as id from workspace_members
       where user_id = current_setting('app.current_user_id', true)
@@ -60,17 +227,15 @@ export async function ensurePersonalWorkspace(userId: string, name: string): Pro
 
 export async function createWorkspace(
   userId: string,
-  input: { name: string; kind: "personal" | "work"; icon?: string | null },
+  input: { name: string; kind: string; icon?: string | null },
 ): Promise<string> {
   const name = input.name.trim();
   if (name.length < 2 || name.length > 80) {
     throw new Error("Workspace name must be between 2 and 80 characters");
   }
-  if (input.kind !== "personal" && input.kind !== "work") {
-    throw new Error("Workspace kind must be personal or work");
-  }
   const icon = normalizeWorkspaceIcon(input.icon);
   return withUser(userId, async (tx) => {
+    const kind = await requireKnownContext(tx, input.kind);
     const count = await tx.execute<{ count: number }>(sql`
       select count(*)::int as count from workspace_members
       where user_id = current_setting('app.current_user_id', true) and role = 'owner'
@@ -79,7 +244,7 @@ export async function createWorkspace(
       throw new Error("Workspace limit reached (20 owned workspaces)");
     }
     const created = await tx.execute<{ id: string }>(sql`
-      select create_workspace(${name}, ${slugify(name)}, ${input.kind}, ${icon}) as id
+      select create_workspace(${name}, ${slugify(name)}, ${kind}, ${icon}) as id
     `);
     const id = created[0]?.id;
     if (!id) throw new Error("Workspace was not created");
@@ -90,21 +255,19 @@ export async function createWorkspace(
 export async function updateWorkspace(
   userId: string,
   workspaceId: string,
-  input: { name: string; kind: "personal" | "work"; icon?: string | null },
+  input: { name: string; kind: string; icon?: string | null },
 ): Promise<void> {
   const trimmed = input.name.trim();
   if (trimmed.length < 2 || trimmed.length > 80) {
     throw new Error("Workspace name must be between 2 and 80 characters");
   }
-  if (input.kind !== "personal" && input.kind !== "work") {
-    throw new Error("Workspace kind must be personal or work");
-  }
   const icon = normalizeWorkspaceIcon(input.icon);
   await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "workspace.update");
+    const kind = await requireKnownContext(tx, input.kind);
     const updated = await tx.execute(sql`
       update workspaces
-      set name = ${trimmed}, kind = ${input.kind}, icon = ${icon}, updated_at = now()
+      set name = ${trimmed}, kind = ${kind}, icon = ${icon}, updated_at = now()
       where id = ${workspaceId}::uuid
       returning id
     `);
@@ -112,19 +275,13 @@ export async function updateWorkspace(
   });
 }
 
-export async function updateWorkspaceKind(
-  userId: string,
-  workspaceId: string,
-  kind: "personal" | "work",
-): Promise<void> {
-  if (kind !== "personal" && kind !== "work") {
-    throw new Error("Workspace context must be personal or work");
-  }
+export async function updateWorkspaceKind(userId: string, workspaceId: string, kind: string): Promise<void> {
   await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "workspace.update");
+    const next = await requireKnownContext(tx, kind);
     const updated = await tx.execute(sql`
       update workspaces
-      set kind = ${kind}, updated_at = now()
+      set kind = ${next}, updated_at = now()
       where id = ${workspaceId}::uuid
       returning id
     `);

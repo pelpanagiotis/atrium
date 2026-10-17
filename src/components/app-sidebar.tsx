@@ -131,7 +131,12 @@ export function AppSidebar({
   initialOrder,
 }: {
   userName: string;
-  current: { kind: "personal" | "work"; icon?: string | null };
+  current: {
+    kind: string;
+    kindLabel?: string;
+    icon?: string | null;
+    contextIcon?: string | null;
+  };
   initialCollapsed?: boolean;
   initialOrder?: string;
 }) {
@@ -281,7 +286,7 @@ export function AppSidebar({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
-  const workspaceLabel = `${current.kind === "personal" ? "Personal" : "Work"} workspace`;
+  const workspaceLabel = `${current.kindLabel ?? current.kind} workspace`;
 
   return (
     <aside
@@ -342,12 +347,13 @@ export function AppSidebar({
             <WorkspaceIconBadge
               icon={current.icon}
               kind={current.kind}
+              contextIcon={current.contextIcon}
               className="size-7 border-white/15 bg-white/5 text-xs text-sidebar-foreground"
             />
           </SidebarTip>
           {!collapsed ? (
             <p className="min-w-0 flex-1 text-xs uppercase leading-snug tracking-[0.14em] text-sidebar-foreground/60">
-              {current.kind} workspace
+              {workspaceLabel}
             </p>
           ) : null}
         </div>

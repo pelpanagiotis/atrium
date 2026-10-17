@@ -29,7 +29,14 @@ export function normalizeWorkspaceIcon(value: string | null | undefined): string
   return trimmed;
 }
 
-export function workspaceIconOrFallback(icon: string | null | undefined, kind: "personal" | "work"): string {
+export function workspaceIconOrFallback(
+  icon: string | null | undefined,
+  kind: string,
+  contextIcon?: string | null,
+): string {
   if (icon && (WORKSPACE_ICONS as readonly string[]).includes(icon)) return icon;
-  return kind === "personal" ? "🏠" : "🏢";
+  if (contextIcon && (WORKSPACE_ICONS as readonly string[]).includes(contextIcon)) return contextIcon;
+  if (kind === "personal") return "🏠";
+  if (kind === "work") return "🏢";
+  return "🗂️";
 }

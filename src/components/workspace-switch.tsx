@@ -11,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
+import { contextIcon, contextLabel } from "@/lib/workspace-contexts";
 import { workspaceIconOrFallback } from "@/lib/workspace-icons";
 import { cn } from "@/lib/utils";
 
@@ -18,23 +20,24 @@ type WorkspaceOption = {
   id: string;
   name: string;
   role: string;
-  kind: "personal" | "work";
+  kind: string;
   icon?: string | null;
 };
 
 export function WorkspaceSwitch({
   currentId,
   workspaces,
+  contexts = [],
 }: {
   currentId: string;
   workspaces: WorkspaceOption[];
+  contexts?: WorkspaceContextDef[];
 }) {
   const [pending, startTransition] = useTransition();
   const current = workspaces.find((workspace) => workspace.id === currentId) ?? workspaces[0];
   if (!current) return null;
 
-  const personal = workspaces.filter((workspace) => workspace.kind === "personal");
-  const work = workspaces.filter((workspace) => workspace.kind === "work");
+  const groups = groupWorkspaces(workspaces, contexts);
 
   function selectWorkspace(workspaceId: string) {
     if (workspaceId === currentId || pending) return;
@@ -57,50 +60,66 @@ export function WorkspaceSwitch({
         aria-label={`Workspace: ${current.name}`}
       >
         <span aria-hidden="true" className="shrink-0 text-base leading-none">
-          {workspaceIconOrFallback(current.icon, current.kind)}
+          {workspaceIconOrFallback(
+            current.icon,
+            current.kind,
+            contextIcon(contexts, current.kind),
+          )}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{current.name}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-muted" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[min(100vw-2rem,22rem)]">
-        {personal.length > 0 ? (
-          <>
-            <DropdownMenuLabel>Personal</DropdownMenuLabel>
-            {personal.map((workspace) => (
+        {groups.map((group, index) => (
+          <div key={group.slug}>
+            {index > 0 ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+            {group.workspaces.map((workspace) => (
               <WorkspaceMenuItem
                 key={workspace.id}
                 workspace={workspace}
+                contexts={contexts}
                 selected={workspace.id === currentId}
                 onSelect={selectWorkspace}
               />
             ))}
-          </>
-        ) : null}
-        {personal.length > 0 && work.length > 0 ? <DropdownMenuSeparator /> : null}
-        {work.length > 0 ? (
-          <>
-            <DropdownMenuLabel>Work</DropdownMenuLabel>
-            {work.map((workspace) => (
-              <WorkspaceMenuItem
-                key={workspace.id}
-                workspace={workspace}
-                selected={workspace.id === currentId}
-                onSelect={selectWorkspace}
-              />
-            ))}
-          </>
-        ) : null}
+          </div>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
+function groupWorkspaces(workspaces: WorkspaceOption[], contexts: WorkspaceContextDef[]) {
+  const order = new Map(contexts.map((context, index) => [context.slug, index]));
+  const buckets = new Map<string, WorkspaceOption[]>();
+  for (const workspace of workspaces) {
+    const list = buckets.get(workspace.kind) ?? [];
+    list.push(workspace);
+    buckets.set(workspace.kind, list);
+  }
+  return [...buckets.entries()]
+    .sort((a, b) => {
+      const ai = order.get(a[0]) ?? Number.MAX_SAFE_INTEGER;
+      const bi = order.get(b[0]) ?? Number.MAX_SAFE_INTEGER;
+      if (ai !== bi) return ai - bi;
+      return contextLabel(contexts, a[0]).localeCompare(contextLabel(contexts, b[0]));
+    })
+    .map(([slug, items]) => ({
+      slug,
+      label: contextLabel(contexts, slug),
+      workspaces: items,
+    }));
+}
+
 function WorkspaceMenuItem({
   workspace,
+  contexts,
   selected,
   onSelect,
 }: {
   workspace: WorkspaceOption;
+  contexts: WorkspaceContextDef[];
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -110,7 +129,7 @@ function WorkspaceMenuItem({
       className={cn(selected && "bg-accent/70")}
     >
       <span aria-hidden="true" className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-base">
-        {workspaceIconOrFallback(workspace.icon, workspace.kind)}
+        {workspaceIconOrFallback(workspace.icon, workspace.kind, contextIcon(contexts, workspace.kind))}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium">{workspace.name}</span>

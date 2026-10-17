@@ -158,32 +158,40 @@ export function ProjectsBoard({
   const hiddenSections = layout.sections.filter((item) => item.hidden);
 
   return (
-    <div className="space-y-8" data-no-reveal="">
+    <div className={cn("space-y-8", editing && "pb-24")} data-no-reveal="">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-4xl">Projects</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {statusNav}
-          {editing ? (
-            <>
-              <Button type="button" variant="outline" onClick={resetLayout} disabled={pending}>
-                <RotateCcw className="size-3.5" aria-hidden="true" />
-                Reset
-              </Button>
-              <Button type="button" onClick={() => setEditing(false)} disabled={pending}>
-                Done
-              </Button>
-            </>
-          ) : (
+          {!editing ? (
             <Button type="button" variant="outline" onClick={() => setEditing(true)}>
               <LayoutDashboard className="size-3.5" aria-hidden="true" />
               Customize
             </Button>
-          )}
+          ) : null}
           {canWrite ? <ProjectForm workspaceId={workspaceId} action={createAction} /> : null}
         </div>
       </div>
+
+      {editing ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <div
+            className="pointer-events-auto flex items-center gap-2 rounded-xl border bg-card/95 p-1.5 shadow-lg backdrop-blur-md"
+            role="toolbar"
+            aria-label="Customize board"
+          >
+            <Button type="button" variant="outline" onClick={resetLayout} disabled={pending}>
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              Reset
+            </Button>
+            <Button type="button" onClick={() => setEditing(false)} disabled={pending}>
+              Done
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {editing && (hiddenSections.length > 0 || hiddenStats.length > 0 || hiddenInsights.length > 0) ? (
         <div className="rounded-lg border border-dashed bg-card/60 p-3">

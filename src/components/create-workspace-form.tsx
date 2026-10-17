@@ -15,10 +15,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/field";
+import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
 
-export function CreateWorkspaceForm() {
+export function CreateWorkspaceForm({ contexts }: { contexts: WorkspaceContextDef[] }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<ActionState, FormData>(createWorkspaceAction, {});
+  const defaultKind =
+    contexts.find((context) => context.slug === "work")?.slug ?? contexts[0]?.slug ?? "work";
+  const defaultIcon =
+    contexts.find((context) => context.slug === defaultKind)?.icon ?? "🏢";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -31,7 +36,7 @@ export function CreateWorkspaceForm() {
       <DialogContent className="w-[min(100%-2rem,32rem)]">
         <DialogHeader>
           <DialogTitle>Create a workspace</DialogTitle>
-          <DialogDescription>Personal and work contexts stay isolated from each other.</DialogDescription>
+          <DialogDescription>Contexts keep different kinds of work separated.</DialogDescription>
         </DialogHeader>
         <form action={action} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
@@ -39,9 +44,13 @@ export function CreateWorkspaceForm() {
               <Label htmlFor="create-workspace-name">Name</Label>
               <Input id="create-workspace-name" name="name" placeholder="Northwind Studio" required />
             </div>
-            <WorkspaceKindPicker id="create-workspace-kind" defaultValue="work" />
+            <WorkspaceKindPicker
+              id="create-workspace-kind"
+              contexts={contexts}
+              defaultValue={defaultKind}
+            />
           </div>
-          <WorkspaceIconPicker defaultValue="🏢" id="create-workspace-icon" />
+          <WorkspaceIconPicker defaultValue={defaultIcon} id="create-workspace-icon" />
           {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
           <Button type="submit" className="w-full" size="lg" disabled={pending}>
             {pending ? "Creating…" : "Create workspace"}

@@ -6,6 +6,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { CreateMenu } from "@/components/create-menu";
 import { PageMotion } from "@/components/page-motion";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
+import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
+import { contextIcon, contextLabel } from "@/lib/workspace-contexts";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -13,6 +15,7 @@ export function Shell({
   user,
   workspaces,
   current,
+  contexts = [],
   theme,
   sidebarCollapsed = false,
   sidebarOrder,
@@ -21,6 +24,7 @@ export function Shell({
   user: SessionUser;
   workspaces: WorkspaceSummary[];
   current: WorkspaceSummary;
+  contexts?: WorkspaceContextDef[];
   theme: "light" | "dark";
   sidebarCollapsed?: boolean;
   sidebarOrder?: string;
@@ -30,7 +34,12 @@ export function Shell({
     <div className="flex h-dvh max-h-dvh overflow-hidden">
       <AppSidebar
         userName={user.name}
-        current={{ kind: current.kind, icon: current.icon }}
+        current={{
+          kind: current.kind,
+          kindLabel: contextLabel(contexts, current.kind),
+          icon: current.icon,
+          contextIcon: contextIcon(contexts, current.kind),
+        }}
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
       />
@@ -38,7 +47,7 @@ export function Shell({
         <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
-            <WorkspaceSwitch currentId={current.id} workspaces={workspaces} />
+            <WorkspaceSwitch currentId={current.id} workspaces={workspaces} contexts={contexts} />
           </div>
           <form action="/search" className="relative ml-auto w-full max-w-xs shrink">
             <label className="sr-only" htmlFor="global-search">Search</label>

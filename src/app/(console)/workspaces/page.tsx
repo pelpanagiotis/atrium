@@ -7,12 +7,18 @@ import { CreateWorkspaceForm } from "@/components/create-workspace-form";
 import { EditWorkspaceDialog } from "@/components/edit-workspace-dialog";
 import { InviteForm } from "@/components/invite-form";
 import { WorkspaceContextControl } from "@/components/workspace-context-control";
+import { WorkspaceContextsManager } from "@/components/workspace-contexts-manager";
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { Button } from "@/components/ui/button";
 import { MenuSelect } from "@/components/ui/menu-select";
+import { contextIcon } from "@/lib/workspace-contexts";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
-import { listInvitations, listMembers } from "@/server/workspaces/service";
+import {
+  listInvitations,
+  listMembers,
+  listWorkspaceContexts,
+} from "@/server/workspaces/service";
 
 export const instant = false;
 
@@ -29,37 +35,51 @@ async function WorkspacesContent() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const { workspaces, current } = await workspaceContext(user.id);
+  const contexts = await listWorkspaceContexts(user.id);
   const members = await listMembers(user.id, current.id);
   const canAdmin = current.role === "owner" || current.role === "admin";
   const invitations = canAdmin ? await listInvitations(user.id, current.id) : [];
+  const usage = workspaces.reduce<Record<string, number>>((acc, workspace) => {
+    acc[workspace.kind] = (acc[workspace.kind] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-4xl">Workspaces</h1>
           <p className="mt-1 text-sm text-muted">
-            Personal and work contexts are isolated. Change a workspace context anytime from its card or the edit dialog.
+            Personal and work contexts are isolated. Add your own contexts, then assign them on each workspace.
           </p>
         </div>
-        <CreateWorkspaceForm />
+        <CreateWorkspaceForm contexts={contexts} />
       </div>
+
+      <WorkspaceContextsManager contexts={contexts} usage={usage} />
+
       <ul className="grid gap-3 md:grid-cols-2">
         {workspaces.map((workspace) => {
           const canEdit = workspace.role === "owner" || workspace.role === "admin";
           return (
             <li key={workspace.id} className="rounded-lg border bg-card p-4">
               <div className="flex items-start gap-3">
-                <WorkspaceIconBadge icon={workspace.icon} kind={workspace.kind} />
+                <WorkspaceIconBadge
+                  icon={workspace.icon}
+                  kind={workspace.kind}
+                  contextIcon={contextIcon(contexts, workspace.kind)}
+                />
                 <div className="min-w-0 flex-1">
                   <WorkspaceContextControl
                     workspaceId={workspace.id}
                     kind={workspace.kind}
+                    contexts={contexts}
                     canEdit={canEdit}
                   />
                   <p className="text-lg font-medium">{workspace.name}</p>
                   <p className="text-sm text-muted">Your role: {workspace.role}</p>
                 </div>
-                {canEdit ? <EditWorkspaceDialog workspace={workspace} /> : null}
+                {canEdit ? <EditWorkspaceDialog workspace={workspace} contexts={contexts} /> : null}
               </div>
             </li>
           );
