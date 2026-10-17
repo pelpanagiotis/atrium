@@ -110,8 +110,8 @@ function SidebarTip({
           "pointer-events-none absolute left-full top-1/2 z-[60] ml-2 -translate-y-1/2",
           "whitespace-nowrap rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground shadow-lg",
           "opacity-0 translate-x-1 transition duration-150",
+          // Hover only — focus-within kept labels stuck after click; links already have aria-label.
           "group-hover/tip:translate-x-0 group-hover/tip:opacity-100",
-          "group-focus-within/tip:translate-x-0 group-focus-within/tip:opacity-100",
         )}
       >
         {label}
