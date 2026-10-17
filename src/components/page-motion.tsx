@@ -50,15 +50,35 @@ function findSectionRoot(root: HTMLElement): HTMLElement {
   return current;
 }
 
+/** Hoist wrappers that only group explicit `[data-reveal]` sections (e.g. filters + bulk). */
+function expandRevealBlocks(elements: HTMLElement[]): HTMLElement[] {
+  const out: HTMLElement[] = [];
+  for (const el of elements) {
+    const kids = Array.from(el.children).filter(isRevealTarget);
+    const revealKids = kids.filter((kid) => kid.hasAttribute("data-reveal"));
+    if (
+      !el.hasAttribute("data-reveal") &&
+      revealKids.length >= 1 &&
+      revealKids.length === kids.length
+    ) {
+      out.push(...expandRevealBlocks(revealKids));
+      continue;
+    }
+    out.push(el);
+  }
+  return out;
+}
+
 function collectBlocks(root: HTMLElement): HTMLElement[] {
   const sectionRoot = findSectionRoot(root);
   const direct = Array.from(sectionRoot.children).filter(isRevealTarget);
-  if (direct.length >= 2) return direct;
+  if (direct.length >= 2) return expandRevealBlocks(direct);
   if (direct.length === 1) {
     const nested = Array.from(direct[0]!.children).filter(isRevealTarget);
-    if (nested.length >= 2) return nested;
+    if (nested.length >= 2) return expandRevealBlocks(nested);
+    return expandRevealBlocks(direct);
   }
-  return direct;
+  return expandRevealBlocks(direct);
 }
 
 const ROW_TOLERANCE_PX = 16;
@@ -168,12 +188,22 @@ function prepareMarkers(root: HTMLElement) {
   let tileCursor = 0;
   blocks.forEach((block, index) => {
     const sectionDelay = Math.max(Math.min(index, 12) * 100, tileCursor);
+    const explicitReveal = block.hasAttribute("data-reveal");
 
     if (isWholeView(block)) {
       block.removeAttribute("data-reveal-pending");
-      if (!block.hasAttribute("data-reveal")) {
-        block.setAttribute("data-reveal", "");
+      if (!explicitReveal) block.setAttribute("data-reveal", "");
+      if (!block.style.getPropertyValue("--reveal-delay")) {
+        block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
       }
+      tileCursor = sectionDelay + ROW_STAGGER_MS;
+      return;
+    }
+
+    // Explicit section markers (bulk actions, filter bar) always animate as a unit.
+    // Do not dissolve them into child-tile reveals.
+    if (explicitReveal) {
+      block.removeAttribute("data-reveal-pending");
       if (!block.style.getPropertyValue("--reveal-delay")) {
         block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
       }
@@ -194,9 +224,7 @@ function prepareMarkers(root: HTMLElement) {
     }
 
     block.removeAttribute("data-reveal-pending");
-    if (!block.hasAttribute("data-reveal")) {
-      block.setAttribute("data-reveal", "");
-    }
+    block.setAttribute("data-reveal", "");
     if (!block.style.getPropertyValue("--reveal-delay")) {
       block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
     }

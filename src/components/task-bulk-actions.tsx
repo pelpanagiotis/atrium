@@ -5,7 +5,7 @@ export const TASK_BULK_FORM_ID = "tasks-bulk";
 
 export function TaskBulkActions({ formId = TASK_BULK_FORM_ID }: { formId?: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2" data-reveal="">
       <MenuSelect
         name="status"
         form={formId}

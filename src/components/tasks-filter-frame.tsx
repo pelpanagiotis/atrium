@@ -54,19 +54,17 @@ export function TasksFilterFrame({
           {actions}
         </div>
       </div>
-      <div className="shrink-0 space-y-3" data-reveal="">
-        <TaskFilters
-          projects={projects}
-          values={values}
-          pending={pending}
-          onNavigate={onNavigate}
-        />
-      </div>
-      {canWrite && values.view !== "board" ? (
+      <div className="shrink-0 space-y-3">
         <div data-reveal="">
-          <TaskBulkActions />
+          <TaskFilters
+            projects={projects}
+            values={values}
+            pending={pending}
+            onNavigate={onNavigate}
+          />
         </div>
-      ) : null}
+        {canWrite && values.view !== "board" ? <TaskBulkActions /> : null}
+      </div>
       <div className="flex min-h-0 flex-1 flex-col" aria-busy={pending} data-reveal="">
         {pending ? <ResultsLoader label="Updating tasks" /> : children}
       </div>
