@@ -179,7 +179,7 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
         </section>
       </section>
 
-      <section className="space-y-4" aria-labelledby="project-portfolio-heading">
+      <section className="mb-10 space-y-4 pb-6" aria-labelledby="project-portfolio-heading">
         <div className="border-b border-border/80 pb-3">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted">Portfolio</p>
           <h2 id="project-portfolio-heading" className="mt-1 text-2xl">
