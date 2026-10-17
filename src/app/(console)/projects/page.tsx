@@ -51,10 +51,6 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-4xl">Projects</h1>
-          <p className="mt-1 text-sm text-muted">
-            Every project belongs to {current.name}. Native projects are canonical here. External projects mirror a
-            provider.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Project status">
