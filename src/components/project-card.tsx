@@ -55,7 +55,7 @@ export function ProjectCard({
       <div className={cn("w-1.5 shrink-0", accent.bar)} aria-hidden="true" />
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <div className={cn("flex items-start justify-between gap-3 px-4 pb-3 pt-4", accent.wash)}>
+        <div className={cn("flex min-h-[7.25rem] items-start justify-between gap-3 px-4 pb-3 pt-4", accent.wash)}>
           <div className="pointer-events-none min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-[0.65rem] font-medium uppercase tracking-[0.22em] text-muted">Project</p>
