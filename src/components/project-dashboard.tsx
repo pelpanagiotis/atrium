@@ -157,7 +157,13 @@ export function ProjectTaskLine({ task }: { task: DashboardTask }) {
   );
 }
 
-export function ProjectStatusBreakdown({ stats }: { stats: ProjectDashboardStats }) {
+export function ProjectStatusBreakdown({
+  stats,
+  caption,
+}: {
+  stats: ProjectDashboardStats;
+  caption?: string;
+}) {
   const rows = [
     { key: "open", label: "Open", value: stats.open, tone: "bg-sky-500" },
     { key: "in_progress", label: "In progress", value: stats.inProgress, tone: "bg-amber-500" },
@@ -172,7 +178,7 @@ export function ProjectStatusBreakdown({ stats }: { stats: ProjectDashboardStats
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-xl">Status mix</h2>
-          <p className="text-xs text-muted">{stats.total} tasks in this project</p>
+          <p className="text-xs text-muted">{caption ?? `${stats.total} tasks in this project`}</p>
         </div>
         <p className="text-sm tabular-nums text-muted">{stats.completion}% done</p>
       </div>

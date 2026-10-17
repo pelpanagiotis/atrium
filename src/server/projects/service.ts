@@ -57,6 +57,186 @@ export async function listProjects(
   });
 }
 
+export type ProjectsAnalytics = {
+  portfolio: {
+    active: number;
+    archived: number;
+    native: number;
+    external: number;
+    hybrid: number;
+    total: number;
+  };
+  tasks: {
+    total: number;
+    open: number;
+    inProgress: number;
+    blocked: number;
+    done: number;
+    cancelled: number;
+    attention: number;
+    dueSoon: number;
+    doneWeek: number;
+    completion: number;
+  };
+  busiest: Array<{
+    id: string;
+    name: string;
+    nickname: string | null;
+    ownership_mode: "native" | "external" | "hybrid";
+    open_count: number;
+    attention_count: number;
+    total_count: number;
+  }>;
+};
+
+export async function getProjectsAnalytics(
+  userId: string,
+  workspaceId: string,
+  filter: { status?: "active" | "archived" | "all" } = {},
+  nowMs: number = Date.now(),
+): Promise<ProjectsAnalytics> {
+  const status = filter.status ?? "active";
+  const weekEnd = new Date(nowMs + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const weekStart = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  return withUser(userId, async (tx) => {
+    await requireAction(tx, workspaceId, "task.read");
+
+    const portfolioRows = await tx.execute<{
+      active: number;
+      archived: number;
+      native: number;
+      external: number;
+      hybrid: number;
+      total: number;
+    }>(sql`
+      select
+        count(*) filter (where p.status = 'active')::int as active,
+        count(*) filter (where p.status = 'archived')::int as archived,
+        count(*) filter (where p.ownership_mode = 'native')::int as native,
+        count(*) filter (where p.ownership_mode = 'external')::int as external,
+        count(*) filter (where p.ownership_mode = 'hybrid')::int as hybrid,
+        count(*)::int as total
+      from projects p
+      where p.workspace_id = ${workspaceId}::uuid
+    `);
+
+    const taskRows = await tx.execute<{
+      total: number;
+      open: number;
+      in_progress: number;
+      blocked: number;
+      done: number;
+      cancelled: number;
+      attention: number;
+      due_soon: number;
+      done_week: number;
+    }>(sql`
+      select
+        count(*)::int as total,
+        count(*) filter (where t.status = 'open')::int as open,
+        count(*) filter (where t.status = 'in_progress')::int as in_progress,
+        count(*) filter (where t.status = 'blocked')::int as blocked,
+        count(*) filter (where t.status = 'done')::int as done,
+        count(*) filter (where t.status = 'cancelled')::int as cancelled,
+        count(*) filter (
+          where t.status in ('open', 'in_progress', 'blocked')
+            and t.priority in ('urgent', 'high')
+        )::int as attention,
+        count(*) filter (
+          where t.status not in ('done', 'cancelled')
+            and t.due_at is not null
+            and t.due_at <= ${weekEnd}
+        )::int as due_soon,
+        count(*) filter (
+          where t.status = 'done'
+            and t.updated_at >= ${weekStart}
+        )::int as done_week
+      from tasks t
+      join projects p on p.id = t.project_id
+      where t.workspace_id = ${workspaceId}::uuid
+        and t.deleted_at is null
+        and (${status} = 'all' or p.status = ${status})
+    `);
+
+    const busiest = await tx.execute<{
+      id: string;
+      name: string;
+      nickname: string | null;
+      ownership_mode: "native" | "external" | "hybrid";
+      open_count: number;
+      attention_count: number;
+      total_count: number;
+    }>(sql`
+      select
+        p.id,
+        p.name,
+        p.nickname,
+        p.ownership_mode,
+        count(*) filter (
+          where t.deleted_at is null
+            and t.status in ('open', 'in_progress', 'blocked')
+        )::int as open_count,
+        count(*) filter (
+          where t.deleted_at is null
+            and t.status in ('open', 'in_progress', 'blocked')
+            and t.priority in ('urgent', 'high')
+        )::int as attention_count,
+        count(*) filter (where t.deleted_at is null)::int as total_count
+      from projects p
+      left join tasks t on t.project_id = p.id and t.workspace_id = p.workspace_id
+      where p.workspace_id = ${workspaceId}::uuid
+        and (${status} = 'all' or p.status = ${status})
+      group by p.id, p.name, p.nickname, p.ownership_mode
+      having count(*) filter (
+        where t.deleted_at is null
+          and t.status in ('open', 'in_progress', 'blocked')
+      ) > 0
+      order by open_count desc, attention_count desc, coalesce(nullif(btrim(p.nickname), ''), p.name)
+      limit 5
+    `);
+
+    const portfolio = portfolioRows[0] ?? {
+      active: 0,
+      archived: 0,
+      native: 0,
+      external: 0,
+      hybrid: 0,
+      total: 0,
+    };
+    const task = taskRows[0] ?? {
+      total: 0,
+      open: 0,
+      in_progress: 0,
+      blocked: 0,
+      done: 0,
+      cancelled: 0,
+      attention: 0,
+      due_soon: 0,
+      done_week: 0,
+    };
+    const activeTasks = task.open + task.in_progress + task.blocked + task.done;
+    const completion = activeTasks === 0 ? 0 : Math.round((task.done / activeTasks) * 100);
+
+    return {
+      portfolio,
+      tasks: {
+        total: task.total,
+        open: task.open,
+        inProgress: task.in_progress,
+        blocked: task.blocked,
+        done: task.done,
+        cancelled: task.cancelled,
+        attention: task.attention,
+        dueSoon: task.due_soon,
+        doneWeek: task.done_week,
+        completion,
+      },
+      busiest,
+    };
+  });
+}
+
 export async function getProject(userId: string, workspaceId: string, projectId: string): Promise<ProjectRecord | null> {
   return withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "task.read");
