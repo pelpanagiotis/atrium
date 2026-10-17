@@ -59,7 +59,8 @@ export function IntegrationsOnboarding({
         <p className="text-xs uppercase tracking-[0.18em] text-muted">Onboarding</p>
         <h1 className="text-4xl">Integrations</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
-          Connect with OAuth when a provider app is configured, or paste an access token. Credentials stay encrypted on the server.
+          Connect providers with OAuth or a pasted token, and issue MCP tokens so any AI client can work in this
+          workspace. Credentials stay encrypted on the server.
         </p>
         {error ? (
           <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">

@@ -29,6 +29,7 @@ import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
+import { createMcpToken, revokeMcpToken } from "@/server/mcp/tokens";
 
 export type ActionState = { error?: string; notice?: string; token?: string; version?: number };
 
@@ -506,4 +507,35 @@ export async function passwordAction(_state: ActionState, formData: FormData): P
     return { error: error instanceof Error ? error.message : "Could not change the password" };
   }
   return { notice: "Password updated. Other sessions were signed out." };
+}
+
+export async function createMcpTokenAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const id = await userId();
+  const key = await clientKey();
+  if (!(await allowRequest(`mcp-create:${key}`, 10, 60_000))) {
+    return { error: "Too many token requests. Wait a minute and try again." };
+  }
+  const scopes: string[] = [];
+  if (formData.get("scope_read") === "on") scopes.push("read");
+  if (formData.get("scope_write") === "on") scopes.push("write");
+  const expiresRaw = String(formData.get("expiresInDays") ?? "").trim();
+  const expiresInDays = expiresRaw ? Number(expiresRaw) : null;
+  try {
+    const created = await createMcpToken(id, {
+      name: String(formData.get("name") ?? ""),
+      workspaceId: String(formData.get("workspaceId") ?? "") || null,
+      scopes,
+      expiresInDays: Number.isFinite(expiresInDays) ? expiresInDays : null,
+    });
+    revalidatePath("/integrations");
+    return { token: created.token, notice: "MCP token created." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Could not create MCP token" };
+  }
+}
+
+export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
+  const id = await userId();
+  await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
+  revalidatePath("/integrations");
 }

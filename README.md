@@ -30,6 +30,17 @@ Seeded accounts, both with password `atrium-demo-12`:
 
 Set `EMBEDDED_WORKER=true` to process the sync queue inside `pnpm dev`. Otherwise run `pnpm worker` in another terminal.
 
+## MCP (AI clients)
+
+Atrium serves Model Context Protocol over Streamable HTTP at `/api/mcp`. Create a personal bearer token on **Integrations → MCP**, then point Cursor, Claude, ChatGPT, or any MCP client at:
+
+```
+{BETTER_AUTH_URL}/api/mcp
+Authorization: Bearer atrium_mcp_…
+```
+
+Tools cover workspaces, projects, tasks, search, and workspace overview. Details are in [docs/MCP.md](docs/MCP.md).
+
 ## Provider OAuth
 
 Paste tokens work out of the box. To use each provider’s authorize screen, register an OAuth app and set `{PROVIDER}_CLIENT_ID` / `{PROVIDER}_CLIENT_SECRET` in `.env.local`. Full steps are in [docs/OAUTH.md](docs/OAUTH.md).

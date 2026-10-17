@@ -385,3 +385,24 @@ export const fakeProviderComments = pgTable(
   },
   (table) => [index("fake_provider_comments_task_idx").on(table.integrationId, table.providerTaskId)],
 );
+
+export const mcpTokens = pgTable(
+  "mcp_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    workspaceId: uuid("workspace_id"),
+    name: text("name").notNull(),
+    tokenPrefix: text("token_prefix").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    scopes: text("scopes").array().notNull().default(sql`'{"read","write"}'::text[]`),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, mode: "date" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("mcp_tokens_user_idx").on(table.userId),
+    index("mcp_tokens_workspace_idx").on(table.workspaceId),
+  ],
+);
