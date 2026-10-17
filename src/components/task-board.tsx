@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRef, useState, type DragEvent } from "react";
+import { ExternalLink } from "lucide-react";
 import { updateTaskAction } from "@/app/actions";
-import { ProviderIcon } from "@/components/provider-icon";
+import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 import { MenuSelect } from "@/components/ui/menu-select";
@@ -68,10 +69,10 @@ function MobileStatusForm({
   );
 }
 
-function TaskCardBody({ task }: { task: BoardTask }) {
+function TaskCardBody({ task, reserveSourceSlot = false }: { task: BoardTask; reserveSourceSlot?: boolean }) {
   return (
     <>
-      <p className="font-medium">{task.title}</p>
+      <p className={cn("font-medium", reserveSourceSlot && task.external_url && "pr-8")}>{task.title}</p>
       <p className="text-xs text-muted">{task.project_name}</p>
       <div className="mt-2 flex flex-wrap gap-1">
         <Badge tone={task.priority}>
@@ -81,6 +82,30 @@ function TaskCardBody({ task }: { task: BoardTask }) {
         <ProviderIcon provider={task.provider} />
       </div>
     </>
+  );
+}
+
+function SourceLinkButton({ task }: { task: BoardTask }) {
+  if (!task.external_url) return null;
+  const label = `Open in ${providerLabel(task.provider)}`;
+  return (
+    <a
+      href={task.external_url}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      title={label}
+      draggable={false}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      className={cn(
+        "absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-md border border-border bg-card text-muted",
+        "transition hover:border-foreground/20 hover:bg-accent hover:text-foreground",
+        "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      <ExternalLink className="size-3.5" aria-hidden="true" />
+    </a>
   );
 }
 
@@ -262,12 +287,13 @@ export function TaskBoard({
                         }, 0);
                       }}
                       className={cn(
-                        "board-card cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
+                        "board-card relative cursor-grab rounded-md border bg-background text-sm active:cursor-grabbing",
                         "transition-[opacity,transform,box-shadow] duration-200 ease-out",
                         isDragging && "board-card-dragging opacity-35",
                         isEntering && "board-card-enter",
                       )}
                     >
+                      <SourceLinkButton task={task} />
                       <Link
                         href={`/tasks/${task.id}`}
                         className="block p-3 transition-colors hover:bg-accent/40"
@@ -279,18 +305,8 @@ export function TaskBoard({
                           }
                         }}
                       >
-                        <TaskCardBody task={task} />
+                        <TaskCardBody task={task} reserveSourceSlot />
                       </Link>
-                      {task.external_url ? (
-                        <a
-                          className="mx-3 mb-2 inline-block text-xs underline"
-                          href={task.external_url}
-                          draggable={false}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          Source
-                        </a>
-                      ) : null}
                       <div className="px-3 pb-3">
                         <MobileStatusForm
                           workspaceId={workspaceId}
@@ -318,7 +334,7 @@ export function TaskBoard({
             top: drag.y - drag.offsetY,
           }}
         >
-          <TaskCardBody task={draggedTask} />
+          <TaskCardBody task={draggedTask} reserveSourceSlot />
         </div>
       ) : null}
     </div>
