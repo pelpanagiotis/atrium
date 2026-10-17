@@ -23,7 +23,7 @@ export type TaskListItem = {
 
 export function TaskList({ tasks, canWrite }: { tasks: TaskListItem[]; canWrite: boolean }) {
   return (
-    <ul className="divide-y rounded-lg border bg-card">
+    <ul className="divide-y rounded-lg border bg-card" data-reveal-items="">
       {tasks.map((task) => (
         <TaskListRow key={task.id} task={task} canWrite={canWrite} />
       ))}

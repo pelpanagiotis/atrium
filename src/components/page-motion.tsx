@@ -13,6 +13,8 @@ const CHILD_ITEM_SELECTOR = [
   ":scope > ul > li",
   ":scope > .grid > *",
   ":scope > [class*='grid'] > *",
+  ":scope [data-reveal-items] > *",
+  ":scope ul.divide-y > li",
 ].join(", ");
 
 function prefersReducedMotion() {
@@ -29,13 +31,29 @@ function isRevealTarget(el: Element): el is HTMLElement {
   );
 }
 
-function collectBlocks(root: HTMLElement): HTMLElement[] {
-  const wrapper =
+/** Unwrap single-child layout shells until we find real page sections. */
+function findSectionRoot(root: HTMLElement): HTMLElement {
+  let current =
     (root.firstElementChild instanceof HTMLElement && root.firstElementChild) || root;
-  const direct = Array.from(wrapper.children).filter(isRevealTarget);
+
+  for (let depth = 0; depth < 8; depth += 1) {
+    const kids = Array.from(current.children).filter(isRevealTarget);
+    if (kids.length >= 2) return current;
+    if (kids.length === 1) {
+      current = kids[0]!;
+      continue;
+    }
+    break;
+  }
+  return current;
+}
+
+function collectBlocks(root: HTMLElement): HTMLElement[] {
+  const sectionRoot = findSectionRoot(root);
+  const direct = Array.from(sectionRoot.children).filter(isRevealTarget);
   if (direct.length >= 2) return direct;
   if (direct.length === 1) {
-    const nested = Array.from(direct[0].children).filter(isRevealTarget);
+    const nested = Array.from(direct[0]!.children).filter(isRevealTarget);
     if (nested.length >= 2) return nested;
   }
   return direct;
@@ -71,8 +89,29 @@ function groupByLayoutRow(items: HTMLElement[]): HTMLElement[][] {
   return rows.map((row) => row.items);
 }
 
+function markItem(el: HTMLElement, delayMs: number) {
+  el.setAttribute("data-reveal-child", "");
+  el.style.setProperty("--reveal-delay", `${delayMs}ms`);
+}
+
 function markChildItems(block: HTMLElement, parentDelayMs = 0): number {
   if (isWholeView(block)) return 0;
+
+  // Vertical lists: stagger by index (layout tops are unreliable while parents are hidden).
+  const listItems = Array.from(
+    block.querySelectorAll<HTMLElement>(":scope [data-reveal-items] > *, :scope ul.divide-y > li"),
+  ).filter(
+    (el) =>
+      !el.hasAttribute("data-reveal") &&
+      !el.hasAttribute("data-reveal-child") &&
+      !el.closest("[data-no-reveal], .board-card"),
+  );
+  if (listItems.length >= 1) {
+    listItems.slice(0, 16).forEach((item, index) => {
+      markItem(item, parentDelayMs + index * ROW_STAGGER_MS);
+    });
+    return Math.min(listItems.length, 16);
+  }
 
   const items = Array.from(block.querySelectorAll(CHILD_ITEM_SELECTOR)).filter(
     (el): el is HTMLElement =>
@@ -81,13 +120,12 @@ function markChildItems(block: HTMLElement, parentDelayMs = 0): number {
       !el.hasAttribute("data-reveal-child") &&
       !el.closest("[data-no-reveal], [data-reveal-whole], .grid-cols-7, .board-card, .board-drag-preview, .board-drop-bar"),
   );
-  const rows = groupByLayoutRow(items).slice(0, 8);
+  const rows = groupByLayoutRow(items).slice(0, 12);
   let marked = 0;
   rows.forEach((row, rowIndex) => {
     const delay = parentDelayMs + rowIndex * ROW_STAGGER_MS;
-    for (const item of row.slice(0, 12)) {
-      item.setAttribute("data-reveal-child", "");
-      item.style.setProperty("--reveal-delay", `${delay}ms`);
+    for (const item of row.slice(0, 16)) {
+      markItem(item, delay);
       marked += 1;
     }
   });
@@ -105,6 +143,10 @@ function isInViewport(el: HTMLElement) {
   return rect.top < vh * 0.97 && rect.bottom > vh * 0.02;
 }
 
+function hasMotionMarkers(root: HTMLElement) {
+  return Boolean(root.querySelector("[data-reveal], [data-reveal-child]"));
+}
+
 function prepareAndObserve(root: HTMLElement) {
   const reduced = prefersReducedMotion();
   const blocks = collectBlocks(root);
@@ -114,7 +156,9 @@ function prepareAndObserve(root: HTMLElement) {
     const sectionDelay = Math.max(Math.min(index, 12) * 100, tileCursor);
 
     if (isWholeView(block)) {
-      block.setAttribute("data-reveal", "");
+      if (!block.hasAttribute("data-reveal")) {
+        block.setAttribute("data-reveal", "");
+      }
       if (!block.style.getPropertyValue("--reveal-delay")) {
         block.style.setProperty("--reveal-delay", `${sectionDelay}ms`);
       }
@@ -125,7 +169,6 @@ function prepareAndObserve(root: HTMLElement) {
     const tileCount = markChildItems(block, sectionDelay);
 
     if (tileCount >= 2) {
-      // Rows share a delay; advance past the last row in this block.
       const rowCount = new Set(
         Array.from(block.querySelectorAll<HTMLElement>("[data-reveal-child]")).map((el) =>
           el.style.getPropertyValue("--reveal-delay"),
@@ -174,7 +217,6 @@ function prepareAndObserve(root: HTMLElement) {
     { root: null, rootMargin: "0px 0px -4% 0px", threshold: 0.06 },
   );
 
-  // Reveal standalone sections
   for (const el of root.querySelectorAll<HTMLElement>("[data-reveal]")) {
     if (el.hasAttribute("data-revealed")) continue;
     if (isInViewport(el)) {
@@ -185,7 +227,6 @@ function prepareAndObserve(root: HTMLElement) {
     }
   }
 
-  // Reveal tiles that live outside a data-reveal parent (grid sections)
   for (const el of root.querySelectorAll<HTMLElement>("[data-reveal-child]")) {
     if (el.hasAttribute("data-revealed")) continue;
     if (el.closest("[data-reveal]")) continue;
@@ -196,8 +237,6 @@ function prepareAndObserve(root: HTMLElement) {
     }
   }
 
-  // Release the pre-paint hold in the same turn the markers are applied,
-  // so the first painted frame is already the animation's start state.
   root.setAttribute("data-motion-ready", "");
 
   return () => {
@@ -222,17 +261,32 @@ export function PageMotion({
     if (!root) return;
 
     let cleanup = prepareAndObserve(root);
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    // Suspense swaps the loader for page content after the first effect.
-    // Prepare in this callback (before paint) so items never appear, then animate.
-    const swapObserver = new MutationObserver(() => {
-      root.removeAttribute("data-motion-ready");
+    const rerun = (hold = false) => {
+      if (hold) root.removeAttribute("data-motion-ready");
       cleanup();
       cleanup = prepareAndObserve(root);
+    };
+
+    // Nested Suspense (Tasks filters/results) swaps deep in the tree.
+    const swapObserver = new MutationObserver((mutations) => {
+      const added = mutations.some((mutation) =>
+        Array.from(mutation.addedNodes).some((node) => node instanceof HTMLElement),
+      );
+      if (!added) return;
+
+      window.clearTimeout(timer);
+      timer = setTimeout(() => {
+        const firstPass = !hasMotionMarkers(root);
+        // Only blank the page when there were no markers yet (loader → content).
+        rerun(firstPass);
+      }, 16);
     });
-    swapObserver.observe(root, { childList: true, subtree: false });
+    swapObserver.observe(root, { childList: true, subtree: true });
 
     return () => {
+      window.clearTimeout(timer);
       swapObserver.disconnect();
       cleanup();
     };
