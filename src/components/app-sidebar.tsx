@@ -107,7 +107,7 @@ function SidebarTip({
       <span
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2",
+          "pointer-events-none absolute left-full top-1/2 z-[60] ml-2 -translate-y-1/2",
           "whitespace-nowrap rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground shadow-lg",
           "opacity-0 translate-x-1 transition duration-150",
           "group-hover/tip:translate-x-0 group-hover/tip:opacity-100",
