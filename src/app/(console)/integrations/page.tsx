@@ -53,20 +53,24 @@ async function IntegrationsContent({
   const params = await searchParams;
   return (
     <div className="space-y-10">
-      <IntegrationsOnboarding
-        workspaceId={current.id}
-        integrations={integrations}
-        providers={providers}
-        oauth={oauth}
-        canAdmin={canAdmin}
-        error={params.error ?? null}
-      />
-      <McpPanel
-        serverUrl={mcpServerUrl()}
-        workspaces={workspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))}
-        tokens={tokens}
-        currentWorkspaceId={current.id}
-      />
+      <div data-tour="integrations-providers">
+        <IntegrationsOnboarding
+          workspaceId={current.id}
+          integrations={integrations}
+          providers={providers}
+          oauth={oauth}
+          canAdmin={canAdmin}
+          error={params.error ?? null}
+        />
+      </div>
+      <div data-tour="integrations-mcp">
+        <McpPanel
+          serverUrl={mcpServerUrl()}
+          workspaces={workspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))}
+          tokens={tokens}
+          currentWorkspaceId={current.id}
+        />
+      </div>
     </div>
   );
 }

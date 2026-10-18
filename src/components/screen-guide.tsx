@@ -6,28 +6,26 @@ import { useState } from "react";
 import { markGuideSeenAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScreenTour } from "@/components/screen-tour";
 import { GUIDES, guideIdForPath } from "@/lib/screen-guides";
 
-// Opens the guide for the current screen the first time it is visited, and
-// keeps a help button in the header to reopen it.
+// Opens the guide for the current screen the first time it is visited. The
+// guide is a short intro, then a spotlight tour of the screen. A help button
+// in the header restarts it.
 export function ScreenGuide({ seenVersions }: { seenVersions: Record<string, number> }) {
   const pathname = usePathname();
   const guideId = guideIdForPath(pathname);
   const guide = guideId ? GUIDES[guideId] : null;
   const [seen, setSeen] = useState(seenVersions);
-  const [manualOpen, setManualOpen] = useState(false);
+  const [manual, setManual] = useState<"intro" | "tour" | null>(null);
 
   if (!guide) return null;
 
   const unseen = seen[guide.id] !== guide.version;
-  const open = unseen || manualOpen;
+  const phase = manual ?? (unseen ? "intro" : null);
 
-  const handleOpenChange = (next: boolean) => {
-    if (next) {
-      setManualOpen(true);
-      return;
-    }
-    setManualOpen(false);
+  const finishFlow = () => {
+    setManual(null);
     if (!unseen) return;
     setSeen((current) => ({ ...current, [guide.id]: guide.version }));
     // If the save fails, the guide stays marked as seen for this session and
@@ -41,33 +39,35 @@ export function ScreenGuide({ seenVersions }: { seenVersions: Record<string, num
         type="button"
         variant="outline"
         size="icon"
+        data-tour="guide-help"
         title="Show guide for this screen"
         aria-label="Show guide for this screen"
-        onClick={() => setManualOpen(true)}
+        onClick={() => setManual("intro")}
       >
         <CircleHelp className="size-4" aria-hidden="true" />
       </Button>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[85dvh] w-[min(100%-2rem,36rem)] overflow-y-auto">
+      <Dialog
+        open={phase === "intro"}
+        onOpenChange={(next) => {
+          if (!next) finishFlow();
+        }}
+      >
+        <DialogContent className="w-[min(100%-2rem,32rem)]">
           <DialogHeader>
             <DialogTitle>{guide.title}</DialogTitle>
             <DialogDescription>{guide.intro}</DialogDescription>
           </DialogHeader>
-          <dl className="mt-5 space-y-4">
-            {guide.sections.map((section) => (
-              <div key={section.heading}>
-                <dt className="text-sm font-medium">{section.heading}</dt>
-                <dd className="mt-1 text-sm text-muted">{section.body}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="mt-6 flex justify-end">
-            <Button type="button" onClick={() => handleOpenChange(false)}>
-              Got it
+          <div className="mt-6 flex items-center justify-between gap-2">
+            <Button type="button" variant="ghost" onClick={finishFlow}>
+              Skip
+            </Button>
+            <Button type="button" onClick={() => setManual("tour")}>
+              Start tour
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+      {phase === "tour" ? <ScreenTour steps={guide.tour} onClose={finishFlow} /> : null}
     </>
   );
 }

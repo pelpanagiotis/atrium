@@ -292,6 +292,7 @@ export function AppSidebar({
 
   return (
     <aside
+      data-tour="sidebar"
       className={cn(
         // Keep the rail above shell-chrome-in so collapsed hover tips are not covered.
         "shell-sidebar-in relative z-40 hidden h-full min-h-0 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex",

@@ -115,7 +115,7 @@ async function NotesContent({
       ) : null}
 
       {feed.connections.length > 0 ? (
-        <form className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3" method="get">
+        <form data-tour="notes-filters" className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3" method="get">
           {params.path ? <input type="hidden" name="path" value={params.path} /> : null}
           {params.integration ? <input type="hidden" name="integration" value={params.integration} /> : null}
           <div className="min-w-[12rem] flex-1">
@@ -162,7 +162,7 @@ async function NotesContent({
 
       {feed.notes.length > 0 ? (
         <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
-          <ul className="max-h-[70vh] divide-y overflow-y-auto rounded-lg border bg-card lg:max-h-none">
+          <ul data-tour="notes-list" className="max-h-[70vh] divide-y overflow-y-auto rounded-lg border bg-card lg:max-h-none">
             {feed.notes.map((note) => {
               const active = feed.active?.path === note.path && feed.activeIntegrationId === note.integrationId;
               const href = `/notes?${new URLSearchParams({
@@ -196,7 +196,7 @@ async function NotesContent({
             })}
           </ul>
 
-          <section className="min-h-[20rem] rounded-lg border bg-card">
+          <section data-tour="notes-reader" className="min-h-[20rem] rounded-lg border bg-card">
             {feed.active ? (
               <div className="flex h-full min-h-0 flex-col">
                 <header className="border-b px-4 py-3">

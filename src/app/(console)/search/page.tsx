@@ -32,7 +32,7 @@ async function SearchContent({ searchParams }: { searchParams: Promise<{ q?: str
         <h1 className="text-4xl">Search</h1>
         <p className="mt-1 text-sm text-muted">Results stay inside {current.name}. Other workspaces are not included.</p>
       </div>
-      <form action="/search" className="flex gap-2">
+      <form data-tour="search-input" action="/search" className="flex gap-2">
         <label className="sr-only" htmlFor="q">Search query</label>
         <input id="q" name="q" defaultValue={query} className="h-10 w-full rounded-md border bg-card px-3 text-sm" />
         <button className="rounded-md border bg-card px-3 text-sm" type="submit">Search</button>
@@ -42,7 +42,7 @@ async function SearchContent({ searchParams }: { searchParams: Promise<{ q?: str
         <p className="rounded-lg border border-dashed bg-card p-6 text-sm text-muted">Nothing in this workspace matches “{query.trim()}”.</p>
       ) : null}
       {results.projects.length > 0 ? (
-        <section>
+        <section data-tour="search-results">
           <h2 className="text-xl">Projects</h2>
           <ul className="mt-2 divide-y rounded-lg border bg-card">
             {results.projects.map((project) => (

@@ -43,7 +43,7 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
   }
   return (
     <div className="space-y-6">
-      <div>
+      <div data-tour="connection-status">
         <h1 className="text-4xl">{integration.display_name}</h1>
         <div className="mt-2 flex gap-2">
           <Badge tone="external">{integration.provider}</Badge>
@@ -53,7 +53,7 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
         <p className="mt-3 text-sm text-muted">Webhook endpoint: /api/webhooks/{integration.provider}/{integration.id}</p>
       </div>
       {canAdmin ? (
-        <form action={testConnectionAction}>
+        <form data-tour="connection-test" action={testConnectionAction}>
           <input type="hidden" name="workspaceId" value={current.id} />
           <input type="hidden" name="integrationId" value={integration.id} />
           <Button type="submit" variant="outline">Test connection</Button>
@@ -71,7 +71,7 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
       {projects.length === 0 ? (
         <p className="text-sm text-muted">No provider projects were returned.</p>
       ) : (
-        <div className="space-y-3">
+        <div data-tour="connection-link" className="space-y-3">
           <div>
             <h2 className="text-2xl">Link a project</h2>
             <p className="text-sm text-muted">

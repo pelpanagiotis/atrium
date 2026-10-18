@@ -1,10 +1,22 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { GUIDES, guideIdForPath } from "@/lib/screen-guides";
 
 // Console routes that only redirect and never render, so they need no guide.
 const REDIRECT_ONLY_ROUTES = new Set(["calendar"]);
+
+// Every data-tour="..." attribute declared in the source tree.
+function declaredTourTargets(): Set<string> {
+  const root = path.resolve(__dirname, "../../src");
+  const targets = new Set<string>();
+  for (const file of readdirSync(root, { recursive: true }).map(String)) {
+    if (!/\.(tsx?|jsx?)$/.test(file)) continue;
+    const source = readFileSync(path.join(root, file), "utf8");
+    for (const match of source.matchAll(/data-tour="([^"]+)"/g)) targets.add(match[1]);
+  }
+  return targets;
+}
 
 function consoleRoutes(): string[] {
   const root = path.resolve(__dirname, "../../src/app/(console)");
@@ -32,8 +44,16 @@ describe("screen guides", () => {
       expect(Number.isInteger(guide.version)).toBe(true);
       expect(guide.version).toBeGreaterThan(0);
       expect(guide.title.length).toBeGreaterThan(0);
-      expect(guide.sections.length).toBeGreaterThan(0);
+      expect(guide.tour.length).toBeGreaterThan(0);
     }
+  });
+
+  it("points every tour step at a data-tour target in the source", () => {
+    const declared = declaredTourTargets();
+    const missing = Object.values(GUIDES).flatMap((guide) =>
+      guide.tour.filter((step) => !declared.has(step.target)).map((step) => `${guide.id}: ${step.target}`),
+    );
+    expect(missing).toEqual([]);
   });
 
   it("maps list and detail paths to their guides", () => {

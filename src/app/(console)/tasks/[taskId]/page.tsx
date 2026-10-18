@@ -70,7 +70,9 @@ async function TaskDetailContent({
           </div>
         </div>
         {task.external_url ? (
-          <OpenInProviderButton provider={task.provider} href={task.external_url} />
+          <div data-tour="task-provider">
+            <OpenInProviderButton provider={task.provider} href={task.external_url} />
+          </div>
         ) : null}
       </div>
 
@@ -82,26 +84,28 @@ async function TaskDetailContent({
             </p>
           ) : null}
 
-          <TaskDetailForm
-            key={task.id}
-            workspaceId={task.workspace_id}
-            taskId={task.id}
-            version={task.version}
-            title={task.title}
-            description={task.description}
-            status={task.status}
-            priority={task.priority}
-            dueAt={task.due_at}
-            projectId={task.project_id}
-            projectName={task.project_name}
-            assigneeLabel={task.assignee_label}
-            updatedAt={task.updated_at}
-            syncState={task.sync_state}
-            canWrite={canWrite}
-          />
+          <div data-tour="task-form">
+            <TaskDetailForm
+              key={task.id}
+              workspaceId={task.workspace_id}
+              taskId={task.id}
+              version={task.version}
+              title={task.title}
+              description={task.description}
+              status={task.status}
+              priority={task.priority}
+              dueAt={task.due_at}
+              projectId={task.project_id}
+              projectName={task.project_name}
+              assigneeLabel={task.assignee_label}
+              updatedAt={task.updated_at}
+              syncState={task.sync_state}
+              canWrite={canWrite}
+            />
+          </div>
         </div>
 
-        <aside className="min-w-0 rounded-lg border bg-card/40 p-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:p-5">
+        <aside data-tour="task-comments" className="min-w-0 rounded-lg border bg-card/40 p-4 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:p-5">
           <TaskComments
             taskId={task.id}
             comments={commentBundle.comments}

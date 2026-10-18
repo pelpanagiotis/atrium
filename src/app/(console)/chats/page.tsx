@@ -41,7 +41,7 @@ async function ChatsContent() {
         </div>
         {canAdmin ? (
           <Button asChild variant="outline">
-            <Link href="/integrations">Manage Slack</Link>
+            <Link href="/integrations" data-tour="chats-manage">Manage Slack</Link>
           </Button>
         ) : null}
       </div>
@@ -57,7 +57,7 @@ async function ChatsContent() {
           </p>
           {canAdmin ? (
             <Button asChild className="mt-4">
-              <Link href="/integrations">Connect Slack</Link>
+              <Link href="/integrations" data-tour="chats-manage">Connect Slack</Link>
             </Button>
           ) : null}
         </div>
@@ -98,7 +98,7 @@ async function ChatsContent() {
       ) : null}
 
       {feed.messages.length > 0 ? (
-        <ul className="divide-y rounded-lg border bg-card">
+        <ul data-tour="chats-feed" className="divide-y rounded-lg border bg-card">
           {feed.messages.map((message) => {
             const body = (
               <div className="flex gap-3 px-4 py-3 transition hover:bg-accent/30">

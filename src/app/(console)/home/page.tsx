@@ -89,11 +89,13 @@ async function HomeContent({
               { href: "/sync", label: "Sync", icon: "RefreshCw" },
             ]}
           />
-          <HomeSourceFilter source={source} sources={feed.sources} />
+          <div className="flex items-center" data-tour="source-filter">
+            <HomeSourceFilter source={source} sources={feed.sources} />
+          </div>
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section data-tour="home-stats" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           href={attentionHref}
           label="Needs attention"
@@ -135,7 +137,7 @@ async function HomeContent({
         />
       </section>
 
-      <section className="mb-8 grid gap-4 md:grid-cols-3 md:items-start">
+      <section data-tour="home-panels" className="mb-8 grid gap-4 md:grid-cols-3 md:items-start">
         <Panel
           title="Needs attention"
           href={attentionHref}

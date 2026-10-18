@@ -50,9 +50,11 @@ export function Shell({
         <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex shrink-0 items-center gap-3">
             <Link href="/home" className="serif text-xl md:hidden">Atrium</Link>
-            <WorkspaceSwitch currentId={current.id} workspaces={workspaces} contexts={contexts} />
+            <div className="flex items-center" data-tour="workspace-switch">
+              <WorkspaceSwitch currentId={current.id} workspaces={workspaces} contexts={contexts} />
+            </div>
           </div>
-          <form action="/search" className="relative ml-auto w-full max-w-xs shrink">
+          <form action="/search" data-tour="search" className="relative ml-auto w-full max-w-xs shrink">
             <label className="sr-only" htmlFor="global-search">Search</label>
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
             <input
@@ -64,7 +66,9 @@ export function Shell({
           </form>
           <div className="flex shrink-0 items-center gap-1">
             <ScreenGuide seenVersions={seenGuides} />
-            <CreateMenu />
+            <div className="flex items-center" data-tour="create">
+              <CreateMenu />
+            </div>
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
             <AccountMenu user={user} theme={theme} />
           </div>

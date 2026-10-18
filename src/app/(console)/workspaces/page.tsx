@@ -56,7 +56,9 @@ async function WorkspacesContent() {
         <CreateWorkspaceForm contexts={contexts} />
       </div>
 
-      <WorkspaceContextsManager contexts={contexts} usage={usage} />
+      <div data-tour="workspace-contexts">
+        <WorkspaceContextsManager contexts={contexts} usage={usage} />
+      </div>
 
       <ul className="grid gap-3 md:grid-cols-2">
         {workspaces.map((workspace) => {
@@ -85,7 +87,7 @@ async function WorkspacesContent() {
           );
         })}
       </ul>
-      <section>
+      <section data-tour="workspace-people">
         <h2 className="text-2xl">People in {current.name}</h2>
         <ul className="mt-3 divide-y rounded-lg border bg-card">
           {members.map((member) => (
@@ -124,7 +126,11 @@ async function WorkspacesContent() {
           ))}
         </ul>
       </section>
-      {canAdmin ? <InviteForm workspaceId={current.id} action={inviteAction} /> : null}
+      {canAdmin ? (
+        <div data-tour="workspace-invite">
+          <InviteForm workspaceId={current.id} action={inviteAction} />
+        </div>
+      ) : null}
       {invitations.length > 0 ? (
         <ul className="text-sm text-muted">
           {invitations.map((invitation) => (
