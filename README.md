@@ -1,6 +1,6 @@
 # Atrium
 
-Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection. Slack can be connected with a free bot token so the Chats page shows today's channel messages. Obsidian vaults on a VPS can be connected through the Local REST API so the Notes page lists and opens markdown notes.
+Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection. Slack can be connected with a free bot token so the Chats page shows today's channel messages. Obsidian notes come from a Self-hosted LiveSync vault mirror on the same host as Atrium (or optionally from Local REST API).
 
 Workspaces are isolated. Roles are owner, admin, member, and viewer. The database enforces that with row-level security, and the server checks the same rules before every mutation.
 
@@ -55,13 +55,18 @@ Paste tokens work out of the box. To use each provider’s authorize screen, reg
 
 Reading today's messages uses Slack's free plan (90-day history). No Slack paid plan is required.
 
-### Obsidian notes (VPS)
+### Obsidian notes (Self-hosted LiveSync)
 
-1. On the VPS, run Obsidian with the [Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api) community plugin.
-2. Put HTTPS on a public hostname (port 443) in front of the plugin with Caddy or Nginx. Atrium does not call localhost, private IPs, or non-443 ports.
-3. Copy the plugin API key from Obsidian → Settings → Community plugins → Local REST API.
-4. In Atrium → Integrations → Obsidian, paste the API key and `https://your-notes-host.example`.
-5. Open **Notes** to browse and read markdown from the vault.
+Atrium reads the **filesystem vault mirror** produced by the Self-hosted LiveSync headless daemon. Mac/mobile keep syncing through CouchDB; Atrium does not talk to CouchDB or require Local REST API.
+
+1. Run Atrium on the same host that has the LiveSync mirror (for example `/root/vaults/THEVAULT`).
+2. Set `OBSIDIAN_VAULT_ROOT` to the parent directory, e.g. `/root/vaults`.
+3. In Atrium → Integrations → Obsidian:
+   - **Vault path or Local REST URL:** `/root/vaults/THEVAULT`
+   - **Access token:** any secret ≥8 characters (encrypts the connection; unused for filesystem access)
+4. Open **Notes** to browse and read markdown. Edits on devices sync through LiveSync into the mirror automatically.
+
+Advanced: an HTTPS Local REST API origin on port 443 is still supported if you paste that URL instead of a vault path.
 
 ```bash
 pnpm oauth:redirects   # print callback URLs for your BETTER_AUTH_URL

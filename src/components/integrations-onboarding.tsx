@@ -33,7 +33,7 @@ const COPY: Record<string, string> = {
   gitlab: "Sync GitLab issues from projects you choose.",
   gitea: "Sync Gitea issues from repositories you choose.",
   slack: "Read today's channel messages on the Chats dashboard with a free Slack bot token.",
-  obsidian: "Browse markdown notes from an Obsidian vault on your VPS via Local REST API.",
+  obsidian: "Browse markdown from a Self-hosted LiveSync vault mirror on this host (or Local REST API).",
 };
 
 export function IntegrationsOnboarding({
@@ -170,7 +170,7 @@ export function IntegrationsOnboarding({
                       {selected === "slack"
                         ? "Paste a Slack bot token (xoxb-…). Create an internal Slack app with channels:history, channels:read, groups:history, groups:read, and users:read, install it, then invite the bot to channels."
                         : selected === "obsidian"
-                          ? "Install the Local REST API community plugin in Obsidian on your VPS, copy the API key, and put HTTPS (port 443) in front of it. Then paste the key and public URL below."
+                          ? "Point Atrium at your LiveSync filesystem mirror on this host (for example /root/vaults/THEVAULT). Set OBSIDIAN_VAULT_ROOT to the parent directory. Local REST API HTTPS URLs still work if you use that instead."
                           : oauth[selected]
                             ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
                             : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}

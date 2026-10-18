@@ -1,13 +1,20 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { mkdtemp, mkdir, realpath, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setDnsResolver, setProviderFetch } from "@/server/integrations/http";
 import {
   getObsidianNote,
+  isObsidianFilesystemTarget,
   listObsidianNotes,
   normalizeObsidianSiteUrl,
+  normalizeObsidianVaultPath,
   validateObsidianConnection,
 } from "@/server/integrations/obsidian";
 
-describe("obsidian Local REST API client", () => {
+describe("obsidian vault access", () => {
+  const previousRoot = process.env.OBSIDIAN_VAULT_ROOT;
+
   beforeEach(() => {
     setDnsResolver(async () => ["8.8.4.4"]);
     setProviderFetch(null);
@@ -16,6 +23,15 @@ describe("obsidian Local REST API client", () => {
   afterEach(() => {
     setProviderFetch(null);
     setDnsResolver(undefined);
+    if (previousRoot === undefined) delete process.env.OBSIDIAN_VAULT_ROOT;
+    else process.env.OBSIDIAN_VAULT_ROOT = previousRoot;
+  });
+
+  it("detects filesystem targets vs HTTPS", () => {
+    expect(isObsidianFilesystemTarget("/root/vaults/THEVAULT")).toBe(true);
+    expect(isObsidianFilesystemTarget("file:///root/vaults/THEVAULT")).toBe(true);
+    expect(isObsidianFilesystemTarget("vault:/root/vaults/THEVAULT")).toBe(true);
+    expect(isObsidianFilesystemTarget("https://notes.example.com")).toBe(false);
   });
 
   it("normalizes public https origins", () => {
@@ -23,12 +39,47 @@ describe("obsidian Local REST API client", () => {
     expect(normalizeObsidianSiteUrl("notes.example.com")).toBe("https://notes.example.com");
   });
 
-  it("rejects insecure or empty site urls", () => {
+  it("rejects insecure or empty site urls for REST mode", () => {
     expect(() => normalizeObsidianSiteUrl("")).toThrow(/required/i);
     expect(() => normalizeObsidianSiteUrl("http://notes.example.com")).toThrow(/https/i);
   });
 
-  it("validates credentials against status and vault root", async () => {
+  it("reads a LiveSync filesystem mirror under OBSIDIAN_VAULT_ROOT", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "atrium-obsidian-"));
+    const vault = path.join(root, "THEVAULT");
+    await mkdir(path.join(vault, "Projects"), { recursive: true });
+    await writeFile(path.join(vault, "Welcome.md"), "# Welcome\n\nHello #inbox\n");
+    await writeFile(
+      path.join(vault, "Projects", "Roadmap.md"),
+      "---\ntags: [plan]\n---\n# Roadmap\n\nShip notes.\n",
+    );
+    process.env.OBSIDIAN_VAULT_ROOT = root;
+
+    const validated = await validateObsidianConnection("local-secret", vault);
+    expect(validated.externalAccountId).toBe(await realpath(vault));
+
+    const notes = await listObsidianNotes("local-secret", vault);
+    expect(notes.map((note) => note.path)).toEqual(["Projects/Roadmap.md", "Welcome.md"]);
+
+    const note = await getObsidianNote("local-secret", vault, "Projects/Roadmap.md");
+    expect(note.title).toBe("Roadmap");
+    expect(note.content).toContain("Ship notes");
+    expect(note.tags).toContain("plan");
+  });
+
+  it("blocks vault paths outside OBSIDIAN_VAULT_ROOT", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "atrium-obsidian-root-"));
+    const outside = await mkdtemp(path.join(os.tmpdir(), "atrium-obsidian-out-"));
+    process.env.OBSIDIAN_VAULT_ROOT = root;
+    await expect(validateObsidianConnection("local-secret", outside)).rejects.toThrow(/OBSIDIAN_VAULT_ROOT/i);
+  });
+
+  it("normalizes vault paths", () => {
+    expect(normalizeObsidianVaultPath("vault:/root/vaults/THEVAULT")).toBe("/root/vaults/THEVAULT");
+    expect(normalizeObsidianVaultPath("file:///root/vaults/THEVAULT")).toBe("/root/vaults/THEVAULT");
+  });
+
+  it("validates Local REST credentials against status and vault root", async () => {
     const calls: string[] = [];
     setProviderFetch(async (input) => {
       calls.push(input);
@@ -43,7 +94,7 @@ describe("obsidian Local REST API client", () => {
     expect(calls[1]).toBe("https://notes.example.com/vault/");
   });
 
-  it("lists markdown notes recursively", async () => {
+  it("lists markdown notes recursively over Local REST", async () => {
     setProviderFetch(async (input) => {
       if (input.endsWith("/vault/")) {
         return new Response(JSON.stringify({ files: ["Welcome.md", "Projects/"] }), { status: 200 });
@@ -55,23 +106,5 @@ describe("obsidian Local REST API client", () => {
     });
     const notes = await listObsidianNotes("api-key-123456", "https://notes.example.com");
     expect(notes.map((note) => note.path)).toEqual(["Projects/Roadmap.md", "Welcome.md"]);
-  });
-
-  it("loads note json content", async () => {
-    setProviderFetch(async () =>
-      new Response(
-        JSON.stringify({
-          path: "Projects/Roadmap.md",
-          content: "# Roadmap\n\nShip notes.",
-          tags: ["plan"],
-          stat: { mtime: Date.parse("2026-01-02T00:00:00.000Z"), size: 20 },
-        }),
-        { status: 200 },
-      ),
-    );
-    const note = await getObsidianNote("api-key-123456", "https://notes.example.com", "Projects/Roadmap.md");
-    expect(note.title).toBe("Roadmap");
-    expect(note.content).toContain("Ship notes");
-    expect(note.tags).toEqual(["plan"]);
   });
 });

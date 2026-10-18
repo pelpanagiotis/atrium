@@ -100,7 +100,7 @@ export function ConnectForm({
                     : selected === "slack"
                       ? "xoxb-…"
                       : selected === "obsidian"
-                        ? "Local REST API key"
+                        ? "Any secret (8+ chars)"
                         : "Paste access token"
             }
           />
@@ -116,7 +116,7 @@ export function ConnectForm({
             </p>
           ) : selected === "obsidian" ? (
             <p className="mt-1 text-xs text-muted">
-              From Obsidian → Settings → Community plugins → Local REST API. Copy the API key. Expose the plugin through HTTPS on port 443 on your VPS (Caddy/Nginx), not the raw 27124 port.
+              For a LiveSync filesystem mirror, any secret works — it only encrypts the saved connection. For Local REST API mode, paste that plugin&apos;s API key instead.
             </p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
@@ -143,7 +143,11 @@ export function ConnectForm({
         {showSiteUrl ? (
           <div className="md:col-span-2">
             <Label htmlFor="siteUrl">
-              {showObsidian ? "Obsidian API URL" : showGitea ? "Gitea site URL" : "GitLab site URL"}
+              {showObsidian
+                ? "Vault path or Local REST URL"
+                : showGitea
+                  ? "Gitea site URL"
+                  : "GitLab site URL"}
             </Label>
             <Input
               id="siteUrl"
@@ -151,7 +155,7 @@ export function ConnectForm({
               required={showObsidian}
               placeholder={
                 showObsidian
-                  ? "https://obsidian.example.com"
+                  ? "/root/vaults/THEVAULT"
                   : showGitea
                     ? "https://gitea.com"
                     : "https://gitlab.com"
@@ -162,7 +166,9 @@ export function ConnectForm({
             />
             {showObsidian ? (
               <p className="mt-1 text-xs text-muted">
-                Public HTTPS hostname only (no localhost, no private IPs, no custom ports). Point your reverse proxy at the Local REST API on the VPS.
+                Preferred: absolute path to the Self-hosted LiveSync headless mirror on this Atrium host (must sit under{" "}
+                <code className="rounded bg-secondary px-1">OBSIDIAN_VAULT_ROOT</code>
+                ). Advanced: an HTTPS Local REST API origin on port 443.
               </p>
             ) : null}
           </div>

@@ -130,7 +130,9 @@ export async function connectWithToken(
     throw new Error("Paste a Slack bot token starting with xoxb-");
   }
   if (provider === "obsidian" && !input.siteUrl?.trim()) {
-    throw new Error("Enter the HTTPS URL of your Obsidian Local REST API on the VPS");
+    throw new Error(
+      "Enter the LiveSync vault path on this host (for example /root/vaults/THEVAULT), or an HTTPS Local REST API URL",
+    );
   }
   const displayName = input.displayName.trim();
   if (displayName.length < 2) throw new Error("Name the connection so you can recognize it later");
