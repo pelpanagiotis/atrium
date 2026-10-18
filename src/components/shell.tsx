@@ -5,6 +5,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CreateMenu } from "@/components/create-menu";
 import { PageMotion } from "@/components/page-motion";
+import { ScreenGuide } from "@/components/screen-guide";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
 import { contextIcon, contextLabel } from "@/lib/workspace-contexts";
@@ -16,6 +17,7 @@ export function Shell({
   workspaces,
   current,
   contexts = [],
+  seenGuides = {},
   theme,
   sidebarCollapsed = false,
   sidebarOrder,
@@ -25,6 +27,7 @@ export function Shell({
   workspaces: WorkspaceSummary[];
   current: WorkspaceSummary;
   contexts?: WorkspaceContextDef[];
+  seenGuides?: Record<string, number>;
   theme: "light" | "dark";
   sidebarCollapsed?: boolean;
   sidebarOrder?: string;
@@ -60,6 +63,7 @@ export function Shell({
             />
           </form>
           <div className="flex shrink-0 items-center gap-1">
+            <ScreenGuide seenVersions={seenGuides} />
             <CreateMenu />
             <HeaderAction href="/sync" label="Sync" icon={RefreshCw} className="hidden sm:inline-flex" />
             <AccountMenu user={user} theme={theme} />

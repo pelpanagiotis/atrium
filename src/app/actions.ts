@@ -40,6 +40,8 @@ import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 import { parseMotionEnabled } from "@/lib/apply-theme";
+import { GUIDES, type GuideId } from "@/lib/screen-guides";
+import { markGuideSeen } from "@/server/guides/service";
 import { parseProjectsLayout, type ProjectsLayout } from "@/lib/projects-layout";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import { createMcpToken, revokeMcpToken } from "@/server/mcp/tokens";
@@ -632,6 +634,14 @@ export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
   const id = await userId();
   await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
   revalidatePath("/integrations");
+}
+
+export async function markGuideSeenAction(guideId: string, version: number): Promise<void> {
+  const user = await userId();
+  // Only the current version of a known guide can be recorded.
+  const guide = Object.hasOwn(GUIDES, guideId) ? GUIDES[guideId as GuideId] : undefined;
+  if (!guide || guide.version !== version) return;
+  await markGuideSeen(user, guide.id, guide.version);
 }
 
 export async function projectsLayoutAction(layout: ProjectsLayout): Promise<void> {
