@@ -1,6 +1,10 @@
+# Production stack for Coolify or any Docker host with Traefik in front.
+# Every ${VAR:?...} below is required at deploy time. Optional values use
+# ${VAR:-default} or ${VAR:-} and can stay unset. See docs/DEPLOYMENT.md.
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
@@ -29,24 +33,36 @@ services:
 
   app:
     build: .
+    restart: unless-stopped
     depends_on:
       migrate:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://atrium_app:${APP_PASSWORD}@postgres:5432/atrium
       DATABASE_URL_WORKER: postgres://atrium_worker:${WORKER_PASSWORD}@postgres:5432/atrium
-      DATABASE_URL_MIGRATE: postgres://atrium_migrator:${MIGRATE_PASSWORD}@postgres:5432/atrium
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://127.0.0.1:38471}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL to the public https origin}
       CREDENTIAL_ENCRYPTION_KEY: ${CREDENTIAL_ENCRYPTION_KEY:?set CREDENTIAL_ENCRYPTION_KEY}
       ALLOW_FAKE_PROVIDER: ${ALLOW_FAKE_PROVIDER:-false}
       EMBEDDED_WORKER: "false"
+      # Optional provider OAuth. Leave blank to use pasted access tokens.
+      LINEAR_CLIENT_ID: ${LINEAR_CLIENT_ID:-}
+      LINEAR_CLIENT_SECRET: ${LINEAR_CLIENT_SECRET:-}
+      JIRA_CLIENT_ID: ${JIRA_CLIENT_ID:-}
+      JIRA_CLIENT_SECRET: ${JIRA_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITLAB_CLIENT_ID: ${GITLAB_CLIENT_ID:-}
+      GITLAB_CLIENT_SECRET: ${GITLAB_CLIENT_SECRET:-}
+      GITEA_CLIENT_ID: ${GITEA_CLIENT_ID:-}
+      GITEA_CLIENT_SECRET: ${GITEA_CLIENT_SECRET:-}
+      GITEA_SITE_URL: ${GITEA_SITE_URL:-https://gitea.com}
       NODE_ENV: production
     ports:
       - "38471:38471"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.atrium.rule=Host(`${ATRIUM_HOST:-atrium.localhost}`)
+      - traefik.http.routers.atrium.rule=Host(`${ATRIUM_HOST:?set ATRIUM_HOST to the public hostname}`)
       - traefik.http.routers.atrium.entrypoints=websecure
       - traefik.http.routers.atrium.tls=true
       - traefik.http.services.atrium.loadbalancer.server.port=38471
@@ -59,6 +75,7 @@ services:
   worker:
     build: .
     command: ["pnpm", "worker"]
+    restart: unless-stopped
     depends_on:
       app:
         condition: service_healthy

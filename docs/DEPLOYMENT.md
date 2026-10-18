@@ -13,21 +13,58 @@ Traefik labels route `Host(\`${ATRIUM_HOST}\`)` to port 38471 with TLS. Set `BET
 
 ## Environment
 
-Copy `.env.example`. Generate:
+Set these once when the stack is created. Compose reads them and builds every database URL from the role passwords, so you never set `DATABASE_URL*` yourself.
 
-```bash
-openssl rand -base64 32   # BETTER_AUTH_SECRET
-openssl rand -base64 32   # CREDENTIAL_ENCRYPTION_KEY
-```
+Generate the secrets with `openssl rand -base64 32`.
 
-Role passwords must not contain single quotes. They are interpolated by `docker/postgres/init.sh` on the first database boot only.
+### Required
 
-OAuth client ids are optional. Without them, an admin can paste a provider access token. That token is encrypted before it is stored. See [OAUTH.md](./OAUTH.md) for registering apps and callback URLs (`pnpm oauth:redirects`). Minimum scopes when OAuth is configured:
+| Variable | Used by | Notes |
+| --- | --- | --- |
+| `POSTGRES_PASSWORD` | postgres | Superuser password. |
+| `APP_PASSWORD` | postgres, app, worker | Password for `atrium_app`, the RLS-bound role. |
+| `WORKER_PASSWORD` | postgres, worker | Password for `atrium_worker`. |
+| `MIGRATE_PASSWORD` | postgres, migrate | Password for `atrium_migrator`. |
+| `BETTER_AUTH_SECRET` | app | Signs sessions. Changing it signs everyone out. |
+| `BETTER_AUTH_URL` | app | Public origin, for example `https://atrium.example.com`. Provider callbacks and MCP URLs derive from it. |
+| `CREDENTIAL_ENCRYPTION_KEY` | app, worker | Encrypts stored provider tokens. Back it up. Losing it makes saved tokens unreadable. |
+| `ATRIUM_HOST` | app (Traefik label) | Public hostname without a scheme, for example `atrium.example.com`. |
+
+The role passwords must not contain single quotes. `docker/postgres/init.sh` runs only on the first database boot, so changing a role password later means updating the role with `ALTER ROLE` as well as the environment variable.
+
+### Optional
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `LINEAR_CLIENT_ID`, `LINEAR_CLIENT_SECRET` | blank | Enables OAuth for Linear. |
+| `JIRA_CLIENT_ID`, `JIRA_CLIENT_SECRET` | blank | Enables OAuth for Jira. |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | blank | Enables OAuth for GitHub. |
+| `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET` | blank | Enables OAuth for GitLab. |
+| `GITEA_CLIENT_ID`, `GITEA_CLIENT_SECRET` | blank | Enables OAuth for Gitea. |
+| `GITEA_SITE_URL` | `https://gitea.com` | Set for a self-hosted Gitea. |
+| `ALLOW_FAKE_PROVIDER` | `false` | Keep `false` in production. |
+
+Without OAuth client ids, an admin can paste a provider access token instead. That token is encrypted before it is stored. Register apps and callback URLs as described in [OAUTH.md](./OAUTH.md), using `pnpm oauth:redirects` to print them. Minimum scopes when OAuth is configured:
 
 - Linear: `read`, `write`
 - Jira: `read:jira-work`, `write:jira-work`, `offline_access`
 - GitHub: classic `repo` (issues on private repositories)
 - GitLab: `api`, `read_user`
+
+### Set by Compose, do not set
+
+- `EMBEDDED_WORKER` is forced to `false` for the app, so the worker runs only in its own container.
+- `NODE_ENV` is `production`.
+- `DATABASE_URL`, `DATABASE_URL_WORKER`, and `DATABASE_URL_MIGRATE` are built from the role passwords.
+
+### Not needed for a container deployment
+
+- `OBSIDIAN_VAULT_ROOT` only matters when the container can read a LiveSync mirror from its own filesystem. The remote vault bridge needs nothing from the container.
+- `NEXT_PUBLIC_APP_NAME` from `.env.example` is not read by the code.
+
+### Never run in production
+
+`pnpm db:seed` creates demo accounts with a known password. Do not run it against a deployed database.
 
 ## Local commands
 
@@ -52,4 +89,14 @@ docker compose build
 docker compose up -d
 ```
 
-The image runs `pnpm build` and `pnpm start`. The worker command is `pnpm worker` in the same image.
+The Dockerfile has three stages. `build` installs everything and runs `next build`. `deps` installs production dependencies only. `runtime` copies the Next.js standalone server, `src`, `scripts`, and `db`, and runs as the non-root `node` user.
+
+The web container starts with `node standalone/server.js`. The `migrate` and `worker` services override the command with `pnpm db:migrate` and `pnpm worker`.
+
+Compose starts `migrate` before `app`, and `worker` after `app` is healthy. Postgres is not published on a host port.
+
+### Before the first deploy
+
+1. Create the stack with the required variables above.
+2. Confirm `https://<ATRIUM_HOST>/api/health` returns `{"ok":true}`.
+3. Sign up the first account in the browser. Do not seed.
