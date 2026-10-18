@@ -6,11 +6,20 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as Reac
 import { ExternalLink } from "lucide-react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { updateTaskAction } from "@/app/actions";
-import { ProviderIcon, providerLabel } from "@/components/provider-icon";
+import {
+  ProviderIcon,
+  providerAccents,
+  providerKey,
+  providerLabel,
+} from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 import { MenuSelect } from "@/components/ui/menu-select";
 import { cn } from "@/lib/utils";
+
+function taskProviderAccent(provider: string | null | undefined) {
+  return providerAccents[providerKey(provider)] ?? providerAccents.native!;
+}
 
 const COLUMNS = ["open", "in_progress", "blocked", "done", "cancelled"] as const;
 type BoardStatus = (typeof COLUMNS)[number];
@@ -109,11 +118,20 @@ function MobileStatusForm({
   );
 }
 
-function TaskCardBody({ task, reserveSourceSlot = false }: { task: BoardTask; reserveSourceSlot?: boolean }) {
+function TaskCardBody({
+  task,
+  reserveSourceSlot = false,
+  providerStyles = false,
+}: {
+  task: BoardTask;
+  reserveSourceSlot?: boolean;
+  providerStyles?: boolean;
+}) {
+  const accent = providerStyles ? taskProviderAccent(task.provider) : null;
   return (
     <>
       <p className={cn("font-medium", reserveSourceSlot && task.external_url && "pr-8")}>{task.title}</p>
-      <p className="text-xs text-muted">{task.project_name}</p>
+      <p className={cn("text-xs", accent ? accent.ink : "text-muted")}>{task.project_name}</p>
       <div className="mt-2 flex flex-wrap gap-1">
         <Badge tone={task.priority}>
           <PriorityIcon priority={task.priority} className="size-3.5" />
@@ -152,9 +170,11 @@ function SourceLinkButton({ task }: { task: BoardTask }) {
 export function TaskBoard({
   workspaceId,
   tasks,
+  providerTileStyles = true,
 }: {
   workspaceId: string;
   tasks: BoardTask[];
+  providerTileStyles?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -432,6 +452,7 @@ export function TaskBoard({
                     .filter((item) => item.id !== drag?.taskId).length;
                   const isEntering = Boolean(enteringIds[task.id]);
                   const isSaving = Boolean(savingIds[task.id]);
+                  const accent = providerTileStyles ? taskProviderAccent(task.provider) : null;
                   return (
                     <div key={task.id} className="contents">
                       <article
@@ -442,7 +463,7 @@ export function TaskBoard({
                         onPointerDown={(event) => onCardPointerDown(event, task)}
                         onDragStart={(event) => event.preventDefault()}
                         className={cn(
-                          "board-card group relative my-1 rounded-md border bg-background text-sm",
+                          "board-card group relative my-1 overflow-hidden rounded-md border bg-background text-sm",
                           "transition-[opacity,transform,box-shadow,background-color] duration-200 ease-out",
                           isSaving
                             ? "cursor-wait"
@@ -450,12 +471,20 @@ export function TaskBoard({
                           isEntering && "board-card-enter",
                           isSaving && "board-card-saving",
                           isDragSource && "board-card-drag-source",
+                          accent && accent.wash,
                         )}
                       >
+                        {accent ? (
+                          <div className={cn("absolute inset-y-0 left-0 w-1", accent.bar)} aria-hidden="true" />
+                        ) : null}
                         <SourceLinkButton task={task} />
                         <Link
                           href={`/tasks/${task.id}`}
-                          className={cn("block p-3", isSaving && "pointer-events-none")}
+                          className={cn(
+                            "block p-3",
+                            accent && "pl-3.5",
+                            isSaving && "pointer-events-none",
+                          )}
                           draggable={false}
                           onDragStart={(event) => event.preventDefault()}
                           tabIndex={isSaving || isDragSource ? -1 : undefined}
@@ -466,9 +495,13 @@ export function TaskBoard({
                             }
                           }}
                         >
-                          <TaskCardBody task={task} reserveSourceSlot />
+                          <TaskCardBody
+                            task={task}
+                            reserveSourceSlot
+                            providerStyles={providerTileStyles}
+                          />
                         </Link>
-                        <div className="px-3 pb-3 md:hidden">
+                        <div className={cn("px-3 pb-3 md:hidden", accent && "pl-3.5")}>
                           <MobileStatusForm
                             workspaceId={workspaceId}
                             taskId={task.id}
@@ -501,10 +534,25 @@ export function TaskBoard({
         <div
           ref={previewRef}
           aria-hidden="true"
-          className="board-drag-preview pointer-events-none fixed top-0 left-0 z-[80] rounded-md border bg-background p-3 text-sm shadow-xl"
+          className={cn(
+            "board-drag-preview pointer-events-none fixed top-0 left-0 z-[80] overflow-hidden rounded-md border bg-background text-sm shadow-xl",
+            providerTileStyles && taskProviderAccent(draggedTask.provider).wash,
+          )}
           style={{ width: drag.width }}
         >
-          <TaskCardBody task={draggedTask} reserveSourceSlot />
+          {providerTileStyles ? (
+            <div
+              className={cn("absolute inset-y-0 left-0 w-1", taskProviderAccent(draggedTask.provider).bar)}
+              aria-hidden="true"
+            />
+          ) : null}
+          <div className={cn("p-3", providerTileStyles && "pl-3.5")}>
+            <TaskCardBody
+              task={draggedTask}
+              reserveSourceSlot
+              providerStyles={providerTileStyles}
+            />
+          </div>
         </div>
       ) : null}
     </div>

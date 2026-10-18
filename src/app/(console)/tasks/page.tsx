@@ -3,16 +3,20 @@ import { ScreenLoader } from "@/components/screen-loader";
 import { EmptyResults } from "@/components/empty-results";
 import { ResultsLoader } from "@/components/results-loader";
 import { connection } from "next/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ListFilter } from "lucide-react";
+import { sql } from "drizzle-orm";
 import { bulkTaskAction, createTaskAction } from "@/app/actions";
 import { TaskBoard } from "@/components/task-board";
 import { TaskForm } from "@/components/task-form";
 import { TaskList } from "@/components/task-list";
 import { TasksFilterFrame } from "@/components/tasks-filter-frame";
 import { TASK_BULK_FORM_ID } from "@/components/task-bulk-actions";
+import { parseMotionEnabled } from "@/lib/apply-theme";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
+import { withUser } from "@/server/db/client";
 import { listProjects } from "@/server/projects/service";
 import { listTasks } from "@/server/tasks/service";
 
@@ -105,6 +109,16 @@ async function TasksResults({
   const params = await searchParams;
   const { current } = await workspaceContext(user.id);
   const canWrite = current.role !== "viewer";
+  const cookieStore = await cookies();
+  const prefs = await withUser(user.id, (tx) =>
+    tx.execute<{ provider_tile_styles: boolean }>(sql`
+      select provider_tile_styles from user_preferences
+      where user_id = current_setting('app.current_user_id', true)
+    `),
+  );
+  const providerTileStyles = prefs[0]
+    ? prefs[0].provider_tile_styles !== false
+    : parseMotionEnabled(cookieStore.get("atrium_provider_tiles")?.value);
   const tasks = await listTasks(user.id, current.id, {
     status: params.status,
     priority: params.priority,
@@ -128,7 +142,13 @@ async function TasksResults({
   }
 
   if (params.view === "board") {
-    return <TaskBoard workspaceId={current.id} tasks={tasks} />;
+    return (
+      <TaskBoard
+        workspaceId={current.id}
+        tasks={tasks}
+        providerTileStyles={providerTileStyles}
+      />
+    );
   }
 
   return (
@@ -137,6 +157,7 @@ async function TasksResults({
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <TaskList
           canWrite={canWrite}
+          providerTileStyles={providerTileStyles}
           tasks={tasks.map((task) => ({
             id: task.id,
             title: task.title,

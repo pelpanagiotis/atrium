@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { ProviderIcon, providerLabel } from "@/components/provider-icon";
+import {
+  ProviderIcon,
+  providerAccents,
+  providerKey,
+  providerLabel,
+} from "@/components/provider-icon";
 import { PriorityIcon, StatusIcon, SyncStateIcon, syncStateLabel } from "@/components/task-meta-icons";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn, formatWhen } from "@/lib/utils";
+
+function taskProviderAccent(provider: string | null | undefined) {
+  return providerAccents[providerKey(provider)] ?? providerAccents.native!;
+}
 
 export type TaskListItem = {
   id: string;
@@ -21,19 +30,44 @@ export type TaskListItem = {
   assigneeLabel: string | null;
 };
 
-export function TaskList({ tasks, canWrite }: { tasks: TaskListItem[]; canWrite: boolean }) {
+export function TaskList({
+  tasks,
+  canWrite,
+  providerTileStyles = true,
+}: {
+  tasks: TaskListItem[];
+  canWrite: boolean;
+  providerTileStyles?: boolean;
+}) {
   return (
-    <ul className="divide-y rounded-lg border bg-card" data-reveal-items="">
+    <ul className="divide-y overflow-hidden rounded-lg border bg-card" data-reveal-items="">
       {tasks.map((task) => (
-        <TaskListRow key={task.id} task={task} canWrite={canWrite} />
+        <TaskListRow
+          key={task.id}
+          task={task}
+          canWrite={canWrite}
+          providerTileStyles={providerTileStyles}
+        />
       ))}
     </ul>
   );
 }
 
-function TaskListRow({ task, canWrite }: { task: TaskListItem; canWrite: boolean }) {
+function TaskListRow({
+  task,
+  canWrite,
+  providerTileStyles,
+}: {
+  task: TaskListItem;
+  canWrite: boolean;
+  providerTileStyles: boolean;
+}) {
+  const accent = providerTileStyles ? taskProviderAccent(task.provider) : null;
   return (
-    <li className="flex items-stretch">
+    <li className={cn("relative flex items-stretch", accent && accent.wash)}>
+      {accent ? (
+        <div className={cn("w-1 shrink-0 self-stretch", accent.bar)} aria-hidden="true" />
+      ) : null}
       {canWrite ? (
         <div className="flex shrink-0 items-start px-3 pt-4 sm:px-4 sm:pt-5 lg:items-center lg:pt-0">
           <Checkbox name="ids" value={task.id} aria-label={`Select ${task.title}`} />
@@ -76,7 +110,7 @@ function TaskListRow({ task, canWrite }: { task: TaskListItem; canWrite: boolean
             <SyncStateIcon state={task.syncState} className="size-3.5" />
             {syncStateLabel(task.syncState)}
           </Meta>
-          <Meta label="Source">
+          <Meta label="Source" className={accent ? accent.ink : undefined}>
             <ProviderIcon provider={task.provider} />
             {providerLabel(task.provider)}
           </Meta>
@@ -86,11 +120,21 @@ function TaskListRow({ task, canWrite }: { task: TaskListItem; canWrite: boolean
   );
 }
 
-function Meta({ label, children }: { label: string; children: React.ReactNode }) {
+function Meta({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5 text-xs">
       <span className="font-medium text-foreground/70">{label}</span>
-      <span className="inline-flex min-w-0 items-center gap-1.5 text-muted">{children}</span>
+      <span className={cn("inline-flex min-w-0 items-center gap-1.5 text-muted", className)}>
+        {children}
+      </span>
     </div>
   );
 }

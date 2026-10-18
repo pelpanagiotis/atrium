@@ -326,6 +326,7 @@ export const userPreferences = pgTable("user_preferences", {
   notifySyncErrors: boolean("notify_sync_errors").notNull().default(true),
   notifyAssignments: boolean("notify_assignments").notNull().default(true),
   animationsEnabled: boolean("animations_enabled").notNull().default(true),
+  providerTileStyles: boolean("provider_tile_styles").notNull().default(true),
   projectsLayout: jsonb("projects_layout"),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 });

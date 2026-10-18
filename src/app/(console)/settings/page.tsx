@@ -38,18 +38,27 @@ async function SettingsContent() {
     notify_sync_errors: boolean;
     notify_assignments: boolean;
     animations_enabled: boolean;
+    provider_tile_styles: boolean;
   }>(sql`select * from user_preferences where user_id = current_setting('app.current_user_id', true)`));
   const pref = prefs[0];
   const animationsEnabled = pref
     ? pref.animations_enabled !== false
     : parseMotionEnabled(cookieStore.get("atrium_motion")?.value);
+  const providerTileStyles = pref
+    ? pref.provider_tile_styles !== false
+    : parseMotionEnabled(cookieStore.get("atrium_provider_tiles")?.value);
   return (
     <div className="w-full space-y-8">
       <div>
         <h1 className="text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted">Profile, appearance, and account preferences.</p>
       </div>
-      <ThemeSettings theme={theme} palette={palette} animationsEnabled={animationsEnabled} />
+      <ThemeSettings
+        theme={theme}
+        palette={palette}
+        animationsEnabled={animationsEnabled}
+        providerTileStyles={providerTileStyles}
+      />
       <div className="grid w-full gap-6 xl:grid-cols-2">
         <form id="profile" action={settingsAction} className="space-y-3 rounded-lg border bg-card p-4 scroll-mt-24 md:p-5">
           <h2 className="text-xl">Profile</h2>

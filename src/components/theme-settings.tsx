@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Check, Moon, Sun } from "lucide-react";
-import { motionAction, paletteAction, themeAction } from "@/app/actions";
+import { motionAction, paletteAction, providerTileStylesAction, themeAction } from "@/app/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { applyDocumentMotion, applyDocumentTheme } from "@/lib/apply-theme";
 import { COLOR_PALETTES, type ColorPaletteId, type ThemeMode } from "@/lib/theme";
@@ -28,18 +28,22 @@ export function ThemeSettings({
   theme,
   palette,
   animationsEnabled,
+  providerTileStyles,
 }: {
   theme: ThemeMode;
   palette: ColorPaletteId;
   animationsEnabled: boolean;
+  providerTileStyles: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [draft, setDraft] = useState<{ theme: ThemeMode; palette: ColorPaletteId } | null>(null);
   const [motionDraft, setMotionDraft] = useState<boolean | null>(null);
+  const [providerTilesDraft, setProviderTilesDraft] = useState<boolean | null>(null);
   const mode = draft?.theme ?? theme;
   const activePalette = draft?.palette ?? palette;
   const motionOn = motionDraft ?? animationsEnabled;
+  const providerTilesOn = providerTilesDraft ?? providerTileStyles;
 
   useEffect(() => {
     applyDocumentTheme(theme, palette);
@@ -88,11 +92,25 @@ export function ThemeSettings({
     });
   }
 
+  function setProviderTiles(next: boolean) {
+    if (next === providerTilesOn || pending) return;
+    setProviderTilesDraft(next);
+    const formData = new FormData();
+    formData.set("providerTileStyles", next ? "on" : "off");
+    startTransition(async () => {
+      await providerTileStylesAction(formData);
+      router.refresh();
+      setProviderTilesDraft(null);
+    });
+  }
+
   return (
     <section className="rounded-lg border bg-card p-4 md:p-5">
       <div>
         <h2 className="text-xl">Appearance</h2>
-        <p className="mt-1 text-sm text-muted">Pick a color palette, light or dark mode, and motion. Changes apply immediately.</p>
+        <p className="mt-1 text-sm text-muted">
+          Pick a color palette, light or dark mode, motion, and task tile accents. Changes apply immediately.
+        </p>
       </div>
 
       <div className="mt-5">
@@ -200,6 +218,25 @@ export function ThemeSettings({
             <span className="block font-medium">Disable animations</span>
             <span className="mt-0.5 block text-xs text-muted">
               Skip page entrance motion and staggered reveals. Your system reduce-motion preference still applies when enabled.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div className="mt-6">
+        <h3 className="text-sm font-medium">Tasks</h3>
+        <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-background p-4">
+          <Checkbox
+            className="mt-0.5"
+            checked={!providerTilesOn}
+            disabled={pending}
+            onCheckedChange={(value) => setProviderTiles(value !== true)}
+            aria-label="Disable provider colors on task tiles"
+          />
+          <span className="min-w-0">
+            <span className="block font-medium">Disable provider colors on task tiles</span>
+            <span className="mt-0.5 block text-xs text-muted">
+              Hide source-colored rails and washes on the tasks board and list. Provider icons still show which system a task came from.
             </span>
           </span>
         </label>

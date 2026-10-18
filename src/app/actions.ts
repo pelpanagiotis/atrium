@@ -515,6 +515,30 @@ export async function motionAction(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+export async function providerTileStylesAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const enabled = parseMotionEnabled(String(formData.get("providerTileStyles") ?? "on"));
+  (await cookies()).set("atrium_provider_tiles", enabled ? "on" : "off", { path: "/", sameSite: "lax" });
+  await withUser(user, async (tx) => {
+    await tx.execute(sql`
+      insert into user_preferences (user_id, timezone, theme, palette, notify_sync_errors, notify_assignments, provider_tile_styles)
+      values (
+        current_setting('app.current_user_id', true),
+        'UTC',
+        'light',
+        'grove',
+        true,
+        true,
+        ${enabled}
+      )
+      on conflict (user_id) do update set
+        provider_tile_styles = excluded.provider_tile_styles,
+        updated_at = now()
+    `);
+  });
+  revalidatePath("/", "layout");
+}
+
 export async function themeAction(formData: FormData): Promise<void> {
   const user = await userId();
   const theme = parseThemeMode(String(formData.get("theme") ?? "light"));
