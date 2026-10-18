@@ -5,6 +5,10 @@ import { parseMotionEnabled } from "@/lib/apply-theme";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import "./globals.css";
 
+// The root layout reads the theme cookies on every request, so it has to block
+// on the server instead of streaming a static shell.
+export const instant = false;
+
 const outfit = Outfit({ variable: "--font-outfit", subsets: ["latin"] });
 const fraunces = Fraunces({ variable: "--font-fraunces", subsets: ["latin"] });
 
