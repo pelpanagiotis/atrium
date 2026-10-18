@@ -7,7 +7,6 @@ import { CreateMenu } from "@/components/create-menu";
 import { PageMotion } from "@/components/page-motion";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
-import { contextIcon, contextLabel } from "@/lib/workspace-contexts";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -36,12 +35,6 @@ export function Shell({
     <div className="flex h-dvh max-h-dvh overflow-hidden">
       <AppSidebar
         userName={user.name}
-        current={{
-          kind: current.kind,
-          kindLabel: contextLabel(contexts, current.kind),
-          icon: current.icon,
-          contextIcon: contextIcon(contexts, current.kind),
-        }}
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
         initialGroups={sidebarGroups}

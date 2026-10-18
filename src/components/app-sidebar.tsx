@@ -32,7 +32,6 @@ import {
   Settings,
   type LucideIcon,
 } from "lucide-react";
-import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { cn } from "@/lib/utils";
 
 type NavLink = { label: string; href: string; icon: LucideIcon; group: string | null };
@@ -178,18 +177,11 @@ function SidebarTip({
 
 export function AppSidebar({
   userName,
-  current,
   initialCollapsed = false,
   initialOrder,
   initialGroups,
 }: {
   userName: string;
-  current: {
-    kind: string;
-    kindLabel?: string;
-    icon?: string | null;
-    contextIcon?: string | null;
-  };
   initialCollapsed?: boolean;
   initialOrder?: string;
   initialGroups?: string;
@@ -349,8 +341,6 @@ export function AppSidebar({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
-  const workspaceLabel = `${current.kindLabel ?? current.kind} workspace`;
-
   const visibleHrefs = order.filter((href) => LINK_BY_HREF.has(href));
   const pinnedHrefs = visibleHrefs.filter((href) => LINK_BY_HREF.get(href)?.group == null);
   const groupedSections = GROUPS.map((group) => ({
@@ -486,23 +476,11 @@ export function AppSidebar({
           </div>
         ) : null}
 
-        <div className={cn("mt-2 flex items-center gap-2 pb-4", collapsed ? "justify-center" : "px-2")}>
-          <SidebarTip label={workspaceLabel} show={collapsed}>
-            <WorkspaceIconBadge
-              icon={current.icon}
-              kind={current.kind}
-              contextIcon={current.contextIcon}
-              className="size-7 border-white/15 bg-white/5 text-xs text-sidebar-foreground"
-            />
-          </SidebarTip>
-          {!collapsed ? (
-            <p className="min-w-0 flex-1 text-xs uppercase leading-snug tracking-[0.14em] text-sidebar-foreground/60">
-              {workspaceLabel}
-            </p>
-          ) : null}
-        </div>
-
-        <nav ref={navRef} aria-label={editing ? "Edit navigation" : "Primary"} className="flex flex-col gap-0.5">
+        <nav
+          ref={navRef}
+          aria-label={editing ? "Edit navigation" : "Primary"}
+          className={cn("flex flex-col gap-0.5", collapsed ? "mt-2" : "mt-4")}
+        >
           {editing && !collapsed ? (
             <p className="px-2 pb-1 text-xs text-sidebar-foreground/60">
               Drag to reorder. Remove a row, or add one from the list below.
