@@ -111,11 +111,12 @@ function SlackMark({ className }: { className?: string }) {
 }
 
 function ObsidianMark({ className }: { className?: string }) {
+  // Official 2023 Obsidian rock mark (obsidian.md brand assets), solid fill.
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+    <svg viewBox="0 0 512 512" className={className} aria-hidden="true">
       <path
-        fill="currentColor"
-        d="M18.644 2.117c-.48-.32-1.16-.37-1.9-.1l-6.56 2.53a2.2 2.2 0 0 0-1.1 1.02L5.9 13.24c-.3.6-.24 1.3.14 1.84l3.35 4.7c.45.63 1.28.86 1.98.55l8.48-3.78c.62-.28 1.03-.9 1.03-1.58V4.12c0-.85-.55-1.61-1.36-1.99l-.2-.1Zm-1.2 1.62.1.06c.2.1.34.3.34.52v10.5l-7.95 3.55-.05-.07-3.2-4.5 3.7-7.15 7.06-2.91Z"
+        fill="#6C31E3"
+        d="M382.3 475.6c-3.1 23.4-26 41.6-48.7 35.3-32.4-8.9-69.9-22.8-103.6-25.4l-51.7-4a34 34 0 0 1-22-10.2l-89-91.7a34 34 0 0 1-6.7-37.7s55-121 57.1-127.3c2-6.3 9.6-61.2 14-90.6 1.2-7.9 5-15 11-20.3L248 8.9a34.1 34.1 0 0 1 49.6 4.3L386 125.6a37 37 0 0 1 7.6 22.4c0 21.3 1.8 65 13.6 93.2 11.5 27.3 32.5 57 43.5 71.5a17.3 17.3 0 0 1 1.3 19.2 1494 1494 0 0 1-44.8 70.6c-15 22.3-21.9 49.9-25 73.1z"
       />
     </svg>
   );
