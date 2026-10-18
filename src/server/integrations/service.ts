@@ -131,7 +131,7 @@ export async function connectWithToken(
   }
   if (provider === "obsidian" && !input.siteUrl?.trim()) {
     throw new Error(
-      "Enter the LiveSync vault path on this host (for example /root/vaults/THEVAULT), or an HTTPS Local REST API URL",
+      "Enter the HTTPS vault bridge URL (for a vault on another VPS), or a LiveSync filesystem path on this host",
     );
   }
   const displayName = input.displayName.trim();

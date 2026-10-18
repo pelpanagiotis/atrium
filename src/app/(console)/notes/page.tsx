@@ -60,7 +60,7 @@ async function NotesContent({
         <div className="min-w-0 max-w-2xl">
           <h1 className="text-4xl">Notes</h1>
           <p className="mt-2 text-sm text-muted">
-            Markdown notes from your Self-hosted LiveSync vault mirror on this host (or Local REST API).
+            Markdown notes from your Self-hosted LiveSync vault — local disk or remote vault bridge.
           </p>
         </div>
         {canAdmin ? (

@@ -37,6 +37,15 @@ const SKIP_DIR_NAMES = new Set([
   ".DS_Store",
 ]);
 
+const SKIP_FILE_NAMES = new Set([".livesync-snapshot.json", ".DS_Store"]);
+
+function shouldSkipNoteFile(name: string): boolean {
+  if (SKIP_FILE_NAMES.has(name)) return true;
+  // Excalidraw drawings are markdown wrappers, not prose notes.
+  if (name.toLowerCase().endsWith(".excalidraw.md")) return true;
+  return false;
+}
+
 export function isObsidianFilesystemTarget(siteUrl: string | null | undefined): boolean {
   const raw = (siteUrl ?? "").trim();
   if (!raw) return false;
@@ -115,7 +124,12 @@ async function assertVaultUnderAllowlist(vaultPath: string): Promise<string> {
   try {
     resolvedVault = await realpath(vaultPath);
   } catch {
-    throw new ProviderError(`Vault path was not found: ${vaultPath}`, "not_found", false, 404);
+    throw new ProviderError(
+      `Vault path was not found on this Atrium host: ${vaultPath}. For a vault on another VPS, deploy services/obsidian-vault-bridge there and paste its HTTPS URL instead (for example https://notes.example.com).`,
+      "not_found",
+      false,
+      404,
+    );
   }
 
   const vaultStat = await stat(resolvedVault);
@@ -204,7 +218,7 @@ async function walkFilesystemNotes(
         queue.push({ abs, rel, depth: next.depth + 1 });
         continue;
       }
-      if (!entry.isFile() || !name.toLowerCase().endsWith(".md")) continue;
+      if (!entry.isFile() || !name.toLowerCase().endsWith(".md") || shouldSkipNoteFile(name)) continue;
       const summary = {
         path: rel,
         title: titleFromPath(rel),
@@ -264,7 +278,7 @@ export function normalizeObsidianSiteUrl(siteUrl: string | null | undefined): st
   const raw = (siteUrl ?? "").trim();
   if (!raw) {
     throw new ProviderError(
-      "Obsidian site URL is required. Use your VPS HTTPS hostname (port 443), for example https://obsidian.example.com",
+      "Obsidian URL is required. Use the HTTPS origin of your vault bridge (or Local REST API), for example https://notes.example.com",
       "validation",
       false,
     );
@@ -277,7 +291,7 @@ export function normalizeObsidianSiteUrl(siteUrl: string | null | undefined): st
   }
   if (url.protocol !== "https:") {
     throw new ProviderError(
-      "Obsidian Local REST API URL must use https on a public hostname (port 443)",
+      "Remote Obsidian vaults must use https on a public hostname (port 443). Deploy services/obsidian-vault-bridge on the LiveSync VPS and terminate TLS there.",
       "validation",
       false,
     );
@@ -344,7 +358,9 @@ async function validateRestApiConnection(
   } catch (error) {
     if (error instanceof ProviderError) throw error;
     throw new ProviderError(
-      error instanceof Error ? error.message : "Could not reach Obsidian Local REST API",
+      error instanceof Error
+        ? error.message
+        : "Could not reach the Obsidian vault bridge (or Local REST API)",
       "unavailable",
       true,
     );
@@ -414,7 +430,7 @@ async function listRestNotes(
         queue.push({ dir: absolute, depth: next.depth + 1 });
         continue;
       }
-      if (!name.toLowerCase().endsWith(".md")) continue;
+      if (!name.toLowerCase().endsWith(".md") || shouldSkipNoteFile(name)) continue;
       const summary = {
         path: absolute,
         title: titleFromPath(absolute),

@@ -116,7 +116,7 @@ export function ConnectForm({
             </p>
           ) : selected === "obsidian" ? (
             <p className="mt-1 text-xs text-muted">
-              For a LiveSync filesystem mirror, any secret works — it only encrypts the saved connection. For Local REST API mode, paste that plugin&apos;s API key instead.
+              Remote vault bridge / Local REST API: paste that service&apos;s API token. Same-host filesystem path: any secret ≥8 characters (encrypts the saved connection).
             </p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
@@ -144,7 +144,7 @@ export function ConnectForm({
           <div className="md:col-span-2">
             <Label htmlFor="siteUrl">
               {showObsidian
-                ? "Vault path or Local REST URL"
+                ? "Vault bridge URL or local path"
                 : showGitea
                   ? "Gitea site URL"
                   : "GitLab site URL"}
@@ -155,7 +155,7 @@ export function ConnectForm({
               required={showObsidian}
               placeholder={
                 showObsidian
-                  ? "/root/vaults/THEVAULT"
+                  ? "https://notes.example.com"
                   : showGitea
                     ? "https://gitea.com"
                     : "https://gitlab.com"
@@ -166,9 +166,10 @@ export function ConnectForm({
             />
             {showObsidian ? (
               <p className="mt-1 text-xs text-muted">
-                Preferred: absolute path to the Self-hosted LiveSync headless mirror on this Atrium host (must sit under{" "}
-                <code className="rounded bg-secondary px-1">OBSIDIAN_VAULT_ROOT</code>
-                ). Advanced: an HTTPS Local REST API origin on port 443.
+                Different VPS: HTTPS origin of{" "}
+                <code className="rounded bg-secondary px-1">services/obsidian-vault-bridge</code> on the
+                LiveSync host (port 443). Same host as Atrium: absolute vault path under{" "}
+                <code className="rounded bg-secondary px-1">OBSIDIAN_VAULT_ROOT</code>.
               </p>
             ) : null}
           </div>

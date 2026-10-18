@@ -41,7 +41,14 @@ describe("obsidian vault access", () => {
 
   it("rejects insecure or empty site urls for REST mode", () => {
     expect(() => normalizeObsidianSiteUrl("")).toThrow(/required/i);
-    expect(() => normalizeObsidianSiteUrl("http://notes.example.com")).toThrow(/https/i);
+    expect(() => normalizeObsidianSiteUrl("http://notes.example.com")).toThrow(/vault bridge|https/i);
+  });
+
+  it("hints at the remote vault bridge when a local path is missing", async () => {
+    process.env.OBSIDIAN_VAULT_ROOT = "/workspace/vaults";
+    await expect(validateObsidianConnection("local-secret", "/root/vaults/THEVAULT")).rejects.toThrow(
+      /vault bridge|another VPS/i,
+    );
   });
 
   it("reads a LiveSync filesystem mirror under OBSIDIAN_VAULT_ROOT", async () => {

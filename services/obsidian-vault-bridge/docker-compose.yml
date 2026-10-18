@@ -1,0 +1,21 @@
+# Run on the LiveSync VPS next to the headless vault mirror.
+# Put Caddy/nginx/Traefik in front on :443, then point Atrium at https://notes.example.com
+#
+#   cp .env.example .env   # set API_TOKEN
+#   docker compose up -d
+
+services:
+  atrium-vault-bridge:
+    build: .
+    restart: unless-stopped
+    environment:
+      VAULT_ROOT: /vaults/THEVAULT
+      API_TOKEN: ${API_TOKEN:?set API_TOKEN in .env}
+      PORT: "27124"
+      HOST: "0.0.0.0"
+    volumes:
+      # Adjust host path if your LiveSync mirror lives elsewhere.
+      - /root/vaults/THEVAULT:/vaults/THEVAULT:ro
+    ports:
+      # Bind to loopback only — terminate TLS on the reverse proxy.
+      - "127.0.0.1:27124:27124"

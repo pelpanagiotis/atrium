@@ -1,6 +1,6 @@
 # Atrium
 
-Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection. Slack can be connected with a free bot token so the Chats page shows today's channel messages. Obsidian notes come from a Self-hosted LiveSync vault mirror on the same host as Atrium (or optionally from Local REST API).
+Atrium is a self-hosted desk for personal and work projects. Native tasks are edited here. Linear, Jira Cloud, GitHub, GitLab, and Gitea projects stay owned by those providers, and Atrium keeps a synchronized projection. Slack can be connected with a free bot token so the Chats page shows today's channel messages. Obsidian notes come from a Self-hosted LiveSync vault mirror (same host filesystem, or the remote vault bridge over HTTPS).
 
 Workspaces are isolated. Roles are owner, admin, member, and viewer. The database enforces that with row-level security, and the server checks the same rules before every mutation.
 
@@ -57,16 +57,21 @@ Reading today's messages uses Slack's free plan (90-day history). No Slack paid 
 
 ### Obsidian notes (Self-hosted LiveSync)
 
-Atrium reads the **filesystem vault mirror** produced by the Self-hosted LiveSync headless daemon. Mac/mobile keep syncing through CouchDB; Atrium does not talk to CouchDB or require Local REST API.
+Atrium reads markdown from the LiveSync headless **filesystem mirror**. Mac/mobile keep syncing through CouchDB; Atrium never talks to CouchDB.
 
-1. Run Atrium on the same host that has the LiveSync mirror (for example `/root/vaults/THEVAULT`).
-2. Set `OBSIDIAN_VAULT_ROOT` to the parent directory, e.g. `/root/vaults`.
+#### Remote vault (Atrium on a different VPS) — recommended
+
+1. On the LiveSync VPS, deploy [`services/obsidian-vault-bridge`](services/obsidian-vault-bridge/README.md) against `/root/vaults/THEVAULT`.
+2. Terminate TLS on a public hostname (port 443) to `127.0.0.1:27124`.
 3. In Atrium → Integrations → Obsidian:
-   - **Vault path or Local REST URL:** `/root/vaults/THEVAULT`
-   - **Access token:** any secret ≥8 characters (encrypts the connection; unused for filesystem access)
-4. Open **Notes** to browse and read markdown. Edits on devices sync through LiveSync into the mirror automatically.
+   - **Vault bridge URL or local path:** `https://notes.example.com`
+   - **Access token:** the bridge `API_TOKEN`
+4. Open **Notes**. Refresh after LiveSync updates the mirror.
 
-Advanced: an HTTPS Local REST API origin on port 443 is still supported if you paste that URL instead of a vault path.
+#### Same host as Atrium
+
+1. Set `OBSIDIAN_VAULT_ROOT` to the parent of the mirror (e.g. `/root/vaults`).
+2. Connect with vault path `/root/vaults/THEVAULT` and any secret ≥8 characters.
 
 ```bash
 pnpm oauth:redirects   # print callback URLs for your BETTER_AUTH_URL
