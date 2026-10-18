@@ -130,11 +130,11 @@ function Meta({
   className?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5 text-xs">
-      <span className="font-medium text-foreground/70">{label}</span>
-      <span className={cn("inline-flex min-w-0 items-center gap-1.5 text-muted", className)}>
-        {children}
-      </span>
+    <div
+      aria-label={label}
+      className={cn("inline-flex min-w-0 items-center gap-1.5 text-xs text-muted", className)}
+    >
+      {children}
     </div>
   );
 }
