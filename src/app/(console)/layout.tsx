@@ -8,6 +8,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { ensurePersonalWorkspace, listWorkspaceContexts } from "@/server/workspaces/service";
 import { getSeenGuideVersions } from "@/server/guides/service";
+import { getOnboardingPending } from "@/server/onboarding/service";
 
 export const instant = false;
 
@@ -23,6 +24,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
   await connection();
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  if (await getOnboardingPending(user.id)) redirect("/onboarding");
   await ensurePersonalWorkspace(user.id, user.name);
   const [{ workspaces, current }, contexts, seenGuides] = await Promise.all([
     workspaceContext(user.id),

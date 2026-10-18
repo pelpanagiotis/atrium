@@ -6,9 +6,8 @@ import { IntegrationsOnboarding } from "@/components/integrations-onboarding";
 import { McpPanel } from "@/components/mcp-panel";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
-import { listIntegrations, oauthConfigured } from "@/server/integrations/service";
-import { listAdapterProviders } from "@/server/integrations/registry";
-import { CHAT_PROVIDERS, NOTE_PROVIDERS, type ProviderId } from "@/server/integrations/types";
+import { providerCatalog } from "@/server/integrations/catalog";
+import { listIntegrations } from "@/server/integrations/service";
 import { listMcpTokens, mcpServerUrl } from "@/server/mcp/tokens";
 
 export const instant = false;
@@ -39,17 +38,7 @@ async function IntegrationsContent({
     listMcpTokens(user.id),
   ]);
   const canAdmin = current.role === "owner" || current.role === "admin";
-  const providers = [
-    ...listAdapterProviders().filter((provider) => provider !== "fake"),
-    ...CHAT_PROVIDERS,
-    ...NOTE_PROVIDERS,
-  ];
-  const oauth = Object.fromEntries(
-    providers.map((provider) => {
-      if (provider === "slack" || provider === "obsidian") return [provider, false] as const;
-      return [provider, oauthConfigured(provider as Exclude<ProviderId, "fake">)] as const;
-    }),
-  );
+  const { providers, oauth } = providerCatalog();
   const params = await searchParams;
   return (
     <div className="space-y-10">

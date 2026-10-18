@@ -41,6 +41,7 @@ import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 import { parseMotionEnabled } from "@/lib/apply-theme";
 import { GUIDES, type GuideId } from "@/lib/screen-guides";
+import { saveProfilePreferences, setOnboardingPending } from "@/server/onboarding/service";
 import { markGuideSeen } from "@/server/guides/service";
 import { parseProjectsLayout, type ProjectsLayout } from "@/lib/projects-layout";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
@@ -76,17 +77,21 @@ export async function registerAction(_state: ActionState, formData: FormData): P
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   const rememberMe = formData.get("rememberMe") === "on" || formData.get("rememberMe") === "true";
+  let newUserId: string;
   try {
-    await auth.api.signUpEmail({
+    const signUp = await auth.api.signUpEmail({
       body: { ...parsed.data, rememberMe },
       headers: await headers(),
     });
+    newUserId = signUp.user.id;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the account" };
   }
+  // The session cookie is not readable in this request, so use the new id.
+  await setOnboardingPending(newUserId, true);
   const user = await getSessionUser();
   if (user) await ensurePersonalWorkspace(user.id, user.name);
-  redirect("/home");
+  redirect("/onboarding");
 }
 
 export async function loginAction(_state: ActionState, formData: FormData): Promise<ActionState> {
@@ -634,6 +639,50 @@ export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
   const id = await userId();
   await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
   revalidatePath("/integrations");
+}
+
+// Onboarding actions return instead of redirecting, so the wizard can move
+// between steps itself.
+export async function onboardingProfileAction(formData: FormData): Promise<ActionState> {
+  const user = await userId();
+  const name = String(formData.get("name") ?? "").trim();
+  if (name.length > 0 && name.length < 2) return { error: "Name must be at least 2 characters" };
+  const timezone = String(formData.get("timezone") ?? "").trim() || "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone });
+  } catch {
+    return { error: "Enter a valid timezone, such as Europe/Athens or UTC" };
+  }
+  if (name.length >= 2) {
+    await auth.api.updateUser({ body: { name }, headers: await headers() });
+  }
+  await saveProfilePreferences(user, {
+    timezone,
+    notifySync: formData.get("notifySync") === "on",
+    notifyAssignments: formData.get("notifyAssignments") === "on",
+  });
+  return { notice: "Saved" };
+}
+
+export async function onboardingWorkspaceAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const id = await createWorkspace(await userId(), {
+      name: String(formData.get("name") ?? ""),
+      kind: "work",
+      icon: "",
+    });
+    (await cookies()).set("atrium_workspace", id, { httpOnly: true, sameSite: "lax", path: "/" });
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not create the workspace" };
+  }
+  return { notice: "Workspace created" };
+}
+
+export async function completeOnboardingAction(): Promise<void> {
+  const user = await userId();
+  await setOnboardingPending(user, false);
+  redirect("/home");
 }
 
 export async function markGuideSeenAction(guideId: string, version: number): Promise<void> {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
@@ -52,6 +53,7 @@ async function SettingsContent() {
       <div>
         <h1 className="text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted">Profile, appearance, and account preferences.</p>
+        <Link href="/onboarding" className="mt-2 inline-block text-sm underline">Run the setup guide again</Link>
       </div>
       <div data-tour="settings-appearance">
         <ThemeSettings
