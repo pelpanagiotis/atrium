@@ -221,7 +221,7 @@ export async function ensurePersonalWorkspace(userId: string, name: string): Pro
       limit 1
     `);
     if (existing.length > 0) return;
-    await tx.execute(sql`select create_workspace(${label}, ${slugify(label)}, 'personal')`);
+    await tx.execute(sql`select create_workspace(${label}, ${slugify(label)}, 'personal', null)`);
   });
 }
 
