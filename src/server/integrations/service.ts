@@ -328,17 +328,7 @@ export async function createExternalProject(
     const connectionId = connectionRows[0]?.id;
     if (!connectionId) throw new Error("Project connection was not created");
     // Pull remote issues immediately instead of waiting for the 5-minute reconcile sweep.
-    await tx.execute(sql`
-      insert into jobs (workspace_id, kind, payload, status, idempotency_key)
-      values (
-        ${workspaceId}::uuid,
-        'reconcile',
-        ${JSON.stringify({ connectionId })}::jsonb,
-        'pending',
-        ${`reconcile:${connectionId}:initial`}
-      )
-      on conflict (idempotency_key) do nothing
-    `);
+    await tx.execute(sql`select enqueue_initial_reconcile(${connectionId}::uuid)`);
     await writeAudit(tx, {
       workspaceId,
       action: "project.connected",
