@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import postgres from "postgres";
 import { sql } from "drizzle-orm";
 import { signHmacSha256 } from "@/server/crypto/secrets";
 import { applyInboundTask, claimAndRun } from "@/server/sync/engine";
@@ -7,7 +8,7 @@ import { connectWithToken, createExternalProject, disconnectIntegration, listInt
 import { createNativeProject } from "@/server/projects/service";
 import { createTask, listTasks, updateTask } from "@/server/tasks/service";
 import { AuthorizationError } from "@/server/authz/permissions";
-import { createWorkspace } from "@/server/workspaces/service";
+import { acceptInvitation, createWorkspace, inviteMember } from "@/server/workspaces/service";
 import { getWorkerDb } from "@/server/db/client";
 import { fakeProviderTasks } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -157,5 +158,68 @@ describe("fake provider synchronization", () => {
     `);
     expect(retried[0]?.status).toBe("pending");
     expect(retried[0]?.attempts).toBe(0);
+  });
+
+  it("queues the initial reconcile without opening the job queue to the app role", async () => {
+    const owner = await insertUser("Owner", "owner-reconcile@example.com");
+    const member = await insertUser("Member", "member-reconcile@example.com");
+    const outsider = await insertUser("Outsider", "outsider-reconcile@example.com");
+    const workspaceId = await createWorkspace(owner, { name: "Ops", kind: "work" });
+    const invite = await inviteMember(owner, workspaceId, { email: "member-reconcile@example.com", role: "member" });
+    await acceptInvitation(member, invite.token);
+    const integrationId = await connectWithToken(owner, workspaceId, {
+      provider: "fake",
+      displayName: "Fake desk",
+      accessToken: "fake-token-value",
+      webhookSecret: "hook-secret",
+    });
+    const projectId = await createExternalProject(owner, workspaceId, {
+      integrationId,
+      providerProjectId: "board-1",
+      name: "Board",
+    });
+    const connection = await getWorkerDb().execute<{ id: string }>(sql`
+      select id from project_connections where project_id = ${projectId}::uuid
+    `);
+    const connectionId = connection[0]?.id;
+    if (!connectionId) throw new Error("connection missing");
+    const reconcileJobs = () =>
+      getWorkerDb().execute<{ workspace_id: string; payload: unknown; status: string; idempotency_key: string }>(sql`
+        select workspace_id, payload, status, idempotency_key from jobs where kind = 'reconcile'
+      `);
+    expect(await reconcileJobs()).toEqual([
+      {
+        workspace_id: workspaceId,
+        payload: { connectionId },
+        status: "pending",
+        idempotency_key: `reconcile:${connectionId}:initial`,
+      },
+    ]);
+
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL is required");
+    const db = postgres(url, { max: 1 });
+    const asUser = (userId: string, query: (tx: postgres.TransactionSql) => Promise<unknown>) =>
+      db.begin(async (tx) => {
+        await tx`select set_config('app.current_user_id', ${userId}, true)`;
+        return query(tx);
+      });
+    try {
+      for (const userId of [member, outsider]) {
+        await expect(asUser(userId, (tx) => tx`select enqueue_initial_reconcile(${connectionId}::uuid)`)).rejects.toThrow(
+          /Unauthorized/,
+        );
+      }
+      await expect(
+        asUser(owner, (tx) => tx`
+          insert into jobs (workspace_id, kind, status, idempotency_key)
+          values (${workspaceId}::uuid, 'reconcile', 'pending', 'webhook:fake:squatted')
+        `),
+      ).rejects.toMatchObject({ code: "42501" });
+      await asUser(owner, (tx) => tx`select enqueue_initial_reconcile(${connectionId}::uuid)`);
+    } finally {
+      await db.end();
+    }
+    expect(await reconcileJobs()).toHaveLength(1);
   });
 });

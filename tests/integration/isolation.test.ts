@@ -1,6 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import postgres from "postgres";
+import { sql } from "drizzle-orm";
 import { AuthorizationError } from "@/server/authz/permissions";
+import { getWorkerDb } from "@/server/db/client";
+import { retryDead } from "@/server/integrations/service";
 import { createNativeProject, listProjects } from "@/server/projects/service";
 import { createTask, listTasks, updateTask } from "@/server/tasks/service";
 import { acceptInvitation, createWorkspace, inviteMember, listWorkspaces } from "@/server/workspaces/service";
@@ -53,5 +56,55 @@ describe("workspace isolation", () => {
     const miraSpaces = await listWorkspaces(mira);
     expect(miraSpaces.some((workspace) => workspace.id === jonasWork)).toBe(false);
     await db.end();
+  });
+
+  it("refuses invitations and dead-letter retries to a non-member in direct SQL", async () => {
+    const mira = await insertUser("Mira Vell", "mira@example.com");
+    const jonas = await insertUser("Jonas Reid", "jonas@example.com");
+    const miraWork = await createWorkspace(mira, { name: "Northwind", kind: "work" });
+    const jobs = await getWorkerDb().execute<{ id: string }>(sql`
+      insert into jobs (workspace_id, kind, status) values (${miraWork}::uuid, 'reconcile', 'dead') returning id
+    `);
+    const outbox = await getWorkerDb().execute<{ id: string }>(sql`
+      insert into outbox_events (workspace_id, operation_id, type, payload, status)
+      values (${miraWork}::uuid, 'op-dead-letter', 'task.upsert', '{}'::jsonb, 'dead')
+      returning id
+    `);
+    const jobId = jobs[0]?.id;
+    const outboxId = outbox[0]?.id;
+    if (!jobId || !outboxId) throw new Error("dead-letter rows missing");
+
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL is required");
+    const db = postgres(url, { max: 1 });
+    const asJonas = (query: (tx: postgres.TransactionSql) => Promise<unknown>) =>
+      db.begin(async (tx) => {
+        await tx`select set_config('app.current_user_id', ${jonas}, true)`;
+        return query(tx);
+      });
+    try {
+      await expect(
+        asJonas(async (tx) => {
+          await tx`
+            select create_invitation(${miraWork}::uuid, 'jonas@example.com', 'admin', 'self-invite', now() + interval '1 day')
+          `;
+          await tx`select accept_invitation('self-invite')`;
+        }),
+      ).rejects.toThrow(/Unauthorized/);
+      await expect(asJonas((tx) => tx`select retry_dead_job(${jobId}::uuid)`)).rejects.toThrow(/Unauthorized/);
+      await expect(asJonas((tx) => tx`select retry_dead_outbox(${outboxId}::uuid)`)).rejects.toThrow(/Unauthorized/);
+    } finally {
+      await db.end();
+    }
+    expect((await listWorkspaces(jonas)).some((workspace) => workspace.id === miraWork)).toBe(false);
+
+    await retryDead(mira, miraWork, "job", jobId);
+    await retryDead(mira, miraWork, "outbox", outboxId);
+    const statuses = await getWorkerDb().execute<{ job: string; outbox: string }>(sql`
+      select
+        (select status from jobs where id = ${jobId}::uuid) as job,
+        (select status from outbox_events where id = ${outboxId}::uuid) as outbox
+    `);
+    expect(statuses[0]).toEqual({ job: "pending", outbox: "pending" });
   });
 });
