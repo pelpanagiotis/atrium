@@ -20,6 +20,8 @@ function providerLabel(provider: string): string {
       return "Jira";
     case "slack":
       return "Slack";
+    case "obsidian":
+      return "Obsidian";
     default:
       return provider;
   }
@@ -43,8 +45,9 @@ export function ConnectForm({
   const showJira = selected === "jira";
   const showGitea = selected === "gitea";
   const showSlack = selected === "slack";
-  const showSiteUrl = selected === "gitlab" || showGitea;
-  const showWebhook = !showSlack;
+  const showObsidian = selected === "obsidian";
+  const showSiteUrl = selected === "gitlab" || showGitea || showObsidian;
+  const showWebhook = !showSlack && !showObsidian;
   return (
     <form action={formAction} className={compact ? "space-y-3" : "rounded-lg border bg-card p-4"}>
       {!compact ? (
@@ -96,7 +99,9 @@ export function ConnectForm({
                     ? "Personal access token"
                     : selected === "slack"
                       ? "xoxb-…"
-                      : "Paste access token"
+                      : selected === "obsidian"
+                        ? "Local REST API key"
+                        : "Paste access token"
             }
           />
           {selected === "linear" ? (
@@ -108,6 +113,10 @@ export function ConnectForm({
           ) : selected === "slack" ? (
             <p className="mt-1 text-xs text-muted">
               Free Slack workspaces work. After saving, invite the bot to each channel you want on Chats.
+            </p>
+          ) : selected === "obsidian" ? (
+            <p className="mt-1 text-xs text-muted">
+              From Obsidian → Settings → Community plugins → Local REST API. Copy the API key. Expose the plugin through HTTPS on port 443 on your VPS (Caddy/Nginx), not the raw 27124 port.
             </p>
           ) : (
             <p className="mt-1 text-xs text-muted">The token is encrypted before it is stored and is never sent back to the browser.</p>
@@ -133,15 +142,29 @@ export function ConnectForm({
         ) : null}
         {showSiteUrl ? (
           <div className="md:col-span-2">
-            <Label htmlFor="siteUrl">{showGitea ? "Gitea site URL" : "GitLab site URL"}</Label>
+            <Label htmlFor="siteUrl">
+              {showObsidian ? "Obsidian API URL" : showGitea ? "Gitea site URL" : "GitLab site URL"}
+            </Label>
             <Input
               id="siteUrl"
               name="siteUrl"
-              placeholder={showGitea ? "https://gitea.com" : "https://gitlab.com"}
-              defaultValue={showGitea ? "https://gitea.com" : "https://gitlab.com"}
-              key={showGitea ? "gitea-site" : "gitlab-site"}
+              required={showObsidian}
+              placeholder={
+                showObsidian
+                  ? "https://obsidian.example.com"
+                  : showGitea
+                    ? "https://gitea.com"
+                    : "https://gitlab.com"
+              }
+              defaultValue={showObsidian ? "" : showGitea ? "https://gitea.com" : "https://gitlab.com"}
+              key={showObsidian ? "obsidian-site" : showGitea ? "gitea-site" : "gitlab-site"}
               className="mt-1"
             />
+            {showObsidian ? (
+              <p className="mt-1 text-xs text-muted">
+                Public HTTPS hostname only (no localhost, no private IPs, no custom ports). Point your reverse proxy at the Local REST API on the VPS.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </div>

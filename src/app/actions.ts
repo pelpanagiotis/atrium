@@ -360,7 +360,7 @@ export async function connectTokenAction(_state: ActionState, formData: FormData
     unstable_rethrow(error);
     return { error: error instanceof Error ? error.message : "Could not connect" };
   }
-  redirect(provider === "slack" ? "/chats" : "/integrations");
+  redirect(provider === "slack" ? "/chats" : provider === "obsidian" ? "/notes" : "/integrations");
 }
 
 export async function disconnectAction(formData: FormData): Promise<void> {

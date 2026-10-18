@@ -9,6 +9,7 @@ import { integrationView, openCredential, sealCredential } from "./credentials";
 import { seedFakeProject } from "./fake";
 import { normalizeLinearToken } from "./linear";
 import { getAdapter, OAUTH_SCOPES } from "./registry";
+import { validateObsidianConnection } from "./obsidian";
 import { validateSlackConnection } from "./slack";
 import type {
   FieldMappings,
@@ -17,7 +18,7 @@ import type {
   RemoteProject,
   StoredCredential,
 } from "./types";
-import { isChatProvider, isTaskProvider } from "./types";
+import { isChatProvider, isNonTaskProvider, isNoteProvider, isTaskProvider } from "./types";
 
 export type IntegrationView = {
   id: string;
@@ -35,7 +36,7 @@ export type IntegrationView = {
 const SECRET_FREE = sql`id, workspace_id, provider, status, display_name, external_account_id, last_validated_at, last_error, revoked_at, credential_ciphertext`;
 
 function parseProvider(provider: string): IntegrationProviderId {
-  if (isChatProvider(provider)) return provider;
+  if (isChatProvider(provider) || isNoteProvider(provider)) return provider;
   if (!isTaskProvider(provider)) {
     throw new Error("Unknown provider");
   }
@@ -91,6 +92,9 @@ async function adapterContext(tx: Tx, integrationId: string) {
   if (isChatProvider(row.provider)) {
     throw new Error("Slack is a chat connection. Open Chats instead of linking projects.");
   }
+  if (isNoteProvider(row.provider)) {
+    throw new Error("Obsidian is a notes connection. Open Notes instead of linking projects.");
+  }
   const credentials = openCredential(row.credential_ciphertext);
   if (!credentials) throw new Error("This integration is disconnected");
   const adapter = getAdapter(row.provider);
@@ -125,6 +129,9 @@ export async function connectWithToken(
   if (provider === "slack" && !token.startsWith("xoxb-") && !token.startsWith("xoxp-")) {
     throw new Error("Paste a Slack bot token starting with xoxb-");
   }
+  if (provider === "obsidian" && !input.siteUrl?.trim()) {
+    throw new Error("Enter the HTTPS URL of your Obsidian Local REST API on the VPS");
+  }
   const displayName = input.displayName.trim();
   if (displayName.length < 2) throw new Error("Name the connection so you can recognize it later");
   const credential: StoredCredential = {
@@ -142,6 +149,9 @@ export async function connectWithToken(
     if (isChatProvider(provider)) {
       validated = await validateSlackConnection(token);
       scopes = textArray(["channels:history", "channels:read", "groups:history", "groups:read", "users:read"]);
+    } else if (isNoteProvider(provider)) {
+      validated = await validateObsidianConnection(token, credential.siteUrl);
+      scopes = textArray(["vault:read"]);
     } else {
       const adapter = getAdapter(provider);
       scopes = textArray(provider === "fake" ? [] : OAUTH_SCOPES[provider]);
@@ -230,6 +240,8 @@ export async function testIntegration(userId: string, workspaceId: string, integ
       let result: { externalAccountId: string; accountLabel: string };
       if (isChatProvider(row.provider)) {
         result = await validateSlackConnection(credentials.accessToken);
+      } else if (isNoteProvider(row.provider)) {
+        result = await validateObsidianConnection(credentials.accessToken, credentials.siteUrl);
       } else {
         const { adapter, ctx } = await adapterContext(tx, integrationId);
         result = await adapter.validateConnection(ctx);
@@ -278,8 +290,12 @@ export async function createExternalProject(
     `);
     const integration = integrations[0];
     if (!integration || integration.status === "revoked") throw new Error("Integration is disconnected");
-    if (isChatProvider(integration.provider)) {
-      throw new Error("Slack connections cannot link task projects");
+    if (isNonTaskProvider(integration.provider)) {
+      throw new Error(
+        isNoteProvider(integration.provider)
+          ? "Obsidian connections cannot link task projects"
+          : "Slack connections cannot link task projects",
+      );
     }
     const adapter = getAdapter(integration.provider);
     const rows = await tx.execute<{ id: string }>(sql`

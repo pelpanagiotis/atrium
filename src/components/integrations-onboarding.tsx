@@ -33,6 +33,7 @@ const COPY: Record<string, string> = {
   gitlab: "Sync GitLab issues from projects you choose.",
   gitea: "Sync Gitea issues from repositories you choose.",
   slack: "Read today's channel messages on the Chats dashboard with a free Slack bot token.",
+  obsidian: "Browse markdown notes from an Obsidian vault on your VPS via Local REST API.",
 };
 
 export function IntegrationsOnboarding({
@@ -87,7 +88,13 @@ export function IntegrationsOnboarding({
               <li key={integration.id}>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
                   <Link
-                    href={integration.provider === "slack" ? "/chats" : `/integrations/${integration.id}`}
+                    href={
+                      integration.provider === "slack"
+                        ? "/chats"
+                        : integration.provider === "obsidian"
+                          ? "/notes"
+                          : `/integrations/${integration.id}`
+                    }
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <ProviderIcon provider={integration.provider} size="md" />
@@ -96,6 +103,7 @@ export function IntegrationsOnboarding({
                       <p className="truncate text-xs text-muted">
                         {providerLabel(integration.provider)}
                         {integration.provider === "slack" ? " · chats" : ""}
+                        {integration.provider === "obsidian" ? " · notes" : ""}
                         {integration.external_account_id ? ` · ${integration.external_account_id}` : ""}
                         {integration.hasCredential ? " · secret stored" : " · secret removed"}
                       </p>
@@ -161,9 +169,11 @@ export function IntegrationsOnboarding({
                     <DialogDescription>
                       {selected === "slack"
                         ? "Paste a Slack bot token (xoxb-…). Create an internal Slack app with channels:history, channels:read, groups:history, groups:read, and users:read, install it, then invite the bot to channels."
-                        : oauth[selected]
-                          ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
-                          : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
+                        : selected === "obsidian"
+                          ? "Install the Local REST API community plugin in Obsidian on your VPS, copy the API key, and put HTTPS (port 443) in front of it. Then paste the key and public URL below."
+                          : oauth[selected]
+                            ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
+                            : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
                     </DialogDescription>
                   </div>
                 </div>

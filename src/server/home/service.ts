@@ -2,12 +2,12 @@ import { sql } from "drizzle-orm";
 import { requireAction } from "../authz/membership";
 import { withUser } from "../db/client";
 import { textArray } from "../db/sql";
-import { CHAT_PROVIDERS, PROVIDERS, type ProviderId } from "../integrations/types";
+import { CHAT_PROVIDERS, NOTE_PROVIDERS, PROVIDERS, type ProviderId } from "../integrations/types";
 
 const STALE_MS = 15 * 60 * 1000;
 
 const PROVIDER_SOURCES = new Set<string>(PROVIDERS.filter((provider) => provider !== "fake"));
-const CHAT_PROVIDER_SQL = textArray(CHAT_PROVIDERS);
+const NON_TASK_PROVIDER_SQL = textArray([...CHAT_PROVIDERS, ...NOTE_PROVIDERS]);
 
 export type HomeSource = "" | "atrium" | ProviderId;
 
@@ -85,7 +85,7 @@ export async function homeFeed(userId: string, workspaceId: string, now: number,
         from integrations i
         where i.workspace_id = ${workspaceId}::uuid
           and i.status <> 'revoked'
-          and i.provider <> all(${CHAT_PROVIDER_SQL})
+          and i.provider <> all(${NON_TASK_PROVIDER_SQL})
         order by i.provider, i.display_name
       ),
       from_tasks as (
@@ -94,7 +94,7 @@ export async function homeFeed(userId: string, workspaceId: string, now: number,
         where t.workspace_id = ${workspaceId}::uuid
           and t.deleted_at is null
           and t.provider is not null
-          and t.provider <> all(${CHAT_PROVIDER_SQL})
+          and t.provider <> all(${NON_TASK_PROVIDER_SQL})
           and not exists (select 1 from connected c where c.provider = t.provider)
       )
       select provider, display_name from (
@@ -116,7 +116,7 @@ export async function homeFeed(userId: string, workspaceId: string, now: number,
       left join integration_sync_cursors s on s.integration_id = i.id and s.resource = 'issues'
       where i.workspace_id = ${workspaceId}::uuid
         and i.status <> 'revoked'
-        and i.provider <> all(${CHAT_PROVIDER_SQL})
+        and i.provider <> all(${NON_TASK_PROVIDER_SQL})
         and (${providerSource} = '' or i.provider = ${providerSource})
         and ${atriumOnly ? sql`false` : sql`true`}
     `);

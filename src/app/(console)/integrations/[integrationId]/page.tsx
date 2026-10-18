@@ -30,6 +30,7 @@ async function Detail({ params }: { params: Promise<{ integrationId: string }> }
   const integration = (await listIntegrations(user.id, current.id)).find((item) => item.id === integrationId);
   if (!integration) notFound();
   if (integration.provider === "slack") redirect("/chats");
+  if (integration.provider === "obsidian") redirect("/notes");
   const canAdmin = current.role === "owner" || current.role === "admin";
   let projects: Awaited<ReturnType<typeof listRemoteProjects>> = [];
   let loadError: string | null = null;

@@ -8,6 +8,7 @@ const LABELS: Record<string, string> = {
   gitlab: "GitLab",
   gitea: "Gitea",
   slack: "Slack",
+  obsidian: "Obsidian",
   fake: "Fake provider",
   native: "Native",
 };
@@ -109,6 +110,17 @@ function SlackMark({ className }: { className?: string }) {
   );
 }
 
+function ObsidianMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M18.644 2.117c-.48-.32-1.16-.37-1.9-.1l-6.56 2.53a2.2 2.2 0 0 0-1.1 1.02L5.9 13.24c-.3.6-.24 1.3.14 1.84l3.35 4.7c.45.63 1.28.86 1.98.55l8.48-3.78c.62-.28 1.03-.9 1.03-1.58V4.12c0-.85-.55-1.61-1.36-1.99l-.2-.1Zm-1.2 1.62.1.06c.2.1.34.3.34.52v10.5l-7.95 3.55-.05-.07-3.2-4.5 3.7-7.15 7.06-2.91Z"
+      />
+    </svg>
+  );
+}
+
 const tones: Record<string, string> = {
   linear: "bg-[#5E6AD2]/10 text-[#5E6AD2] ring-1 ring-[#5E6AD2]/25",
   jira: "bg-[#2684FF]/10 text-[#2684FF] ring-1 ring-[#2684FF]/25",
@@ -116,6 +128,7 @@ const tones: Record<string, string> = {
   gitlab: "bg-[#FC6D26]/15 text-[#FC6D26] ring-1 ring-[#FC6D26]/35",
   gitea: "bg-[#609926]/15 text-[#609926] ring-1 ring-[#609926]/35",
   slack: "bg-white ring-1 ring-black/10 dark:bg-white/10 dark:ring-white/15",
+  obsidian: "bg-[#7C3AED]/12 text-[#6D28D9] ring-1 ring-[#7C3AED]/30 dark:bg-[#7C3AED]/20 dark:text-[#C4B5FD] dark:ring-[#7C3AED]/40",
   fake: "bg-amber-50 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-100 dark:ring-amber-400/30",
   native: "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-100 dark:ring-emerald-400/30",
 };
@@ -155,6 +168,11 @@ export const providerAccents: Record<
     wash: "bg-[#4A154B]/10 dark:bg-[#4A154B]/25",
     ink: "text-[#4A154B] dark:text-[#d2a8d8]",
   },
+  obsidian: {
+    bar: "bg-[#7C3AED]",
+    wash: "bg-[#7C3AED]/12 dark:bg-[#7C3AED]/20",
+    ink: "text-[#6D28D9] dark:text-[#C4B5FD]",
+  },
   fake: {
     bar: "bg-amber-600",
     wash: "bg-amber-500/12 dark:bg-amber-500/18",
@@ -190,6 +208,7 @@ function ProviderMark({
   if (provider === "gitlab") return <GitLabMark className={className} />;
   if (provider === "gitea") return <GiteaMark className={className} />;
   if (provider === "slack") return <SlackMark className={className} />;
+  if (provider === "obsidian") return <ObsidianMark className={className} />;
   if (provider === "fake") return <FakeMark className={className} />;
   return <NativeMark className={className} />;
 }

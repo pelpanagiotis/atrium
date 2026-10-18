@@ -158,7 +158,9 @@ export const tasks = pgTable(
 export const integrations = pgTable("integrations", {
   id: uuid("id").primaryKey().defaultRandom(),
   workspaceId: uuid("workspace_id").notNull(),
-  provider: text("provider").$type<"linear" | "jira" | "github" | "gitlab" | "gitea" | "fake" | "slack">().notNull(),
+  provider: text("provider")
+    .$type<"linear" | "jira" | "github" | "gitlab" | "gitea" | "fake" | "slack" | "obsidian">()
+    .notNull(),
   status: text("status").$type<"connected" | "error" | "revoked">().notNull(),
   displayName: text("display_name").notNull(),
   externalAccountId: text("external_account_id"),
