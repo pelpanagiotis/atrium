@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import {
   Building2,
   CalendarRange,
   Check,
+  ChevronRight,
   FolderKanban,
   GripVertical,
   Home,
@@ -27,24 +35,40 @@ import {
 import { WorkspaceIconBadge } from "@/components/workspace-icon-picker";
 import { cn } from "@/lib/utils";
 
-const LINKS: Array<{ label: string; href: string; icon: LucideIcon }> = [
-  { label: "Home", href: "/home", icon: Home },
-  { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Tasks", href: "/tasks", icon: ListTodo },
-  { label: "Schedule", href: "/schedule", icon: CalendarRange },
-  { label: "Chats", href: "/chats", icon: MessagesSquare },
-  { label: "Notes", href: "/notes", icon: NotebookPen },
-  { label: "Integrations", href: "/integrations", icon: Plug },
-  { label: "Sync", href: "/sync", icon: RefreshCw },
-  { label: "Workspaces", href: "/workspaces", icon: Building2 },
-  { label: "Audit", href: "/audit", icon: ScrollText },
-  { label: "Settings", href: "/settings", icon: Settings },
+type NavLink = { label: string; href: string; icon: LucideIcon; group: string | null };
+
+const LINKS: NavLink[] = [
+  { label: "Home", href: "/home", icon: Home, group: null },
+  { label: "Projects", href: "/projects", icon: FolderKanban, group: "work" },
+  { label: "Tasks", href: "/tasks", icon: ListTodo, group: "work" },
+  { label: "Schedule", href: "/schedule", icon: CalendarRange, group: "work" },
+  { label: "Chats", href: "/chats", icon: MessagesSquare, group: "inbox" },
+  { label: "Notes", href: "/notes", icon: NotebookPen, group: "inbox" },
+  { label: "Integrations", href: "/integrations", icon: Plug, group: "connect" },
+  { label: "Sync", href: "/sync", icon: RefreshCw, group: "connect" },
+  { label: "Workspaces", href: "/workspaces", icon: Building2, group: "manage" },
+  { label: "Audit", href: "/audit", icon: ScrollText, group: "manage" },
+  { label: "Settings", href: "/settings", icon: Settings, group: "manage" },
+];
+
+const GROUPS: Array<{ id: string; label: string }> = [
+  { id: "work", label: "Work" },
+  { id: "inbox", label: "Inbox" },
+  { id: "connect", label: "Connect" },
+  { id: "manage", label: "Manage" },
 ];
 
 const COLLAPSED_COOKIE = "atrium_sidebar";
 const ORDER_COOKIE = "atrium_sidebar_order";
+const GROUPS_COOKIE = "atrium_sidebar_groups";
 const DEFAULT_ORDER = LINKS.map((link) => link.href);
 const LINK_BY_HREF = new Map(LINKS.map((link) => [link.href, link]));
+const DEFAULT_GROUP_OPEN: Record<string, boolean> = {
+  work: true,
+  inbox: true,
+  connect: false,
+  manage: false,
+};
 
 export function parseSidebarOrder(raw?: string | null): string[] {
   const known = new Set(DEFAULT_ORDER);
@@ -67,6 +91,23 @@ export function parseSidebarOrder(raw?: string | null): string[] {
   return unique.length > 0 ? unique : [...DEFAULT_ORDER];
 }
 
+export function parseSidebarGroups(raw?: string | null): Record<string, boolean> {
+  const next = { ...DEFAULT_GROUP_OPEN };
+  let value = raw ?? "";
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    value = raw ?? "";
+  }
+  if (!value.trim()) return next;
+  for (const part of value.split(",")) {
+    const [id, flag] = part.split(":").map((item) => item.trim());
+    if (!id || !(id in next) || flag === undefined) continue;
+    next[id] = flag === "1" || flag === "true" || flag === "open";
+  }
+  return next;
+}
+
 function sameOrder(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((href, index) => href === b[index]);
 }
@@ -77,6 +118,11 @@ function writeCollapsedCookie(collapsed: boolean) {
 
 function writeOrderCookie(order: string[]) {
   document.cookie = `${ORDER_COOKIE}=${encodeURIComponent(order.join(","))}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function writeGroupsCookie(open: Record<string, boolean>) {
+  const payload = GROUPS.map((group) => `${group.id}:${open[group.id] ? "1" : "0"}`).join(",");
+  document.cookie = `${GROUPS_COOKIE}=${encodeURIComponent(payload)}; path=/; max-age=31536000; samesite=lax`;
 }
 
 function moveSidebarItem(order: string[], href: string, index: number): string[] {
@@ -95,6 +141,10 @@ function insertIndexFromPointer(nav: HTMLElement, clientY: number, href: string)
     if (clientY < rect.top + rect.height / 2) return index;
   }
   return rows.length;
+}
+
+function hrefMatchesPath(href: string, pathname: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function SidebarTip({
@@ -131,6 +181,7 @@ export function AppSidebar({
   current,
   initialCollapsed = false,
   initialOrder,
+  initialGroups,
 }: {
   userName: string;
   current: {
@@ -141,10 +192,12 @@ export function AppSidebar({
   };
   initialCollapsed?: boolean;
   initialOrder?: string;
+  initialGroups?: string;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [order, setOrder] = useState(() => parseSidebarOrder(initialOrder));
+  const [groupOpen, setGroupOpen] = useState(() => parseSidebarGroups(initialGroups));
   const [editing, setEditing] = useState(false);
   const [dragHref, setDragHref] = useState<string | null>(null);
   const [insertAt, setInsertAt] = useState<number | null>(null);
@@ -162,6 +215,10 @@ export function AppSidebar({
   useEffect(() => {
     writeOrderCookie(order);
   }, [order]);
+
+  useEffect(() => {
+    writeGroupsCookie(groupOpen);
+  }, [groupOpen]);
 
   function placePreview() {
     const node = previewRef.current;
@@ -193,6 +250,10 @@ export function AppSidebar({
     setPreview(null);
     if (restoreCollapsedRef.current) setCollapsed(true);
     restoreCollapsedRef.current = null;
+  }
+
+  function toggleGroup(id: string) {
+    setGroupOpen((current) => ({ ...current, [id]: !current[id] }));
   }
 
   function onRowPointerDown(event: ReactPointerEvent<HTMLButtonElement>, href: string) {
@@ -290,6 +351,87 @@ export function AppSidebar({
     .join("");
   const workspaceLabel = `${current.kindLabel ?? current.kind} workspace`;
 
+  const visibleHrefs = order.filter((href) => LINK_BY_HREF.has(href));
+  const pinnedHrefs = visibleHrefs.filter((href) => LINK_BY_HREF.get(href)?.group == null);
+  const groupedSections = GROUPS.map((group) => ({
+    ...group,
+    hrefs: visibleHrefs.filter((href) => LINK_BY_HREF.get(href)?.group === group.id),
+  })).filter((group) => group.hrefs.length > 0);
+
+  function renderNavRow(href: string) {
+    const link = LINK_BY_HREF.get(href);
+    if (!link) return null;
+    const { label, icon: Icon } = link;
+    const active = hrefMatchesPath(href, pathname);
+    const visualIndex = visibleHrefs.filter((item) => item !== dragHref).indexOf(href);
+    const rowClass = cn(
+      "flex min-w-0 flex-1 items-center rounded-md text-sm transition-colors hover:bg-white/10",
+      collapsed ? "justify-center p-2" : "gap-3 px-2 py-2 text-left",
+      active && !editing && "bg-white/10",
+      editing && "cursor-grab active:cursor-grabbing",
+      dragHref === href && "pointer-events-none h-0 overflow-hidden p-0 opacity-0",
+    );
+    return (
+      <div key={href} className="contents">
+        {editing && insertAt === visualIndex ? <SidebarInsertBar /> : null}
+        <div
+          className={cn(
+            "flex items-center gap-0.5",
+            dragHref === href && "pointer-events-none h-0 overflow-hidden opacity-0",
+          )}
+        >
+          <SidebarTip label={editing ? `Reorder ${label}` : label} show={collapsed}>
+            {editing ? (
+              <button
+                type="button"
+                data-nav-href={href}
+                aria-label={`Reorder ${label}`}
+                className={rowClass}
+                onPointerDown={(event) => onRowPointerDown(event, href)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    nudge(href, -1);
+                  } else if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    nudge(href, 1);
+                  }
+                }}
+              >
+                {!collapsed ? <GripVertical className="size-4 shrink-0 opacity-60" aria-hidden="true" /> : null}
+                <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
+                {!collapsed ? <span className="truncate">{label}</span> : null}
+              </button>
+            ) : (
+              <Link
+                href={href}
+                data-nav-href={href}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
+                className={rowClass}
+              >
+                <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
+                {!collapsed ? <span className="truncate">{label}</span> : null}
+              </Link>
+            )}
+          </SidebarTip>
+          {editing && !collapsed ? (
+            <button
+              type="button"
+              onClick={() => removeRow(href)}
+              disabled={order.length <= 1}
+              aria-label={`Remove ${label}`}
+              title={order.length <= 1 ? "Keep at least one row" : `Remove ${label}`}
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/55 transition hover:bg-white/10 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Minus className="size-3.5" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <aside
       className={cn(
@@ -366,79 +508,43 @@ export function AppSidebar({
               Drag to reorder. Remove a row, or add one from the list below.
             </p>
           ) : null}
-          {order.map((href) => {
-            const link = LINK_BY_HREF.get(href);
-            if (!link) return null;
-            const { label, icon: Icon } = link;
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            const visualIndex = order.filter((item) => item !== dragHref).indexOf(href);
-            const rowClass = cn(
-              "flex min-w-0 flex-1 items-center rounded-md text-sm transition-colors hover:bg-white/10",
-              collapsed ? "justify-center p-2" : "gap-3 px-2 py-2 text-left",
-              active && !editing && "bg-white/10",
-              editing && "cursor-grab active:cursor-grabbing",
-              dragHref === href && "pointer-events-none h-0 overflow-hidden p-0 opacity-0",
-            );
+
+          {pinnedHrefs.map((href) => renderNavRow(href))}
+
+          {groupedSections.map((group, groupIndex) => {
+            const hasActive = group.hrefs.some((href) => hrefMatchesPath(href, pathname));
+            const open = editing || collapsed || hasActive || Boolean(groupOpen[group.id]);
+            const showDivider = collapsed && (pinnedHrefs.length > 0 || groupIndex > 0);
             return (
-              <div key={href} className="contents">
-                {editing && insertAt === visualIndex ? <SidebarInsertBar /> : null}
-                <div
-                  className={cn(
-                    "flex items-center gap-0.5",
-                    dragHref === href && "pointer-events-none h-0 overflow-hidden opacity-0",
-                  )}
-                >
-                  <SidebarTip label={editing ? `Reorder ${label}` : label} show={collapsed}>
-                    {editing ? (
-                      <button
-                        type="button"
-                        data-nav-href={href}
-                        aria-label={`Reorder ${label}`}
-                        className={rowClass}
-                        onPointerDown={(event) => onRowPointerDown(event, href)}
-                        onKeyDown={(event) => {
-                          if (event.key === "ArrowUp") {
-                            event.preventDefault();
-                            nudge(href, -1);
-                          } else if (event.key === "ArrowDown") {
-                            event.preventDefault();
-                            nudge(href, 1);
-                          }
-                        }}
-                      >
-                        {!collapsed ? <GripVertical className="size-4 shrink-0 opacity-60" aria-hidden="true" /> : null}
-                        <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
-                        {!collapsed ? <span className="truncate">{label}</span> : null}
-                      </button>
-                    ) : (
-                      <Link
-                        href={href}
-                        aria-label={label}
-                        aria-current={active ? "page" : undefined}
-                        className={rowClass}
-                      >
-                        <Icon className="size-4 shrink-0 opacity-90" aria-hidden="true" />
-                        {!collapsed ? <span className="truncate">{label}</span> : null}
-                      </Link>
+              <div key={group.id} className={cn("flex flex-col gap-0.5", !collapsed && "mt-2")}>
+                {showDivider ? <div className="mx-2 my-1 h-px bg-white/10" aria-hidden="true" /> : null}
+                {!collapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!editing) toggleGroup(group.id);
+                    }}
+                    aria-expanded={open}
+                    className={cn(
+                      "flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-[11px] font-medium uppercase tracking-[0.14em] text-sidebar-foreground/55 transition",
+                      editing ? "cursor-default" : "hover:bg-white/10 hover:text-sidebar-foreground/80",
                     )}
-                  </SidebarTip>
-                  {editing && !collapsed ? (
-                    <button
-                      type="button"
-                      onClick={() => removeRow(href)}
-                      disabled={order.length <= 1}
-                      aria-label={`Remove ${label}`}
-                      title={order.length <= 1 ? "Keep at least one row" : `Remove ${label}`}
-                      className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/55 transition hover:bg-white/10 hover:text-sidebar-foreground disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <Minus className="size-3.5" aria-hidden="true" />
-                    </button>
-                  ) : null}
-                </div>
+                  >
+                    <ChevronRight
+                      className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{group.label}</span>
+                  </button>
+                ) : null}
+                {open ? group.hrefs.map((href) => renderNavRow(href)) : null}
               </div>
             );
           })}
-          {editing && insertAt === order.filter((item) => item !== dragHref).length ? <SidebarInsertBar /> : null}
+
+          {editing && insertAt === visibleHrefs.filter((item) => item !== dragHref).length ? (
+            <SidebarInsertBar />
+          ) : null}
         </nav>
         {editing && !collapsed && available.length > 0 ? (
           <div className="mt-3 border-t border-white/10 pt-3">

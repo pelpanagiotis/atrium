@@ -19,6 +19,7 @@ export function Shell({
   theme,
   sidebarCollapsed = false,
   sidebarOrder,
+  sidebarGroups,
   children,
 }: {
   user: SessionUser;
@@ -28,6 +29,7 @@ export function Shell({
   theme: "light" | "dark";
   sidebarCollapsed?: boolean;
   sidebarOrder?: string;
+  sidebarGroups?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -42,6 +44,7 @@ export function Shell({
         }}
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
+        initialGroups={sidebarGroups}
       />
       <div className="shell-chrome-in relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
