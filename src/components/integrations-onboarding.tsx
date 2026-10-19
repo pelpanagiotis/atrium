@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { connectTokenAction, disconnectAction, oauthStartAction, type ActionState } from "@/app/actions";
+import { OAuthSetupForm } from "@/components/oauth-setup-form";
+import { isOAuthProvider } from "@/lib/oauth-providers";
 import { ConnectForm } from "@/components/connect-form";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
 import { Badge } from "@/components/ui/badge";
@@ -146,7 +148,13 @@ export function IntegrationsOnboarding({
               >
                 <div className="flex items-start justify-between gap-2">
                   <ProviderIcon provider={provider} size="lg" />
-                  {oauth[provider] ? <Badge tone="connected">OAuth ready</Badge> : <Badge tone="neutral">Token</Badge>}
+                  {oauth[provider] ? (
+                    <Badge tone="connected">OAuth ready</Badge>
+                  ) : isOAuthProvider(provider) ? (
+                    <Badge tone="neutral">Setup needed</Badge>
+                  ) : (
+                    <Badge tone="neutral">Token</Badge>
+                  )}
                 </div>
                 <p className="mt-3 text-lg font-medium capitalize">{providerLabel(provider)}</p>
                 <p className="mt-1 text-sm text-muted">{COPY[provider] ?? "Connect this provider with a token or OAuth."}</p>
@@ -167,7 +175,9 @@ export function IntegrationsOnboarding({
                   <div>
                     <DialogTitle>Connect {providerLabel(selected)}</DialogTitle>
                     <DialogDescription>
-                      {selected === "slack"
+                      {isOAuthProvider(selected) && !oauth[selected]
+                        ? `Add the ${providerLabel(selected)} OAuth app once. It is saved to this workspace and used from now on.`
+                        : selected === "slack"
                         ? "Paste a Slack bot token (xoxb-…). Create an internal Slack app with channels:history, channels:read, groups:history, groups:read, and users:read, install it, then invite the bot to channels."
                         : selected === "obsidian"
                           ? "If the vault lives on another VPS, deploy services/obsidian-vault-bridge there and paste its HTTPS URL. Same host: use the LiveSync mirror path under OBSIDIAN_VAULT_ROOT (for example /root/vaults/THEVAULT)."
@@ -178,6 +188,16 @@ export function IntegrationsOnboarding({
                   </div>
                 </div>
               </DialogHeader>
+              {isOAuthProvider(selected) && !oauth[selected] ? (
+                <>
+                  <OAuthSetupForm workspaceId={workspaceId} provider={selected} />
+                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
+                    <span className="h-px flex-1 bg-border" />
+                    Or paste a token
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                </>
+              ) : null}
               {oauth[selected] ? (
                 <>
                   <form action={oauthStartAction}>
