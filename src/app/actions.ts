@@ -42,6 +42,8 @@ import type { ProviderId } from "@/server/integrations/types";
 import { parseMotionEnabled } from "@/lib/apply-theme";
 import { GUIDES, type GuideId } from "@/lib/screen-guides";
 import { saveProfilePreferences, setOnboardingPending } from "@/server/onboarding/service";
+import { OAUTH_PROVIDERS } from "@/lib/oauth-providers";
+import { deleteOAuthApp, saveOAuthApp } from "@/server/integrations/oauth-apps";
 import { markGuideSeen } from "@/server/guides/service";
 import { parseProjectsLayout, type ProjectsLayout } from "@/lib/projects-layout";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
@@ -638,6 +640,47 @@ export async function createMcpTokenAction(_state: ActionState, formData: FormDa
 export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
   const id = await userId();
   await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
+  revalidatePath("/integrations");
+}
+
+const oauthAppForm = z.object({
+  workspaceId: z.string().uuid(),
+  provider: z.enum(OAUTH_PROVIDERS, { message: "Unknown provider" }),
+});
+
+export async function saveOAuthAppAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await userId();
+  const parsed = oauthAppForm
+    .extend({
+      clientId: z.string().trim().min(1, "Enter the client ID").max(300),
+      clientSecret: z.string().trim().max(500),
+      siteUrl: z.string().trim().max(300),
+    })
+    .safeParse({
+      workspaceId: formData.get("workspaceId"),
+      provider: formData.get("provider"),
+      clientId: formData.get("clientId"),
+      clientSecret: formData.get("clientSecret") ?? "",
+      siteUrl: formData.get("siteUrl") ?? "",
+    });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form" };
+  try {
+    await saveOAuthApp(user, parsed.data.workspaceId, parsed.data);
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not save the OAuth app" };
+  }
+  revalidatePath("/integrations");
+  return { notice: "Saved" };
+}
+
+export async function deleteOAuthAppAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const parsed = oauthAppForm.parse({
+    workspaceId: formData.get("workspaceId"),
+    provider: formData.get("provider"),
+  });
+  await deleteOAuthApp(user, parsed.workspaceId, parsed.provider);
   revalidatePath("/integrations");
 }
 

@@ -44,7 +44,12 @@ The role passwords must not contain single quotes. `docker/postgres/init.sh` run
 | `GITEA_SITE_URL` | `https://gitea.com` | Set for a self-hosted Gitea. |
 | `ALLOW_FAKE_PROVIDER` | `false` | Keep `false` in production. |
 
-Without OAuth client ids, an admin can paste a provider access token instead. That token is encrypted before it is stored. Register apps and callback URLs as described in [OAUTH.md](./OAUTH.md), using `pnpm oauth:redirects` to print them. Minimum scopes when OAuth is configured:
+There are two ways to set the OAuth client ID and secret:
+
+- **Deployment:** set the `*_CLIENT_ID` and `*_CLIENT_SECRET` variables in the container environment, and restart the app.
+- **Workspace settings:** an owner or admin adds them on the Integrations page, under OAuth apps. The secret is encrypted with `CREDENTIAL_ENCRYPTION_KEY` and never shown again.
+
+Values saved in a workspace take priority. The deployment variables are the fallback, so an existing setup keeps working. Without either, an admin can paste a provider access token instead. That token is encrypted before it is stored. Register apps and callback URLs as described in [OAUTH.md](./OAUTH.md), using `pnpm oauth:redirects` to print them. Minimum scopes when OAuth is configured:
 
 - Linear: `read`, `write`
 - Jira: `read:jira-work`, `write:jira-work`, `offline_access`

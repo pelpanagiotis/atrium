@@ -173,7 +173,7 @@ export function IntegrationsOnboarding({
                           ? "If the vault lives on another VPS, deploy services/obsidian-vault-bridge there and paste its HTTPS URL. Same host: use the LiveSync mirror path under OBSIDIAN_VAULT_ROOT (for example /root/vaults/THEVAULT)."
                           : oauth[selected]
                             ? `Sign in with ${providerLabel(selected)} to authorize Atrium, or paste an access token below.`
-                            : `Paste an access token for this workspace. OAuth is available after ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET are set — see docs/OAUTH.md.`}
+                            : `Paste an access token for this workspace. OAuth is available after a client ID and secret are added under OAuth apps above, or set as ${selected.toUpperCase()}_CLIENT_ID and _CLIENT_SECRET on the server.`}
                     </DialogDescription>
                   </div>
                 </div>
