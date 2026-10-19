@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/server/auth/auth";
+import { getAuth } from "@/server/auth/auth";
 import { getSessionUser } from "@/server/auth/session";
 import { allowRequest } from "@/server/rate-limit";
 import {
@@ -81,7 +81,7 @@ export async function registerAction(_state: ActionState, formData: FormData): P
   const rememberMe = formData.get("rememberMe") === "on" || formData.get("rememberMe") === "true";
   let newUserId: string;
   try {
-    const signUp = await auth.api.signUpEmail({
+    const signUp = await getAuth().api.signUpEmail({
       body: { ...parsed.data, rememberMe },
       headers: await headers(),
     });
@@ -104,7 +104,7 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   try {
-    await auth.api.signInEmail({
+    await getAuth().api.signInEmail({
       body: { email, password: secret, rememberMe },
       headers: await headers(),
     });
@@ -120,7 +120,7 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
 }
 
 export async function logoutAction(): Promise<void> {
-  await auth.api.signOut({ headers: await headers() });
+  await getAuth().api.signOut({ headers: await headers() });
   redirect("/login");
 }
 
@@ -470,7 +470,7 @@ export async function settingsAction(formData: FormData): Promise<void> {
   const user = await userId();
   const name = String(formData.get("name") ?? "").trim();
   if (name.length >= 2) {
-    await auth.api.updateUser({ body: { name }, headers: await headers() });
+    await getAuth().api.updateUser({ body: { name }, headers: await headers() });
   }
   const theme = parseThemeMode(String(formData.get("theme") ?? "light"));
   const palette = parseColorPalette(String(formData.get("palette") ?? "grove"));
@@ -598,7 +598,7 @@ export async function passwordAction(_state: ActionState, formData: FormData): P
   const parsed = password.safeParse(String(formData.get("newPassword") ?? ""));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Choose a stronger password" };
   try {
-    await auth.api.changePassword({
+    await getAuth().api.changePassword({
       body: {
         currentPassword: String(formData.get("currentPassword") ?? ""),
         newPassword: parsed.data,
@@ -726,7 +726,7 @@ export async function onboardingProfileAction(formData: FormData): Promise<Actio
     return { error: "Enter a valid timezone, such as Europe/Athens or UTC" };
   }
   if (name.length >= 2) {
-    await auth.api.updateUser({ body: { name }, headers: await headers() });
+    await getAuth().api.updateUser({ body: { name }, headers: await headers() });
   }
   await saveProfilePreferences(user, {
     timezone,
