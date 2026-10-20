@@ -7,7 +7,6 @@ import { CreateMenu } from "@/components/create-menu";
 import { PageMotion } from "@/components/page-motion";
 import { WorkspaceSwitch } from "@/components/workspace-switch";
 import type { WorkspaceContextDef } from "@/lib/workspace-contexts";
-import { contextIcon, contextLabel } from "@/lib/workspace-contexts";
 import type { WorkspaceSummary } from "@/server/workspaces/service";
 import type { SessionUser } from "@/server/auth/session";
 
@@ -19,6 +18,7 @@ export function Shell({
   theme,
   sidebarCollapsed = false,
   sidebarOrder,
+  sidebarGroups,
   children,
 }: {
   user: SessionUser;
@@ -28,20 +28,16 @@ export function Shell({
   theme: "light" | "dark";
   sidebarCollapsed?: boolean;
   sidebarOrder?: string;
+  sidebarGroups?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex h-dvh max-h-dvh overflow-hidden">
       <AppSidebar
         userName={user.name}
-        current={{
-          kind: current.kind,
-          kindLabel: contextLabel(contexts, current.kind),
-          icon: current.icon,
-          contextIcon: contextIcon(contexts, current.kind),
-        }}
         initialCollapsed={sidebarCollapsed}
         initialOrder={sidebarOrder}
+        initialGroups={sidebarGroups}
       />
       <div className="shell-chrome-in relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b bg-background/90 px-4 py-3 backdrop-blur md:px-6">
