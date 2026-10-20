@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
@@ -52,15 +53,18 @@ async function SettingsContent() {
       <div>
         <h1 className="text-4xl">Settings</h1>
         <p className="mt-1 text-sm text-muted">Profile, appearance, and account preferences.</p>
+        <Link href="/onboarding" className="mt-2 inline-block text-sm underline">Run the setup guide again</Link>
       </div>
-      <ThemeSettings
-        theme={theme}
-        palette={palette}
-        animationsEnabled={animationsEnabled}
-        providerTileStyles={providerTileStyles}
-      />
+      <div data-tour="settings-appearance">
+        <ThemeSettings
+          theme={theme}
+          palette={palette}
+          animationsEnabled={animationsEnabled}
+          providerTileStyles={providerTileStyles}
+        />
+      </div>
       <div className="grid w-full gap-6 xl:grid-cols-2">
-        <form id="profile" action={settingsAction} className="space-y-3 rounded-lg border bg-card p-4 scroll-mt-24 md:p-5">
+        <form id="profile" data-tour="settings-profile" action={settingsAction} className="space-y-3 rounded-lg border bg-card p-4 scroll-mt-24 md:p-5">
           <h2 className="text-xl">Profile</h2>
           <input type="hidden" name="theme" value={theme} />
           <input type="hidden" name="palette" value={palette} />
@@ -72,7 +76,7 @@ async function SettingsContent() {
             <Label htmlFor="timezone">Timezone</Label>
             <Input id="timezone" name="timezone" defaultValue={pref?.timezone ?? "UTC"} className="mt-1" />
           </div>
-          <label className="flex items-center gap-2.5 text-sm">
+          <label data-tour="settings-notifications" className="flex items-center gap-2.5 text-sm">
             <Checkbox name="notifySync" defaultChecked={pref?.notify_sync_errors ?? true} />
             Show sync errors on the home page
           </label>

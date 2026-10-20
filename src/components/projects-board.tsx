@@ -435,7 +435,7 @@ export function ProjectsBoard({
   const hiddenSections = layout.sections.filter((item) => item.hidden);
 
   return (
-    <div className={cn("space-y-8", editing && "pb-24")} data-no-reveal="">
+    <div className={cn("space-y-8", editing && "pb-24")} data-no-reveal="" data-tour="projects-board">
       <div className="flex flex-wrap items-end justify-between gap-3" data-drag-inert="">
         <div>
           <h1 className="text-4xl">Projects</h1>

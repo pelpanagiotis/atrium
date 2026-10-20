@@ -40,7 +40,7 @@ async function SyncContent() {
           Provider-owned projects accept remote changes unless an edit is still in flight. Native projects keep your value and open a conflict instead of overwriting it.
         </p>
       </div>
-      <section className="grid gap-3 md:grid-cols-2">
+      <section data-tour="sync-health" className="grid gap-3 md:grid-cols-2">
         {health.length === 0 ? <p className="text-sm text-muted">Nothing is connected.</p> : null}
         {health.map((row) => {
           const stale = row.status === "connected" && (!row.last_success_at || now - new Date(row.last_success_at).getTime() > 15 * 60 * 1000);
@@ -62,7 +62,7 @@ async function SyncContent() {
           );
         })}
       </section>
-      <section>
+      <section data-tour="sync-conflicts">
         <h2 className="text-2xl">Conflicts</h2>
         {problems.conflicts.length === 0 ? <p className="mt-2 text-sm text-muted">No open conflicts.</p> : null}
         <ul className="mt-3 space-y-3">
@@ -90,7 +90,7 @@ async function SyncContent() {
           ))}
         </ul>
       </section>
-      <section>
+      <section data-tour="sync-dead">
         <h2 className="text-2xl">Dead letters</h2>
         {problems.deadJobs.length + problems.deadOutbox.length === 0 ? <p className="mt-2 text-sm text-muted">No failed jobs are waiting.</p> : null}
         <ul className="mt-3 space-y-2">

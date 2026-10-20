@@ -44,7 +44,7 @@ async function AuditContent() {
     <div>
       <h1 className="text-4xl">Audit</h1>
       <p className="mt-1 text-sm text-muted">Permission changes, integration changes, and important mutations. Secrets are not stored here.</p>
-      <ul className="mt-4 divide-y rounded-lg border bg-card">
+      <ul data-tour="audit-log" className="mt-4 divide-y rounded-lg border bg-card">
         {rows.map((row) => (
           <li key={String(row.id)} className="px-3 py-3 text-sm">
             <p className="font-medium">{String(row.action)}</p>

@@ -59,7 +59,7 @@ async function ProjectsContent({ searchParams }: { searchParams: Promise<{ statu
       : DEFAULT_PROJECTS_LAYOUT);
 
   const statusNav = (
-    <nav className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Project status">
+    <nav data-tour="project-status" className="flex items-center gap-1 rounded-md border bg-card p-0.5 text-sm" aria-label="Project status">
       {(
         [
           { href: "/projects", value: "active", label: "Active", icon: CircleDot },

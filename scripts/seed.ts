@@ -5,11 +5,11 @@ config({ path: ".env.local" });
 const DEMO_PASSWORD = "atrium-demo-12";
 
 async function ensureUser(email: string, name: string): Promise<string> {
-  const { auth } = await import("../src/server/auth/auth");
+  const { getAuth } = await import("../src/server/auth/auth");
   const { getDb } = await import("../src/server/db/client");
   const { sql } = await import("drizzle-orm");
   try {
-    await auth.api.signUpEmail({ body: { email, password: DEMO_PASSWORD, name } });
+    await getAuth().api.signUpEmail({ body: { email, password: DEMO_PASSWORD, name } });
   } catch {
     // The account already exists. The seed is safe to run again.
   }

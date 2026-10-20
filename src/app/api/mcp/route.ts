@@ -17,16 +17,27 @@ const handler = createMcpHandler(
   },
 );
 
-const authHandler = withMcpAuth(handler, verifyMcpRequest, {
-  required: true,
-  requiredScopes: ["read"],
-  resourceMetadataPath: "/.well-known/oauth-protected-resource",
-  resourceUrl: process.env.BETTER_AUTH_URL
-    ? `${process.env.BETTER_AUTH_URL.replace(/\/$/, "")}/api/mcp`
-    : undefined,
-});
+// Built per request, so the public URL is read from the running server's
+// environment rather than from the build.
+function authHandler(request: Request): Promise<Response> {
+  const wrapped = withMcpAuth(handler, verifyMcpRequest, {
+    required: true,
+    requiredScopes: ["read"],
+    resourceMetadataPath: "/.well-known/oauth-protected-resource",
+    resourceUrl: process.env.BETTER_AUTH_URL
+      ? `${process.env.BETTER_AUTH_URL.replace(/\/$/, "")}/api/mcp`
+      : undefined,
+  });
+  return wrapped(request);
+}
 
-export { authHandler as GET, authHandler as POST };
+export async function GET(request: Request) {
+  return authHandler(request);
+}
+
+export async function POST(request: Request) {
+  return authHandler(request);
+}
 
 export async function OPTIONS(request: Request) {
   return new Response(null, {

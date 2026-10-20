@@ -90,8 +90,12 @@ async function ScheduleContent({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <CalendarViewToggle monthKey={monthKey} todayKey={todayKey} view={view} />
-          <CalendarMonthNav monthKey={monthKey} label={label} view={view} />
+          <div data-tour="schedule-view">
+            <CalendarViewToggle monthKey={monthKey} todayKey={todayKey} view={view} />
+          </div>
+          <div data-tour="schedule-nav">
+            <CalendarMonthNav monthKey={monthKey} label={label} view={view} />
+          </div>
         </div>
       </div>
 
@@ -101,73 +105,75 @@ async function ScheduleContent({
         </p>
       ) : null}
 
-      {view === "timeline" ? (
-        <CalendarGantt monthStart={start} days={days} tasks={tasks} today={today} />
-      ) : (
-        <div className="overflow-hidden rounded-lg border bg-card" data-reveal-whole="">
-          <div className="grid grid-cols-7 border-b text-center text-xs font-medium text-muted">
-            {weekdayLabels.map((day) => (
-              <div key={day} className="px-2 py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {Array.from({ length: startWeekday }, (_, index) => (
-              <div key={`pad-${index}`} className="min-h-28 border-b border-r bg-background/40 last:border-r-0" />
-            ))}
-            {Array.from({ length: days }, (_, index) => {
-              const day = new Date(start.getTime() + index * 86400000);
-              const isToday =
-                monthKey === todayKey &&
-                day.getUTCFullYear() === today.getUTCFullYear() &&
-                day.getUTCMonth() === today.getUTCMonth() &&
-                day.getUTCDate() === today.getUTCDate();
-              const due = tasks.filter((task) => {
-                const value = new Date(task.due_at);
+      <div data-tour="schedule-body">
+        {view === "timeline" ? (
+          <CalendarGantt monthStart={start} days={days} tasks={tasks} today={today} />
+        ) : (
+          <div className="overflow-hidden rounded-lg border bg-card" data-reveal-whole="">
+            <div className="grid grid-cols-7 border-b text-center text-xs font-medium text-muted">
+              {weekdayLabels.map((day) => (
+                <div key={day} className="px-2 py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {Array.from({ length: startWeekday }, (_, index) => (
+                <div key={`pad-${index}`} className="min-h-28 border-b border-r bg-background/40 last:border-r-0" />
+              ))}
+              {Array.from({ length: days }, (_, index) => {
+                const day = new Date(start.getTime() + index * 86400000);
+                const isToday =
+                  monthKey === todayKey &&
+                  day.getUTCFullYear() === today.getUTCFullYear() &&
+                  day.getUTCMonth() === today.getUTCMonth() &&
+                  day.getUTCDate() === today.getUTCDate();
+                const due = tasks.filter((task) => {
+                  const value = new Date(task.due_at);
+                  return (
+                    value.getUTCFullYear() === day.getUTCFullYear() &&
+                    value.getUTCMonth() === day.getUTCMonth() &&
+                    value.getUTCDate() === day.getUTCDate()
+                  );
+                });
+                const col = (startWeekday + index) % 7;
                 return (
-                  value.getUTCFullYear() === day.getUTCFullYear() &&
-                  value.getUTCMonth() === day.getUTCMonth() &&
-                  value.getUTCDate() === day.getUTCDate()
-                );
-              });
-              const col = (startWeekday + index) % 7;
-              return (
-                <section
-                  key={day.toISOString()}
-                  className={cn(
-                    "min-h-28 border-b p-2",
-                    col < 6 && "border-r",
-                    isToday && "bg-accent/35",
-                  )}
-                >
-                  <p
+                  <section
+                    key={day.toISOString()}
                     className={cn(
-                      "inline-flex size-6 items-center justify-center rounded-full text-xs",
-                      isToday ? "bg-foreground font-medium text-background" : "text-muted",
+                      "min-h-28 border-b p-2",
+                      col < 6 && "border-r",
+                      isToday && "bg-accent/35",
                     )}
                   >
-                    {day.getUTCDate()}
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {due.map((task) => (
-                      <li key={String(task.id)} className="text-xs">
-                        <Link
-                          href={`/tasks/${String(task.id)}`}
-                          className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline"
-                        >
-                          <span className="line-clamp-2">{String(task.title)}</span>
-                          <ProviderIcon provider={task.provider} />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              );
-            })}
+                    <p
+                      className={cn(
+                        "inline-flex size-6 items-center justify-center rounded-full text-xs",
+                        isToday ? "bg-foreground font-medium text-background" : "text-muted",
+                      )}
+                    >
+                      {day.getUTCDate()}
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {due.map((task) => (
+                        <li key={String(task.id)} className="text-xs">
+                          <Link
+                            href={`/tasks/${String(task.id)}`}
+                            className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline"
+                          >
+                            <span className="line-clamp-2">{String(task.title)}</span>
+                            <ProviderIcon provider={task.provider} />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

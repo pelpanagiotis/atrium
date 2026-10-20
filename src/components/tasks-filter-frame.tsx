@@ -50,12 +50,16 @@ export function TasksFilterFrame({
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3" data-reveal="">
         <div className="min-w-0 max-w-2xl">{heading}</div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 pt-1">
-          <TaskViewToggle values={values} onNavigate={onNavigate} />
-          {actions}
+          <div className="flex items-center" data-tour="task-view">
+            <TaskViewToggle values={values} onNavigate={onNavigate} />
+          </div>
+          <div className="flex items-center" data-tour="new-task">
+            {actions}
+          </div>
         </div>
       </div>
       <div className="shrink-0 space-y-3">
-        <div data-reveal="">
+        <div data-reveal="" data-tour="task-filters">
           <TaskFilters
             projects={projects}
             values={values}
@@ -63,9 +67,13 @@ export function TasksFilterFrame({
             onNavigate={onNavigate}
           />
         </div>
-        {canWrite && values.view !== "board" ? <TaskBulkActions /> : null}
+        {canWrite && values.view !== "board" ? (
+          <div data-tour="task-bulk">
+            <TaskBulkActions />
+          </div>
+        ) : null}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col" aria-busy={pending} data-reveal="">
+      <div className="flex min-h-0 flex-1 flex-col" aria-busy={pending} data-reveal="" data-tour="task-list">
         {pending ? <ResultsLoader label="Updating tasks" /> : children}
       </div>
     </div>

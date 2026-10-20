@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/server/auth/auth";
+import { getAuth } from "@/server/auth/auth";
 import { getSessionUser } from "@/server/auth/session";
 import { allowRequest } from "@/server/rate-limit";
 import {
@@ -40,6 +40,11 @@ import { withUser } from "@/server/db/client";
 import { sql } from "drizzle-orm";
 import type { ProviderId } from "@/server/integrations/types";
 import { parseMotionEnabled } from "@/lib/apply-theme";
+import { GUIDES, type GuideId } from "@/lib/screen-guides";
+import { saveProfilePreferences, setOnboardingPending } from "@/server/onboarding/service";
+import { OAUTH_PROVIDERS } from "@/lib/oauth-providers";
+import { deleteOAuthApp, saveOAuthApp } from "@/server/integrations/oauth-apps";
+import { markGuideSeen } from "@/server/guides/service";
 import { parseProjectsLayout, type ProjectsLayout } from "@/lib/projects-layout";
 import { parseColorPalette, parseThemeMode } from "@/lib/theme";
 import { createMcpToken, revokeMcpToken } from "@/server/mcp/tokens";
@@ -74,17 +79,21 @@ export async function registerAction(_state: ActionState, formData: FormData): P
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   const rememberMe = formData.get("rememberMe") === "on" || formData.get("rememberMe") === "true";
+  let newUserId: string;
   try {
-    await auth.api.signUpEmail({
+    const signUp = await getAuth().api.signUpEmail({
       body: { ...parsed.data, rememberMe },
       headers: await headers(),
     });
+    newUserId = signUp.user.id;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the account" };
   }
+  // The session cookie is not readable in this request, so use the new id.
+  await setOnboardingPending(newUserId, true);
   const user = await getSessionUser();
   if (user) await ensurePersonalWorkspace(user.id, user.name);
-  redirect("/home");
+  redirect("/onboarding");
 }
 
 export async function loginAction(_state: ActionState, formData: FormData): Promise<ActionState> {
@@ -95,7 +104,7 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   try {
-    await auth.api.signInEmail({
+    await getAuth().api.signInEmail({
       body: { email, password: secret, rememberMe },
       headers: await headers(),
     });
@@ -111,7 +120,7 @@ export async function loginAction(_state: ActionState, formData: FormData): Prom
 }
 
 export async function logoutAction(): Promise<void> {
-  await auth.api.signOut({ headers: await headers() });
+  await getAuth().api.signOut({ headers: await headers() });
   redirect("/login");
 }
 
@@ -461,7 +470,7 @@ export async function settingsAction(formData: FormData): Promise<void> {
   const user = await userId();
   const name = String(formData.get("name") ?? "").trim();
   if (name.length >= 2) {
-    await auth.api.updateUser({ body: { name }, headers: await headers() });
+    await getAuth().api.updateUser({ body: { name }, headers: await headers() });
   }
   const theme = parseThemeMode(String(formData.get("theme") ?? "light"));
   const palette = parseColorPalette(String(formData.get("palette") ?? "grove"));
@@ -589,7 +598,7 @@ export async function passwordAction(_state: ActionState, formData: FormData): P
   const parsed = password.safeParse(String(formData.get("newPassword") ?? ""));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Choose a stronger password" };
   try {
-    await auth.api.changePassword({
+    await getAuth().api.changePassword({
       body: {
         currentPassword: String(formData.get("currentPassword") ?? ""),
         newPassword: parsed.data,
@@ -632,6 +641,128 @@ export async function revokeMcpTokenAction(formData: FormData): Promise<void> {
   const id = await userId();
   await revokeMcpToken(id, String(formData.get("tokenId") ?? ""));
   revalidatePath("/integrations");
+}
+
+const oauthAppForm = z.object({
+  workspaceId: z.string().uuid(),
+  provider: z.enum(OAUTH_PROVIDERS, { message: "Unknown provider" }),
+});
+
+export async function saveOAuthAppAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await userId();
+  const parsed = oauthAppForm
+    .extend({
+      clientId: z.string().trim().min(1, "Enter the client ID").max(300),
+      clientSecret: z.string().trim().max(500),
+      siteUrl: z.string().trim().max(300),
+    })
+    .safeParse({
+      workspaceId: formData.get("workspaceId"),
+      provider: formData.get("provider"),
+      clientId: formData.get("clientId"),
+      clientSecret: formData.get("clientSecret") ?? "",
+      siteUrl: formData.get("siteUrl") ?? "",
+    });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form" };
+  try {
+    await saveOAuthApp(user, parsed.data.workspaceId, parsed.data);
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not save the OAuth app" };
+  }
+  revalidatePath("/integrations");
+  return { notice: "Saved" };
+}
+
+// Saves the workspace's OAuth app, then sends the user to the provider. Used
+// by the provider tile when no client ID or secret is configured yet.
+export async function connectOAuthAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await userId();
+  const parsed = oauthAppForm
+    .extend({
+      clientId: z.string().trim().min(1, "Enter the client ID").max(300),
+      clientSecret: z.string().trim().min(1, "Enter the client secret").max(500),
+      siteUrl: z.string().trim().max(300),
+    })
+    .safeParse({
+      workspaceId: formData.get("workspaceId"),
+      provider: formData.get("provider"),
+      clientId: formData.get("clientId"),
+      clientSecret: formData.get("clientSecret") ?? "",
+      siteUrl: formData.get("siteUrl") ?? "",
+    });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form" };
+  let url: string;
+  try {
+    await saveOAuthApp(user, parsed.data.workspaceId, parsed.data);
+    url = await beginOAuth(user, parsed.data.workspaceId, parsed.data.provider);
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not start OAuth" };
+  }
+  redirect(url);
+}
+
+export async function deleteOAuthAppAction(formData: FormData): Promise<void> {
+  const user = await userId();
+  const parsed = oauthAppForm.parse({
+    workspaceId: formData.get("workspaceId"),
+    provider: formData.get("provider"),
+  });
+  await deleteOAuthApp(user, parsed.workspaceId, parsed.provider);
+  revalidatePath("/integrations");
+}
+
+// Onboarding actions return instead of redirecting, so the wizard can move
+// between steps itself.
+export async function onboardingProfileAction(formData: FormData): Promise<ActionState> {
+  const user = await userId();
+  const name = String(formData.get("name") ?? "").trim();
+  if (name.length > 0 && name.length < 2) return { error: "Name must be at least 2 characters" };
+  const timezone = String(formData.get("timezone") ?? "").trim() || "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone });
+  } catch {
+    return { error: "Enter a valid timezone, such as Europe/Athens or UTC" };
+  }
+  if (name.length >= 2) {
+    await getAuth().api.updateUser({ body: { name }, headers: await headers() });
+  }
+  await saveProfilePreferences(user, {
+    timezone,
+    notifySync: formData.get("notifySync") === "on",
+    notifyAssignments: formData.get("notifyAssignments") === "on",
+  });
+  return { notice: "Saved" };
+}
+
+export async function onboardingWorkspaceAction(_state: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const id = await createWorkspace(await userId(), {
+      name: String(formData.get("name") ?? ""),
+      kind: "work",
+      icon: "",
+    });
+    (await cookies()).set("atrium_workspace", id, { httpOnly: true, sameSite: "lax", path: "/" });
+  } catch (error) {
+    unstable_rethrow(error);
+    return { error: error instanceof Error ? error.message : "Could not create the workspace" };
+  }
+  return { notice: "Workspace created" };
+}
+
+export async function completeOnboardingAction(): Promise<void> {
+  const user = await userId();
+  await setOnboardingPending(user, false);
+  redirect("/home");
+}
+
+export async function markGuideSeenAction(guideId: string, version: number): Promise<void> {
+  const user = await userId();
+  // Only the current version of a known guide can be recorded.
+  const guide = Object.hasOwn(GUIDES, guideId) ? GUIDES[guideId as GuideId] : undefined;
+  if (!guide || guide.version !== version) return;
+  await markGuideSeen(user, guide.id, guide.version);
 }
 
 export async function projectsLayoutAction(layout: ProjectsLayout): Promise<void> {

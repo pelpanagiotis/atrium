@@ -7,6 +7,8 @@ import { Shell } from "@/components/shell";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
 import { ensurePersonalWorkspace, listWorkspaceContexts } from "@/server/workspaces/service";
+import { getSeenGuideVersions } from "@/server/guides/service";
+import { getOnboardingPending } from "@/server/onboarding/service";
 
 export const instant = false;
 
@@ -22,10 +24,12 @@ async function Frame({ children }: { children: React.ReactNode }) {
   await connection();
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  if (await getOnboardingPending(user.id)) redirect("/onboarding");
   await ensurePersonalWorkspace(user.id, user.name);
-  const [{ workspaces, current }, contexts] = await Promise.all([
+  const [{ workspaces, current }, contexts, seenGuides] = await Promise.all([
     workspaceContext(user.id),
     listWorkspaceContexts(user.id),
+    getSeenGuideVersions(user.id),
   ]);
   const cookieStore = await cookies();
   const theme = cookieStore.get("atrium_theme")?.value === "dark" ? "dark" : "light";
@@ -36,6 +40,7 @@ async function Frame({ children }: { children: React.ReactNode }) {
       workspaces={workspaces}
       current={current}
       contexts={contexts}
+      seenGuides={seenGuides}
       theme={theme}
       sidebarCollapsed={sidebarCollapsed}
       sidebarOrder={cookieStore.get("atrium_sidebar_order")?.value}

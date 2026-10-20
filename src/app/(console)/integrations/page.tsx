@@ -3,12 +3,12 @@ import { ScreenLoader } from "@/components/screen-loader";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { IntegrationsOnboarding } from "@/components/integrations-onboarding";
+import { OAuthAppsPanel } from "@/components/oauth-apps-panel";
 import { McpPanel } from "@/components/mcp-panel";
 import { getSessionUser } from "@/server/auth/session";
 import { workspaceContext } from "@/server/auth/workspace";
-import { listIntegrations, oauthConfigured } from "@/server/integrations/service";
-import { listAdapterProviders } from "@/server/integrations/registry";
-import { CHAT_PROVIDERS, NOTE_PROVIDERS, type ProviderId } from "@/server/integrations/types";
+import { providerCatalog } from "@/server/integrations/catalog";
+import { listIntegrations } from "@/server/integrations/service";
 import { listMcpTokens, mcpServerUrl } from "@/server/mcp/tokens";
 
 export const instant = false;
@@ -39,34 +39,31 @@ async function IntegrationsContent({
     listMcpTokens(user.id),
   ]);
   const canAdmin = current.role === "owner" || current.role === "admin";
-  const providers = [
-    ...listAdapterProviders().filter((provider) => provider !== "fake"),
-    ...CHAT_PROVIDERS,
-    ...NOTE_PROVIDERS,
-  ];
-  const oauth = Object.fromEntries(
-    providers.map((provider) => {
-      if (provider === "slack" || provider === "obsidian") return [provider, false] as const;
-      return [provider, oauthConfigured(provider as Exclude<ProviderId, "fake">)] as const;
-    }),
-  );
+  const { providers, oauth, overview } = await providerCatalog(user.id, current.id);
+  const callbackBase = (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
   const params = await searchParams;
   return (
     <div className="space-y-10">
-      <IntegrationsOnboarding
-        workspaceId={current.id}
-        integrations={integrations}
-        providers={providers}
-        oauth={oauth}
-        canAdmin={canAdmin}
-        error={params.error ?? null}
-      />
-      <McpPanel
-        serverUrl={mcpServerUrl()}
-        workspaces={workspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))}
-        tokens={tokens}
-        currentWorkspaceId={current.id}
-      />
+      <OAuthAppsPanel workspaceId={current.id} canAdmin={canAdmin} callbackBase={callbackBase} overview={overview} />
+      <div data-tour="integrations-providers">
+        <IntegrationsOnboarding
+          callbackBase={callbackBase}
+          workspaceId={current.id}
+          integrations={integrations}
+          providers={providers}
+          oauth={oauth}
+          canAdmin={canAdmin}
+          error={params.error ?? null}
+        />
+      </div>
+      <div data-tour="integrations-mcp">
+        <McpPanel
+          serverUrl={mcpServerUrl()}
+          workspaces={workspaces.map((workspace) => ({ id: workspace.id, name: workspace.name }))}
+          tokens={tokens}
+          currentWorkspaceId={current.id}
+        />
+      </div>
     </div>
   );
 }

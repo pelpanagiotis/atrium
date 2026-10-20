@@ -120,7 +120,7 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section data-tour="project-counts" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ProjectStatCard
           href={`/tasks?project=${projectFilter}&priority=attention`}
           label="Needs attention"
@@ -238,7 +238,7 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
         </ProjectTaskPanel>
       </section>
 
-      <section>
+      <section data-tour="project-updates">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl">Recent tasks</h2>
@@ -282,7 +282,7 @@ async function ProjectContent({ params }: { params: Promise<{ projectId: string 
       ) : null}
 
       {(canAdmin || map) ? (
-        <details className="rounded-lg border bg-card">
+        <details data-tour="project-manage" className="rounded-lg border bg-card">
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden">
             Manage project
             <span className="ml-2 text-xs font-normal text-muted">Settings, mappings, and publishing</span>

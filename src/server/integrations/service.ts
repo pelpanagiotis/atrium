@@ -6,6 +6,7 @@ import { withUser, type Tx } from "../db/client";
 import { textArray } from "../db/sql";
 import { sha256 } from "../crypto/secrets";
 import { integrationView, openCredential, sealCredential } from "./credentials";
+import { resolveOAuthApp } from "./oauth-apps";
 import { seedFakeProject } from "./fake";
 import { normalizeLinearToken } from "./linear";
 import { getAdapter, OAUTH_SCOPES } from "./registry";
@@ -404,12 +405,6 @@ export async function addFakeRemoteProject(
   });
 }
 
-export function oauthConfigured(provider: Exclude<ProviderId, "fake">): boolean {
-  const id = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
-  const secret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
-  return Boolean(id && secret);
-}
-
 export function oauthRedirectUri(provider: Exclude<ProviderId, "fake">): string {
   const base = (process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "");
   if (!base) throw new Error("BETTER_AUTH_URL is not set");
@@ -417,12 +412,13 @@ export function oauthRedirectUri(provider: Exclude<ProviderId, "fake">): string 
 }
 
 export async function beginOAuth(userId: string, workspaceId: string, provider: Exclude<ProviderId, "fake">): Promise<string> {
-  if (!oauthConfigured(provider)) throw new Error(`${provider} OAuth is not configured on this server`);
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const state = randomBytes(24).toString("base64url");
-  await withUser(userId, async (tx) => {
+  const app = await withUser(userId, async (tx) => {
     await requireAction(tx, workspaceId, "integration.manage");
+    const resolved = await resolveOAuthApp(tx, workspaceId, provider);
+    if (!resolved) throw new Error(`${provider} OAuth is not configured for this workspace or on this server`);
     await tx.execute(sql`
       insert into oauth_states (workspace_id, user_id, provider, state_hash, code_verifier_ciphertext, expires_at)
       values (
@@ -434,9 +430,10 @@ export async function beginOAuth(userId: string, workspaceId: string, provider: 
         now() + interval '15 minutes'
       )
     `);
+    return resolved;
   });
   const redirectUri = oauthRedirectUri(provider);
-  const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`]!;
+  const clientId = app.clientId;
   if (provider === "linear") {
     const url = new URL("https://linear.app/oauth/authorize");
     url.searchParams.set("response_type", "code");
@@ -473,7 +470,7 @@ export async function beginOAuth(userId: string, workspaceId: string, provider: 
     return url.toString();
   }
   if (provider === "gitea") {
-    const site = giteaOAuthSiteUrl();
+    const site = giteaOAuthSiteUrl(app.siteUrl);
     const url = new URL(`${site}/login/oauth/authorize`);
     url.searchParams.set("client_id", clientId);
     url.searchParams.set("redirect_uri", redirectUri);
@@ -497,8 +494,8 @@ export async function beginOAuth(userId: string, workspaceId: string, provider: 
   throw new Error(`OAuth is not supported for ${provider}`);
 }
 
-function giteaOAuthSiteUrl(): string {
-  const raw = (process.env.GITEA_SITE_URL ?? "https://gitea.com").trim().replace(/\/$/, "");
+function giteaOAuthSiteUrl(siteUrl: string | null): string {
+  const raw = (siteUrl ?? "https://gitea.com").trim().replace(/\/$/, "");
   try {
     const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
     return url.origin;
@@ -508,9 +505,6 @@ function giteaOAuthSiteUrl(): string {
 }
 
 export async function completeOAuth(userId: string, provider: Exclude<ProviderId, "fake">, code: string, state: string) {
-  const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
-  const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
-  if (!clientId || !clientSecret) throw new Error("OAuth client is not configured");
   const redirectUri = oauthRedirectUri(provider);
   return withUser(userId, async (tx) => {
     const states = await tx.execute<{
@@ -530,7 +524,16 @@ export async function completeOAuth(userId: string, provider: Exclude<ProviderId
     if (!saved) throw new Error("OAuth state expired. Start the connection again.");
     const verifier = openCredential(saved.code_verifier_ciphertext)?.accessToken;
     if (!verifier) throw new Error("OAuth verifier is missing");
-    const token = await exchangeCode(provider, { code, redirectUri, clientId, clientSecret, verifier });
+    const app = await resolveOAuthApp(tx, saved.workspace_id, provider);
+    if (!app) throw new Error("OAuth client is not configured");
+    const token = await exchangeCode(provider, {
+      code,
+      redirectUri,
+      clientId: app.clientId,
+      clientSecret: app.clientSecret,
+      siteUrl: app.siteUrl,
+      verifier,
+    });
     const id = await connectInside(tx, saved.workspace_id, provider, token);
     return { workspaceId: saved.workspace_id, integrationId: id };
   });
@@ -538,7 +541,7 @@ export async function completeOAuth(userId: string, provider: Exclude<ProviderId
 
 async function exchangeCode(
   provider: Exclude<ProviderId, "fake">,
-  input: { code: string; redirectUri: string; clientId: string; clientSecret: string; verifier: string },
+  input: { code: string; redirectUri: string; clientId: string; clientSecret: string; siteUrl: string | null; verifier: string },
 ): Promise<StoredCredential> {
   if (provider === "github") {
     const response = await fetch("https://github.com/login/oauth/access_token", {
@@ -608,7 +611,7 @@ async function exchangeCode(
     };
   }
   if (provider === "gitea") {
-    const site = giteaOAuthSiteUrl();
+    const site = giteaOAuthSiteUrl(input.siteUrl);
     const body = new URLSearchParams({
       grant_type: "authorization_code",
       client_id: input.clientId,
