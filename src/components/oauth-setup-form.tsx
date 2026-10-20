@@ -6,12 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { providerLabel } from "@/components/provider-icon";
 import type { OAuthProvider } from "@/lib/oauth-providers";
+import { IntegrationGuide } from "@/components/integration-guide";
 
 // Shown when a provider has no OAuth app yet. The values are saved to this
 // workspace, then the user is sent to the provider to authorize Atrium. The
 // labels show the matching server variables, for deployments that set them
 // there instead.
-export function OAuthSetupForm({ workspaceId, provider }: { workspaceId: string; provider: OAuthProvider }) {
+export function OAuthSetupForm({
+  workspaceId,
+  provider,
+  callbackBase,
+}: {
+  workspaceId: string;
+  provider: OAuthProvider;
+  callbackBase: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startConnect] = useTransition();
   const label = providerLabel(provider);
@@ -29,6 +38,7 @@ export function OAuthSetupForm({ workspaceId, provider }: { workspaceId: string;
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <IntegrationGuide provider={provider} callbackBase={callbackBase} defaultOpen />
       <input type="hidden" name="workspaceId" value={workspaceId} />
       <input type="hidden" name="provider" value={provider} />
       <p className="text-sm text-muted">

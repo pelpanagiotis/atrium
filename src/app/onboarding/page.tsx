@@ -41,6 +41,7 @@ async function OnboardingContent() {
 
   return (
     <OnboardingWizard
+      callbackBase={(process.env.BETTER_AUTH_URL ?? "").replace(/\/$/, "")}
       userName={user.name}
       profile={profile}
       appearance={{

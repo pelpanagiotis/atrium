@@ -47,6 +47,7 @@ async function IntegrationsContent({
       <OAuthAppsPanel workspaceId={current.id} canAdmin={canAdmin} callbackBase={callbackBase} overview={overview} />
       <div data-tour="integrations-providers">
         <IntegrationsOnboarding
+          callbackBase={callbackBase}
           workspaceId={current.id}
           integrations={integrations}
           providers={providers}

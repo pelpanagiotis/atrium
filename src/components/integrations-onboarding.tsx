@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { connectTokenAction, disconnectAction, oauthStartAction, type ActionState } from "@/app/actions";
 import { OAuthSetupForm } from "@/components/oauth-setup-form";
+import { IntegrationGuide } from "@/components/integration-guide";
 import { isOAuthProvider } from "@/lib/oauth-providers";
 import { ConnectForm } from "@/components/connect-form";
 import { ProviderIcon, providerLabel } from "@/components/provider-icon";
@@ -45,6 +46,7 @@ export function IntegrationsOnboarding({
   oauth,
   canAdmin,
   error,
+  callbackBase,
 }: {
   workspaceId: string;
   integrations: IntegrationRow[];
@@ -52,6 +54,7 @@ export function IntegrationsOnboarding({
   oauth: Record<string, boolean>;
   canAdmin: boolean;
   error?: string | null;
+  callbackBase: string;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const active = integrations.filter((item) => item.status !== "revoked");
@@ -190,7 +193,7 @@ export function IntegrationsOnboarding({
               </DialogHeader>
               {isOAuthProvider(selected) && !oauth[selected] ? (
                 <>
-                  <OAuthSetupForm workspaceId={workspaceId} provider={selected} />
+                  <OAuthSetupForm workspaceId={workspaceId} provider={selected} callbackBase={callbackBase} />
                   <div className="flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
                     <span className="h-px flex-1 bg-border" />
                     Or paste a token
@@ -198,8 +201,10 @@ export function IntegrationsOnboarding({
                   </div>
                 </>
               ) : null}
+              {!isOAuthProvider(selected) ? <IntegrationGuide provider={selected} callbackBase={callbackBase} defaultOpen /> : null}
               {oauth[selected] ? (
                 <>
+                  <IntegrationGuide provider={selected} callbackBase={callbackBase} />
                   <form action={oauthStartAction}>
                     <input type="hidden" name="workspaceId" value={workspaceId} />
                     <input type="hidden" name="provider" value={selected} />

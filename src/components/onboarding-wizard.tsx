@@ -34,6 +34,7 @@ type Props = {
   providers: string[];
   oauth: Record<string, boolean>;
   mcp: ComponentProps<typeof McpPanel>;
+  callbackBase: string;
 };
 
 // Setup that runs before the console. Every step is optional, and the whole
@@ -90,6 +91,7 @@ export function OnboardingWizard(props: Props) {
                 body="Connect the providers you use, such as Linear or GitHub, Slack for chats, or an Obsidian vault for notes. OAuth connections send you to the provider and back to the connection page."
               />
               <IntegrationsOnboarding
+                callbackBase={props.callbackBase}
                 workspaceId={props.workspace.id}
                 integrations={props.integrations}
                 providers={props.providers}

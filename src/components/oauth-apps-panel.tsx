@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { OAUTH_PROVIDER_LABELS, OAUTH_PROVIDERS, type OAuthProvider } from "@/lib/oauth-providers";
 import type { OAuthAppOverview } from "@/server/integrations/oauth-apps";
+import { IntegrationGuide } from "@/components/integration-guide";
 
 const SOURCE_LABELS: Record<NonNullable<OAuthAppOverview["source"]>, string> = {
   workspace: "Saved in this workspace",
@@ -42,6 +43,7 @@ export function OAuthAppsPanel({
             workspaceId={workspaceId}
             canAdmin={canAdmin}
             callbackUrl={`${callbackBase}/api/integrations/oauth/${provider}/callback`}
+            callbackBase={callbackBase}
             status={overview[provider]}
           />
         ))}
@@ -55,12 +57,14 @@ function OAuthAppCard({
   workspaceId,
   canAdmin,
   callbackUrl,
+  callbackBase,
   status,
 }: {
   provider: OAuthProvider;
   workspaceId: string;
   canAdmin: boolean;
   callbackUrl: string;
+  callbackBase: string;
   status: OAuthAppOverview;
 }) {
   const [state, formAction, pending] = useActionState(saveOAuthAppAction, {});
@@ -76,6 +80,7 @@ function OAuthAppCard({
       <p className="break-all text-xs text-muted">
         Callback URL: <span className="font-mono">{callbackUrl}</span>
       </p>
+      <IntegrationGuide provider={provider} callbackBase={callbackBase} />
 
       {canAdmin ? (
         <form action={formAction} className="grid gap-3 md:grid-cols-2">
